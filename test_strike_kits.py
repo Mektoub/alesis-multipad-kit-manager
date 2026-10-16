@@ -359,5 +359,43 @@ class BackupEnMemoire(unittest.TestCase):
         self.assertEqual(b.serialize(), FAC.read_bytes())
 
 
+@unittest.skipUnless(BKF3.exists(), "pas de Backup003")
+class RecopiePad(unittest.TestCase):
+    def setUp(self):
+        self.b = sk.Backup.open(BKF3)
+
+    def test_recopie_complete_sans_note_midi(self):
+        kit = self.b.decode("032")  # P5 : sample 8072 ; P9 : Click, Aux+Phone
+        skipped = sk.copy_slot_settings(kit, 9, [1, 2], ["params", "light", "wave_a", "wave_b"])
+        dec = sk.decode_kit(sk.encode_kit(self.b.get_raw("032"), kit))
+        for i in (0, 1):
+            self.assertEqual(dec["slots"][i]["params"]["control"], 3)
+            self.assertEqual(dec["slots"][i]["params"]["audio_output"], 4)
+        self.assertEqual([dec["slots"][i]["params"]["midi_note"] for i in (0, 1)], [36, 37])
+        # champs illisibles dans les pads cibles (kit KITC) : signalés, non recopiés
+        self.assertEqual(skipped, [(1, "wave_a.params.p09"), (1, "wave_a.params.p10"), (2, "params.p17")])
+
+    def test_recopie_partielle_et_note_midi(self):
+        kit = self.b.decode("032")
+        sk.copy_slot_settings(kit, 5, [6], ["wave_a"], include_midi_note=True)
+        p6 = kit["slots"][5]
+        self.assertEqual(p6["wave_a"]["sample"], 8072)
+        self.assertEqual(p6["params"]["midi_note"], 42)  # params non copiés
+        sk.copy_slot_settings(kit, 5, [6], ["params"], include_midi_note=True)
+        self.assertEqual(kit["slots"][5]["params"]["midi_note"], 41)
+
+    def test_champs_illisibles_signales(self):
+        kit = self.b.decode("032")  # le pad 3 n'a pas de champ control lisible
+        skipped = sk.copy_slot_settings(kit, 9, [3], ["params"])
+        self.assertIn((3, "params.control"), skipped)
+        self.assertNotIn("control", kit["slots"][2]["params"])
+
+    def test_emplacement_invalide(self):
+        kit = self.b.decode("032")
+        for src, dests, parts in ((0, [1], ["params"]), (1, [25], ["params"]), (1, [2], ["autre"])):
+            with self.assertRaises(sk.StrikeError):
+                sk.copy_slot_settings(kit, src, dests, parts)
+
+
 if __name__ == "__main__":
     unittest.main()

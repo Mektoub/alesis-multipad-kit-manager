@@ -2,13 +2,25 @@
   // Kit : réglages généraux, grille des 9 pads, autres entrées, emplacement choisi.
   import SlotEditor from "./SlotEditor.svelte";
 
-  let { kit, meta, sampleIndex, selected = $bindable(), onpick } = $props();
+  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy } = $props();
+
+  // Disposition de l'appareil : 7-8-9 en haut (pads deux fois moins hauts),
+  // 4-5-6 au milieu, 1-2-3 en bas.
+  const PAD_ORDER = [6, 7, 8, 3, 4, 5, 0, 1, 2];
 
   let slot = $derived(kit.slots[selected]);
   let others = $derived(kit.slots.slice(9));
 
   function color(s) {
     return meta.colors[s.light.play_color]?.css ?? "transparent";
+  }
+  const CLICK = 3;
+  let controlLabels = $derived(meta.pad_params.find((d) => d.name === "control")?.labels ?? []);
+
+  function controlBadge(s) {
+    const c = s.params.control;
+    if (!c) return "";
+    return c === CLICK ? "Click" : (controlLabels[c] ?? `Control ${c}`);
   }
   function sampleName(id) {
     if (id == null) return "";
@@ -35,12 +47,15 @@
   </div>
 
   <div class="pads">
-    {#each kit.slots.slice(0, 9) as s, i}
-      <button class="pad" class:selected={selected === i} onclick={() => (selected = i)} style:--led={color(s)}>
+    {#each PAD_ORDER as i (i)}
+      {@const s = kit.slots[i]}
+      <button class="pad" class:small={i >= 6} class:selected={selected === i} onclick={() => (selected = i)} style:--led={color(s)}>
         <span class="label">{s._label}</span>
         <span class="sample">{sampleName(s.wave_a.sample)}</span>
         {#if s.wave_b.sample != null}<span class="sample b">{sampleName(s.wave_b.sample)}</span>{/if}
-        {#if s.params.midi_note != null}<span class="note">♪ {s.params.midi_note}</span>{/if}
+        {#if controlBadge(s)}
+          <span class="control" class:click={s.params.control === CLICK} title="Control : {controlBadge(s)}">{controlBadge(s)}</span>
+        {/if}
       </button>
     {/each}
   </div>
@@ -55,7 +70,10 @@
   </div>
 
   <div class="editor">
-    <h2>{slot._label}</h2>
+    <div class="editor-head">
+      <h2>{slot._label}</h2>
+      <button onclick={() => oncopy(selected + 1)}>Copier vers…</button>
+    </div>
     {#key selected}
       <SlotEditor {slot} {meta} {sampleIndex} {onpick} />
     {/key}
@@ -100,6 +118,7 @@
   .pad {
     position: relative;
     aspect-ratio: 1.6;
+    min-width: 0;
     background: var(--pad);
     color: var(--pad-text);
     border: 2px solid transparent;
@@ -114,6 +133,9 @@
     overflow: hidden;
     box-shadow: inset 0 -4px 0 var(--led);
   }
+  .pad.small {
+    aspect-ratio: 3.2;
+  }
   .pad.selected {
     border-color: var(--accent);
   }
@@ -123,12 +145,29 @@
     left: 10px;
     font-weight: 700;
   }
-  .note {
+  .control {
     position: absolute;
-    top: 8px;
-    right: 10px;
-    font-size: 12px;
-    opacity: 0.7;
+    top: 7px;
+    right: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: rgb(255 255 255 / 15%);
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .control.click {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+  .editor-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
   }
   .sample {
     font-size: 12px;

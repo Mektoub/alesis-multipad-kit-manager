@@ -50,18 +50,24 @@ cd editor/web && npm ci && npm run build && cd ../..
    racine, puis cliquer sur *Ouvrir*.
 2. **Choisir un kit** dans la colonne de gauche (*masquer les vides* allège la liste).
 3. **Régler le kit** : nom, volume, tempo.
-4. **Choisir un pad** dans la grille des 9 pads, qui montre le sample, la note MIDI
-   et la couleur de LED. Les emplacements 10 à 24 sont accessibles sous la grille.
+4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
+   4-5-6 au milieu, 1-2-3 en bas). Elle montre le sample, la couleur de LED et,
+   si le pad a un Control, un badge (« Click » pour Click On/Off). Les emplacements 10 à 24 sont accessibles sous la grille.
 5. **Régler le pad** :
    - *Pad* : volume, pan, note MIDI, Control, Audio Output… ; les paramètres non
      identifiés sont regroupés à part ;
    - *Éclairage* : couleurs et modes Play / Stop ;
    - *Wave A / Wave B* : sample, plage de vélocité, mixage.
-6. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
+6. **Recopier un pad** : *Copier vers…* (en haut des réglages du pad) copie ses
+   réglages vers un ou plusieurs autres emplacements. On choisit les sections (pad,
+   éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
+   la sienne. Dans un kit `KITC`, les champs illisibles de la cible ne sont pas
+   copiés et sont listés dans le message de confirmation.
+7. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
    perso. La zone du bas ajoute un WAV par glisser-déposer
    (voir [Ajouter un sample](ajouter-un-sample.md)).
-7. **Enregistrer sous** : le nom suivant est proposé (`Backup003.bkf` après
+8. **Enregistrer sous** : le nom suivant est proposé (`Backup003.bkf` après
    `Backup002.bkf`). Si le fichier existe, une confirmation est demandée.
    L'enregistrement sur la sauvegarde d'origine est refusé.
 
@@ -84,6 +90,7 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
+| POST | `/api/kits/{num}/copy` | recopier un emplacement (`{"source": 9, "targets": [7, 8], "parts": ["params", "light", "wave_a", "wave_b"], "include_midi_note": false}`) |
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |

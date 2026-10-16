@@ -241,6 +241,49 @@ def encode_kit(raw, data, samples=None):
     return bytes(kit)
 
 
+COPY_PARTS = ("params", "light", "wave_a", "wave_b")
+WAVE_HEADER_KEYS = ("sample", "velocity_low", "velocity_high")
+
+
+def copy_slot_settings(kit, source, targets, parts, include_midi_note=False):
+    """Recopie, dans le JSON `kit`, les réglages de l'emplacement `source` vers `targets`.
+
+    `parts` choisit les sections parmi COPY_PARTS. La note MIDI n'est recopiée que
+    si `include_midi_note` est vrai. Retourne les champs non recopiés car illisibles
+    dans l'emplacement cible (kits KITC) : [(emplacement, "section.champ")].
+    """
+    for n in [source, *targets]:
+        if not isinstance(n, int) or not 1 <= n <= SLOT_COUNT:
+            raise StrikeError("emplacement %r inexistant (1 à %d)" % (n, SLOT_COUNT))
+    unknown = set(parts) - set(COPY_PARTS)
+    if unknown:
+        raise StrikeError("sections inconnues : %s" % ", ".join(sorted(unknown)))
+    src = kit["slots"][source - 1]
+    skipped = []
+
+    def copy(fields, dest, keys, label, target):
+        for key in keys:
+            if key == "midi_note" and not include_midi_note:
+                continue
+            if key in dest:
+                dest[key] = fields[key]
+            else:
+                skipped.append((target, "%s.%s" % (label, key)))
+
+    for target in targets:
+        if target == source:
+            continue
+        dst = kit["slots"][target - 1]
+        for part in parts:
+            if part in ("params", "light"):
+                copy(src[part], dst[part], list(src[part]), part, target)
+            else:
+                copy(src[part], dst[part], [k for k in WAVE_HEADER_KEYS if k in src[part]], part, target)
+                copy(src[part]["params"], dst[part]["params"], list(src[part]["params"]),
+                     part + ".params", target)
+    return skipped
+
+
 # --------------------------------------------------------------------------
 # WAV
 # --------------------------------------------------------------------------
@@ -633,6 +676,11 @@ class Backup:
             self._set_raw(num, kit)
             self.dirty = True
         return self.decode(num)
+
+    def copy_slot(self, num, source, targets, parts, include_midi_note=False):
+        kit = self.decode(num)
+        skipped = copy_slot_settings(kit, source, targets, parts, include_midi_note)
+        return self.update(num, kit), skipped
 
     def add_sample(self, name, wav):
         if self.bkf is None:

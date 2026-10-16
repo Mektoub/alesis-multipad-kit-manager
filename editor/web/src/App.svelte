@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { api } from "./lib/api.js";
   import KitEditor from "./lib/KitEditor.svelte";
+  import CopyDialog from "./lib/CopyDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
 
   let meta = $state(null);
@@ -15,6 +16,7 @@
   let error = $state("");
   let notice = $state("");
   let picking = $state(null); // "wave_a" | "wave_b" | null
+  let copyFrom = $state(null); // emplacement source de la recopie
   let savePath = $state("");
   let saving = $state(false);
   let syncing = $state(false);
@@ -53,6 +55,28 @@
       if (num === currentNum) await loadKit(num, false);
     } finally {
       syncing = false;
+    }
+  }
+
+  // Envoie tout de suite une modification encore en attente.
+  async function flush() {
+    clearTimeout(timer);
+    const snapshot = JSON.stringify(kit);
+    if (kit && snapshot !== lastSynced) await push(currentNum, snapshot);
+  }
+
+  async function copySlot(request) {
+    await flush();
+    const { kit: updated, skipped } = await api.copySlot(currentNum, request);
+    lastSynced = JSON.stringify(updated);
+    kit = updated;
+    session.dirty = true;
+    copyFrom = null;
+    const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
+    notice = `Réglages de ${updated.slots[request.source - 1]._label} copiés vers ${dest}.`;
+    if (skipped.length) {
+      const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
+      notice += ` Champs illisibles dans ce kit, non copiés : ${list}.`;
     }
   }
 
@@ -187,7 +211,7 @@
     </aside>
     <section class="content">
       {#if kit}
-        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} />
+        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} />
       {/if}
     </section>
   </main>
@@ -196,6 +220,10 @@
     <p>Choisissez une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code> puis cliquez sur <strong>Ouvrir</strong>.</p>
     <p class="muted">Les sauvegardes sont recherchées dans le dossier de travail : {session?.root}</p>
   </main>
+{/if}
+
+{#if copyFrom && kit}
+  <CopyDialog {kit} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
 {/if}
 
 {#if picking && kit}

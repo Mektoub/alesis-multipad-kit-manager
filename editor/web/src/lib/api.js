@@ -30,6 +30,7 @@ export const api = {
   open: (path) => request("POST", "/api/open", { path }),
   kit: (num) => request("GET", `/api/kits/${num}`),
   saveKit: (num, kit) => request("PUT", `/api/kits/${num}`, kit),
+  copySlot: (num, body) => request("POST", `/api/kits/${num}/copy`, body),
   samples: () => request("GET", "/api/samples"),
   addSample: (file) => {
     const form = new FormData();

@@ -112,6 +112,17 @@ class Api(unittest.TestCase):
             r = self.client.post("/api/save", json={"path": path, "overwrite": True})
             self.assertEqual(r.status_code, 400, path)
 
+    def test_recopie_pad(self):
+        r = self.client.post("/api/kits/032/copy", json={"source": 5, "targets": [1, 2], "parts": ["wave_a"]})
+        self.assertEqual(r.status_code, 200, r.text)
+        kit = r.json()["kit"]
+        self.assertEqual([kit["slots"][i]["wave_a"]["sample"] for i in (0, 1)], [8072, 8072])
+        self.assertEqual(r.json()["skipped"], [{"slot": 1, "field": "wave_a.params.p09"},
+                                               {"slot": 1, "field": "wave_a.params.p10"}])
+        self.assertTrue(self.client.get("/api/state").json()["dirty"])
+        r = self.client.post("/api/kits/032/copy", json={"source": 5, "targets": [30], "parts": ["wave_a"]})
+        self.assertEqual(r.status_code, 400)
+
     def test_meta(self):
         meta = self.client.get("/api/meta").json()
         pad = {p["name"]: p for p in meta["pad_params"]}

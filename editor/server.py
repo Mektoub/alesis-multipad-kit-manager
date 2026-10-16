@@ -27,6 +27,13 @@ class SaveRequest(BaseModel):
     overwrite: bool = False
 
 
+class CopyRequest(BaseModel):
+    source: int
+    targets: list[int]
+    parts: list[str]
+    include_midi_note: bool = False
+
+
 class Session:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -114,6 +121,14 @@ def create_app(root):
         with s.lock:
             b = kit_or_404(num)
             return strike_errors(lambda: b.update(num, kit))
+
+    @app.post("/api/kits/{num}/copy")
+    def copy_slot(num: str, req: CopyRequest):
+        with s.lock:
+            b = kit_or_404(num)
+            kit, skipped = strike_errors(lambda: b.copy_slot(
+                num, req.source, req.targets, req.parts, req.include_midi_note))
+            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
 
     @app.get("/api/samples")
     def samples():
