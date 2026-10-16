@@ -43,7 +43,7 @@
       <span class="muted">Tempo (BPM)</span>
       <input type="number" min="30" max="280" step="0.1" bind:value={kit.tempo} />
     </label>
-    <span class="format muted" title="KITC : format écrit par l'appareil ; certains champs peuvent être illisibles">{kit.format}</span>
+    <span class="format muted" title="KITC : format écrit par l'appareil quand on enregistre un kit">{kit.format}</span>
   </div>
 
   <div class="pads">

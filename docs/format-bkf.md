@@ -308,12 +308,15 @@ mais :
 - les en-têtes de wave restent intacts : id du sample et vélocités (ex. `1f 88 00 7f`
   pour le sample 8072, vélocité 0–127, sur le pad 5) ;
 - des structures de 0x30 octets (`80 00 … 00 20 "Empty"`), espacées de 0xB0 octets
-  à partir de 0xD0, chevauchent certains enregistrements.
+  à partir de 0xD0, recouvrent les octets `id`, `min` et `max` de certains
+  enregistrements. **L'octet valeur, lui, reste à sa place** : la chaîne `"Empty"`
+  apparaît alors avec son 2ᵉ octet remplacé par la valeur. Exemple : `45 28 70 74`
+  (`"E(pt"`) donne la note MIDI 40 du pad 4. Les positions recouvertes sont les
+  mêmes dans tous les kits `KITC` observés.
 
-L'outil lit une valeur si son enregistrement a la forme attendue
-(`id|FF|00, valeur, min max|FF FF|00 00`), et un en-tête de wave si `low ≤ high ≤ 127`.
-Sinon, le champ est omis du JSON et ne peut pas être modifié. Seul l'octet valeur
-(ou les 2 octets de l'id) est réécrit.
+Dans ces 8 emplacements, l'outil lit donc toujours l'octet valeur, quels que soient
+les octets voisins, et ne réécrit que lui (ou les 2 octets de l'id du sample). Un
+en-tête de wave est lu si `low ≤ high ≤ 127`.
 
 ## Méthode pour aller plus loin
 

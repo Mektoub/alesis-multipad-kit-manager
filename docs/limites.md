@@ -12,9 +12,9 @@ Ce qui suit n'est pas encore couvert ou vérifié.
 ## Kits
 
 - **Kits `KITC`** (format écrit par l'appareil quand on enregistre un kit) : pour
-  les pads 1 à 8, seules les valeurs sont stockées et certaines sont recouvertes
-  par d'autres données. Les champs illisibles sont absents du JSON et ne peuvent
-  pas être modifiés. Les kits vides (`KITH`) sont entièrement modifiables.
+  les pads 1 à 8, seules les valeurs sont stockées, et certaines zones sont
+  recouvertes par d'autres structures dont le rôle est inconnu. Les valeurs y
+  restent lisibles et modifiables ; seul l'octet valeur est réécrit.
 - **Emplacements 10 à 24** : leur correspondance exacte avec les déclencheurs
   externes et les pédales n'est pas vérifiée.
 - Plusieurs paramètres ne sont pas encore identifiés (voir

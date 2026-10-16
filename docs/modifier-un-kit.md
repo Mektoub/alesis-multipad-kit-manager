@@ -76,10 +76,9 @@ USB, puis le charger depuis le menu *Utility > Backup* de l'appareil.
 ## Kits créés sur l'appareil (`KITC`)
 
 Quand on enregistre un kit sur l'appareil, il est écrit dans une variante (`KITC`)
-où, pour les pads 1 à 8, seules les valeurs sont stockées et certaines sont
-recouvertes par d'autres données. Les champs illisibles sont absents du JSON et
-ne peuvent pas être modifiés ; tous les autres le sont. Les kits vides (`KITH`)
-sont entièrement modifiables. Détails : [format des kits](format-bkf.md#particularités-de-la-variante-kitc).
+où, pour les pads 1 à 8, seules les valeurs sont stockées. Tous les champs restent
+lisibles et modifiables, comme dans les kits vides (`KITH`). Détails :
+[format des kits](format-bkf.md#particularités-de-la-variante-kitc).
 
 ## Sauvegardes `.fac`
 

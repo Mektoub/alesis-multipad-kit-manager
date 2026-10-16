@@ -29,7 +29,9 @@ TEMPO_OFF = 0x10
 
 # Enregistrements (id, valeur, min, max), dans l'ordre fixe où ils apparaissent
 # dans tous les kits. Dans les 8 premiers emplacements des kits KITC, seuls les
-# octets « valeur » sont présents (id/min/max remplacés par 0xFF ou 0x00).
+# octets « valeur » font foi : id/min/max sont remplacés par 0xFF, 0x00 ou par
+# des structures qui recouvrent la zone (l'octet valeur restant à sa place).
+KITC_MASKED_SLOTS = 8
 PAD_LAYOUT = [(0x00, 0, 100), (0x02, 0, 31), (0x08, 0, 127), (0x09, 0, 4),
               (0x0C, 0, 16), (0x0E, 0, 16), (0x0F, 0, 5), (0x10, 0, 127),
               (0x11, 1, 32), (0x12, 0, 32), (0x13, 0, 7), (0x14, 0, 13),
@@ -81,29 +83,35 @@ def layout_index(layout, table, name):
     raise StrikeError("paramètre inconnu : %s" % name)
 
 
-def record_readable(kit, off, rid, lo, hi):
+def record_readable(kit, off, rid, lo, hi, masked):
     """Vrai si l'octet valeur de l'enregistrement à `off` est exploitable."""
+    if masked:
+        return True
     return (kit[off] in (rid, 0xFF, 0x00)
             and (kit[off + 2], kit[off + 3]) in ((lo, hi), (0xFF, 0xFF), (0, 0)))
 
 
-def decode_params(kit, start, layout, table):
+def is_masked(kit, index):
+    return kit[:4] == b"KITC" and index < KITC_MASKED_SLOTS
+
+
+def decode_params(kit, start, layout, table, masked=False):
     out = {}
     for k, (rid, lo, hi) in enumerate(layout):
         off = start + 4 * k
-        if record_readable(kit, off, rid, lo, hi):
+        if record_readable(kit, off, rid, lo, hi, masked):
             out[param_name(table, rid)] = kit[off + 1]
     return out
 
 
-def encode_params(kit, start, layout, table, params, where):
+def encode_params(kit, start, layout, table, params, where, masked=False):
     for name, value in params.items():
         if name.startswith("_"):
             continue
         k = layout_index(layout, table, name)
         rid, lo, hi = layout[k]
         off = start + 4 * k
-        if not record_readable(kit, off, rid, lo, hi):
+        if not record_readable(kit, off, rid, lo, hi, masked):
             raise StrikeError("%s : %s non modifiable dans ce kit" % (where, name))
         if kit[off + 1] == value:
             continue
@@ -140,7 +148,8 @@ def decode_kit(kit, samples=None):
         base = SLOT_BASE + i * SLOT_SIZE
         slot = {"slot": i + 1, "_label": slot_label(i)}
         slot["light"] = {k: kit[base + o] for k, (o, hi) in LIGHT_FIELDS.items() if kit[base + o] <= hi}
-        slot["params"] = decode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS)
+        masked = is_masked(kit, i)
+        slot["params"] = decode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS, masked)
         for wave, woff in WAVES.items():
             w = base + woff
             entry = {}
@@ -150,7 +159,7 @@ def decode_kit(kit, samples=None):
                 if sid in samples:
                     entry["_sample_name"] = samples[sid]
                 entry["velocity_low"], entry["velocity_high"] = kit[w + 2], kit[w + 3]
-            entry["params"] = decode_params(kit, w + WAVE_RECORDS, WAVE_LAYOUT, WAVE_PARAMS)
+            entry["params"] = decode_params(kit, w + WAVE_RECORDS, WAVE_LAYOUT, WAVE_PARAMS, masked)
             slot[wave] = entry
         out["slots"].append(slot)
     return out
@@ -214,7 +223,8 @@ def encode_kit(raw, data, samples=None):
             if not isinstance(value, int) or not 0 <= value <= limit:
                 raise StrikeError("%s : light.%s=%r hors plage [0, %d]" % (where, key, value, limit))
             kit[base + off] = value
-        encode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS, slot.get("params", {}), where)
+        masked = is_masked(kit, i)
+        encode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS, slot.get("params", {}), where, masked)
         for wave, woff in WAVES.items():
             if wave not in slot:
                 continue
@@ -235,7 +245,7 @@ def encode_kit(raw, data, samples=None):
                                           "(0–126, 1–127, low ≤ high)" % (label, low, high))
                     kit[w + 2], kit[w + 3] = low, high
             encode_params(kit, w + WAVE_RECORDS, WAVE_LAYOUT, WAVE_PARAMS,
-                          slot[wave].get("params", {}), label)
+                          slot[wave].get("params", {}), label, masked)
 
     kit[8] = kit_checksum(kit)
     return bytes(kit)

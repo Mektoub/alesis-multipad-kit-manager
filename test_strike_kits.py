@@ -295,14 +295,45 @@ class AjoutSample(unittest.TestCase):
 
 
 @unittest.skipUnless(BKF3.exists(), "pas de Backup003")
+class KitcChampsRecouverts(unittest.TestCase):
+    """Dans les pads 1–8 des kits KITC, des structures recouvrent id/min/max de
+    certains enregistrements, mais l'octet valeur reste à sa place."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kits = kits_of(BKF3.read_bytes())
+
+    def test_tous_les_champs_sur_tous_les_pads(self):
+        pad = [sk.param_name(sk.PAD_PARAMS, r) for r, _, _ in sk.PAD_LAYOUT]
+        wave = [sk.param_name(sk.WAVE_PARAMS, r) for r, _, _ in sk.WAVE_LAYOUT]
+        for name in ("031.kit", "032.kit"):
+            for s in sk.decode_kit(self.kits[name])["slots"]:
+                self.assertEqual(list(s["params"]), pad, (name, s["slot"]))
+                for w in ("wave_a", "wave_b"):
+                    self.assertEqual(list(s[w]["params"]), wave, (name, s["slot"], w))
+
+    def test_valeurs_recouvertes(self):
+        p4 = sk.decode_kit(self.kits["032.kit"])["slots"][3]["params"]
+        self.assertEqual((p4["pan"], p4["midi_note"]), (15, 40))
+
+    def test_modification_valeur_recouverte(self):
+        raw = self.kits["032.kit"]
+        data = sk.decode_kit(raw)
+        data["slots"][3]["params"]["midi_note"] = 52
+        new = sk.encode_kit(raw, data)
+        changed = [i for i in range(len(raw)) if raw[i] != new[i]]
+        off = sk.SLOT_BASE + 3 * sk.SLOT_SIZE + sk.PAD_RECORDS + 2 * 4 + 1
+        self.assertEqual(changed, [8, off])
+        self.assertEqual(sk.decode_kit(new)["slots"][3]["params"]["midi_note"], 52)
+
+
+@unittest.skipUnless(BKF3.exists(), "pas de Backup003")
 class Controle(unittest.TestCase):
     def test_controle_click(self):
         kits = kits_of(BKF3.read_bytes())
         crazy, whereis = sk.decode_kit(kits["032.kit"]), sk.decode_kit(kits["031.kit"])
         self.assertEqual((crazy["tempo"], whereis["tempo"]), (99.0, 116.0))
-        # dans les pads masqués des kits KITC, le champ peut être illisible (absent)
-        self.assertEqual([s["params"].get("control") for s in crazy["slots"][:9]],
-                         [0, 0, None, 0, 0, 0, 0, 0, 3])
+        self.assertEqual([s["params"].get("control") for s in crazy["slots"][:9]], [0] * 8 + [3])
         self.assertEqual([s["params"]["control"] for s in whereis["slots"][6:9]], [3, 3, 3])
         # Audio Output du pad 9 passé de Main+Phone (0) à Aux+Phone (4)
         self.assertEqual(crazy["slots"][8]["params"]["audio_output"], 4)
@@ -372,8 +403,8 @@ class RecopiePad(unittest.TestCase):
             self.assertEqual(dec["slots"][i]["params"]["control"], 3)
             self.assertEqual(dec["slots"][i]["params"]["audio_output"], 4)
         self.assertEqual([dec["slots"][i]["params"]["midi_note"] for i in (0, 1)], [36, 37])
-        # champs illisibles dans les pads cibles (kit KITC) : signalés, non recopiés
-        self.assertEqual(skipped, [(1, "wave_a.params.p09"), (1, "wave_a.params.p10"), (2, "params.p17")])
+        # tous les champs sont lisibles, y compris dans les pads masqués du kit KITC
+        self.assertEqual(skipped, [])
 
     def test_recopie_partielle_et_note_midi(self):
         kit = self.b.decode("032")
@@ -384,11 +415,17 @@ class RecopiePad(unittest.TestCase):
         sk.copy_slot_settings(kit, 5, [6], ["params"], include_midi_note=True)
         self.assertEqual(kit["slots"][5]["params"]["midi_note"], 41)
 
-    def test_champs_illisibles_signales(self):
-        kit = self.b.decode("032")  # le pad 3 n'a pas de champ control lisible
+    def test_recopie_vers_champ_recouvert(self):
+        kit = self.b.decode("032")  # pad 3 : control recouvert par une autre structure
         skipped = sk.copy_slot_settings(kit, 9, [3], ["params"])
-        self.assertIn((3, "params.control"), skipped)
-        self.assertNotIn("control", kit["slots"][2]["params"])
+        self.assertEqual(skipped, [])
+        dec = sk.decode_kit(sk.encode_kit(self.b.get_raw("032"), kit))
+        self.assertEqual(dec["slots"][2]["params"]["control"], 3)
+
+    def test_champ_absent_signale(self):
+        kit = self.b.decode("032")
+        del kit["slots"][2]["params"]["control"]
+        self.assertEqual(sk.copy_slot_settings(kit, 9, [3], ["params"]), [(3, "params.control")])
 
     def test_emplacement_invalide(self):
         kit = self.b.decode("032")

@@ -117,8 +117,7 @@ class Api(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.text)
         kit = r.json()["kit"]
         self.assertEqual([kit["slots"][i]["wave_a"]["sample"] for i in (0, 1)], [8072, 8072])
-        self.assertEqual(r.json()["skipped"], [{"slot": 1, "field": "wave_a.params.p09"},
-                                               {"slot": 1, "field": "wave_a.params.p10"}])
+        self.assertEqual(r.json()["skipped"], [])  # champs recouverts des kits KITC désormais lus
         self.assertTrue(self.client.get("/api/state").json()["dirty"])
         r = self.client.post("/api/kits/032/copy", json={"source": 5, "targets": [30], "parts": ["wave_a"]})
         self.assertEqual(r.status_code, 400)

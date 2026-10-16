@@ -8,6 +8,7 @@
 - Éditeur web : recopie des réglages d'un pad vers d'autres (sections au choix, note MIDI conservée par défaut) ; badge du Control (« Click ») sur les pads à la place de la note MIDI.
 - Fonction `copy_slot_settings` et route `POST /api/kits/{num}/copy`.
 - Script `editeur.sh` : lance l'éditeur en créant ou mettant à jour le venv, les dépendances et l'interface au besoin.
+- Correction : dans les pads 1 à 8 des kits `KITC`, les champs dont l'en-tête est recouvert par d'autres données étaient omis ; leur octet valeur est désormais lu et modifiable, et tous les pads affichent les mêmes champs.
 - Documentation réorganisée : README réduit aux commandes, un guide par cas d'usage dans `docs/` (modifier un kit, ajouter un sample, éditeur web, contenu de l'export, paramètres, limites, développement).
 
 ## 0.1.0 — 2026-10-16

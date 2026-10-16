@@ -61,8 +61,8 @@ cd editor/web && npm ci && npm run build && cd ../..
 6. **Recopier un pad** : *Copier vers…* (en haut des réglages du pad) copie ses
    réglages vers un ou plusieurs autres emplacements. On choisit les sections (pad,
    éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
-   la sienne. Dans un kit `KITC`, les champs illisibles de la cible ne sont pas
-   copiés et sont listés dans le message de confirmation.
+   la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
+   message de confirmation.
 7. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
    perso. La zone du bas ajoute un WAV par glisser-déposer

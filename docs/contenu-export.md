@@ -50,8 +50,6 @@ libre : on peut renommer le fichier.
   le nom exact d'un sample, y compris ceux ajoutés depuis `wav/`.
 - Les paramètres `pXX` (id hexadécimal) ne sont pas encore identifiés ; ils sont
   modifiables quand même.
-- Dans les kits `KITC`, certains champs des pads 1 à 8 peuvent être absents : ils
-  sont illisibles et ne peuvent pas être modifiés.
 - Chaque paramètre a une plage min/max stockée dans le kit. Une valeur modifiée hors
   plage est refusée à l'import.
 
