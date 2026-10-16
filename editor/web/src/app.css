@@ -1,0 +1,128 @@
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --panel-2: #eceef2;
+  --border: #d5d9e0;
+  --text: #1c2028;
+  --muted: #646c7a;
+  --accent: #e0262f;
+  --accent-text: #ffffff;
+  --danger-bg: #fdecec;
+  --danger: #b3261e;
+  --ok: #1f7a3a;
+  --pad: #2a2e36;
+  --pad-text: #f2f3f5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 8%);
+  --radius: 8px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c;
+    --panel: #1d2027;
+    --panel-2: #262a33;
+    --border: #353a45;
+    --text: #e8eaee;
+    --muted: #9aa1ad;
+    --accent: #ff4a52;
+    --danger-bg: #3a1c1c;
+    --danger: #ff8a80;
+    --ok: #6fd28d;
+    --pad: #0f1115;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #15171c;
+  --panel: #1d2027;
+  --panel-2: #262a33;
+  --border: #353a45;
+  --text: #e8eaee;
+  --muted: #9aa1ad;
+  --accent: #ff4a52;
+  --danger-bg: #3a1c1c;
+  --danger: #ff8a80;
+  --ok: #6fd28d;
+  --pad: #0f1115;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+input[type="text"],
+input[type="number"],
+input[type="search"],
+select {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}

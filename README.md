@@ -51,6 +51,40 @@ puis y faire référence par leur nom, sans `.wav`, dans les kits :
 - Les règles appliquées ont été relevées sur une sauvegarde faite par l'appareil
   avant et après un import ; l'outil reproduit ce résultat octet pour octet.
 
+## Éditeur web
+
+Une interface graphique locale (FastAPI + Svelte) permet d'éditer les kits sans
+manipuler de JSON :
+
+- grille des 9 pads (sample, note MIDI, couleur de LED) et accès aux entrées 10 à 24 ;
+- réglages du pad, de l'éclairage et des waves A/B, avec des curseurs bornés par
+  les plages du kit et des listes pour Control, Audio Output, etc. ;
+- recherche parmi tous les samples, écoute des samples perso, ajout d'un WAV par
+  glisser-déposer ;
+- enregistrement dans une **nouvelle** sauvegarde (l'original n'est jamais écrasé).
+
+Installation (une fois) :
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cd editor/web && npm install && npm run build && cd ../..
+```
+
+Lancement, depuis le dossier qui contient les sauvegardes (ou avec `--root`) :
+
+```bash
+.venv/bin/python -m editor --root Strike
+```
+
+Le navigateur s'ouvre sur http://127.0.0.1:8765/. Le serveur n'écoute que sur la
+machine locale, et ne lit ni n'écrit en dehors du dossier `--root`. Les
+modifications sont gardées en mémoire jusqu'à *Enregistrer sous*.
+
+Pour développer l'interface avec rechargement à chaud : lancer le serveur
+(`python -m editor --no-browser`), puis `npm run dev` dans `editor/web`
+(http://localhost:5173, qui relaie `/api` vers le serveur).
+
 ## Contenu de l'export
 
 - `kits/NNN_Nom.json` : un fichier par kit. `NNN` est le numéro du kit et sert
@@ -134,7 +168,8 @@ diff -r export_avant/kits export_apres/kits
 ## Tests
 
 ```bash
-python3 -m unittest -v test_strike_kits
+python3 -m unittest -v test_strike_kits      # format et ligne de commande (sans dépendance)
+.venv/bin/python -m unittest -v test_editor  # API de l'éditeur web
 ```
 
 Les tests utilisent de vraies sauvegardes, cherchées par défaut dans le dossier

@@ -1,2 +1,6 @@
 mes_kits
 Strike
+.venv
+__pycache__
+editor/web/node_modules
+editor/web/dist

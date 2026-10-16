@@ -308,5 +308,56 @@ class Controle(unittest.TestCase):
         self.assertEqual(crazy["slots"][8]["params"]["audio_output"], 4)
 
 
+@unittest.skipUnless(BKF2.exists() and FAC.exists(), "pas de Backup002 / .fac")
+class BackupEnMemoire(unittest.TestCase):
+    def test_kits_et_lecture(self):
+        b = sk.Backup.open(BKF2)
+        self.assertEqual((b.kind, len(b.kit_numbers()), b.kit_numbers()[0]), ("bkf", 70, "031"))
+        self.assertEqual(b.decode("032")["name"], "CrazyInLove")
+        self.assertEqual(b.decode("032")["slots"][4]["wave_a"]["_sample_name"], "Crazy in Love sample track")
+        self.assertFalse(b.dirty)
+        self.assertEqual(b.serialize(), BKF2.read_bytes())
+
+    def test_modification_puis_enregistrement(self):
+        b = sk.Backup.open(BKF2)
+        kit = b.decode("033")
+        kit["name"] = "Nouveau"
+        kit["slots"][0]["wave_a"]["sample"] = "Crazy in Love sample track"
+        dec = b.update("033", kit)
+        self.assertEqual((dec["name"], dec["slots"][0]["wave_a"]["sample"]), ("Nouveau", 8072))
+        self.assertTrue(b.dirty)
+        relu = sk.Backup(b.serialize())
+        self.assertEqual(relu.decode("033")["name"], "Nouveau")
+        with self.assertRaises(sk.StrikeError):
+            b.update("033", dict(kit, level=500))
+        with self.assertRaises(sk.StrikeError):
+            b.decode("999")
+
+    def test_samples(self):
+        b = sk.Backup.open(BKF2)
+        self.assertEqual(len(b.samples()), 8073)
+        self.assertEqual(b.user_sample_ids(), sorted(b.user_sample_ids()))
+        self.assertIn(8072, b.user_sample_ids())
+        self.assertEqual(b.user_wav(8072), files_of(BKF2.read_bytes())["WAV/DATA/080/72.wav"])
+        with self.assertRaises(sk.StrikeError):
+            b.user_wav(7903)  # sample d'usine : absent de la sauvegarde
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "n.wav"
+            make_wav(p)
+            sid = b.add_sample("Nouveau sample", p.read_bytes())
+        self.assertEqual((sid, b.samples()[sid]), (8073, "Nouveau sample"))
+        self.assertIn(sid, b.user_sample_ids())
+        self.assertTrue(b.dirty)
+
+    def test_fac(self):
+        b = sk.Backup.open(FAC)
+        self.assertEqual((b.kind, len(b.kit_numbers())), ("fac", 100))
+        self.assertEqual(b.decode("002")["name"], "Cash Money Kit")
+        self.assertEqual(b.user_sample_ids(), [])
+        with self.assertRaisesRegex(sk.StrikeError, ".bkf"):
+            b.add_sample("x", b"")
+        self.assertEqual(b.serialize(), FAC.read_bytes())
+
+
 if __name__ == "__main__":
     unittest.main()

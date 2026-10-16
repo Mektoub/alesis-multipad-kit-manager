@@ -538,19 +538,112 @@ def sample_catalog_from_list(lst):
     return catalog
 
 
-def sample_catalog(data, entries):
-    """id -> nom, à partir de la liste triée par nom et des en-têtes .had."""
+def build_catalog(files):
+    """id -> nom, à partir de [(chemin normalisé, nom, contenu)] : liste triée par nom et .had."""
     catalog = {}
-    for e in entries:
-        if e.name.lower() == "wave_list_sort_name.lst":
-            catalog.update(sample_catalog_from_list(data[e.offset:e.offset + e.size]))
-    for e in entries:
-        m = re.search(r"HEAD/(\d+)/$", e.path)
-        if m and e.name.endswith(".had"):
-            had = data[e.offset:e.offset + e.size]
-            sid = int(m.group(1)) * 100 + int(e.name[:-4])
-            catalog.setdefault(sid, had[0x40:0x50].split(b"\0")[0].decode("latin-1"))
+    for path, name, content in files:
+        if name.lower() == "wave_list_sort_name.lst":
+            catalog.update(sample_catalog_from_list(content))
+    for path, name, content in files:
+        m = re.search(r"HEAD/(\d+)/$", path)
+        if m and name.endswith(".had"):
+            sid = int(m.group(1)) * 100 + int(name[:-4])
+            catalog.setdefault(sid, content[0x40:0x50].split(b"\0")[0].decode("latin-1"))
     return catalog
+
+
+def sample_catalog(data, entries):
+    return build_catalog([(e.path, e.name, data[e.offset:e.offset + e.size]) for e in entries])
+
+
+def wav_sample_id(path, name):
+    m = re.search(r"WAV/DATA/(\d+)/$", path)
+    if m and name.lower().endswith(".wav"):
+        return int(m.group(1)) * 100 + int(name[:-4])
+    return None
+
+
+class Backup:
+    """Sauvegarde .bkf ou .fac chargée en mémoire, modifiable kit par kit."""
+
+    def __init__(self, data):
+        self.kind, entries = parse_container(data)
+        self.dirty = False
+        self._catalog = None
+        if self.kind == "bkf":
+            self.bkf, self.fac = Bkf.parse(data), None
+        else:
+            self.bkf, self.fac = None, bytearray(data)
+            self._fac_kits = {e.name[:-4]: e for e in kit_entries(entries)}
+
+    @classmethod
+    def open(cls, path):
+        return cls(Path(path).read_bytes())
+
+    def kit_numbers(self):
+        if self.fac is not None:
+            return sorted(self._fac_kits)
+        return sorted(r.name[:-4] for r in self.bkf.records
+                      if norm_path(r.path) == "KIT/" and r.name.endswith(".kit"))
+
+    def get_raw(self, num):
+        if num not in self.kit_numbers():
+            raise StrikeError("kit %s absent de la sauvegarde" % num)
+        if self.fac is not None:
+            e = self._fac_kits[num]
+            return bytes(self.fac[e.offset:e.offset + e.size])
+        return self.bkf.get_file("KIT/%s.kit" % num)
+
+    def _set_raw(self, num, kit):
+        if self.fac is not None:
+            e = self._fac_kits[num]
+            self.fac[e.offset:e.offset + e.size] = kit
+        else:
+            self.bkf.set_file("KIT/%s.kit" % num, kit)
+
+    def samples(self):
+        if self._catalog is None:
+            self._catalog = {} if self.bkf is None else build_catalog(
+                [(norm_path(r.path), r.name, r.data) for r in self.bkf.records])
+        return self._catalog
+
+    def user_sample_ids(self):
+        if self.bkf is None:
+            return []
+        return sorted(i for i in (wav_sample_id(norm_path(r.path), r.name) for r in self.bkf.records)
+                      if i is not None)
+
+    def user_wav(self, sid):
+        if self.bkf is not None:
+            for r in self.bkf.records:
+                if wav_sample_id(norm_path(r.path), r.name) == sid:
+                    return r.data
+        raise StrikeError("sample %r absent de la sauvegarde (seuls les samples utilisateur y sont)" % sid)
+
+    def decode(self, num):
+        return decode_kit(self.get_raw(num), self.samples())
+
+    def update(self, num, data):
+        raw = self.get_raw(num)
+        try:
+            kit = encode_kit(raw, data, self.samples())
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
+            raise StrikeError("JSON de kit invalide : %r" % exc)
+        if kit != raw:
+            self._set_raw(num, kit)
+            self.dirty = True
+        return self.decode(num)
+
+    def add_sample(self, name, wav):
+        if self.bkf is None:
+            raise StrikeError("l'ajout de samples n'est possible qu'avec un .bkf")
+        sid = self.bkf.add_sample(name, wav)
+        self._catalog = None
+        self.dirty = True
+        return sid
+
+    def serialize(self):
+        return bytes(self.fac) if self.fac is not None else self.bkf.serialize()
 
 
 # --------------------------------------------------------------------------
@@ -565,38 +658,26 @@ def wav_filename(name):
     return re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", name) + ".wav"
 
 
-def user_wavs(data, entries):
-    """[(id, contenu)] des samples utilisateur présents dans la sauvegarde."""
-    out = []
-    for e in entries:
-        m = re.search(r"WAV/DATA/(\d+)/$", e.path)
-        if m and e.name.lower().endswith(".wav"):
-            out.append((int(m.group(1)) * 100 + int(e.name[:-4]), data[e.offset:e.offset + e.size]))
-    return out
-
-
 def cmd_export(backup, outdir, wav=True):
-    data = Path(backup).read_bytes()
-    kind, entries = parse_container(data)
-    samples = sample_catalog(data, entries)
+    b = Backup.open(backup)
+    samples = b.samples()
     out = Path(outdir)
     (out / "kits").mkdir(parents=True, exist_ok=True)
-    for e in kit_entries(entries):
-        kit = decode_kit(data[e.offset:e.offset + e.size], samples)
-        num = e.name[:-4]
+    for num in b.kit_numbers():
+        kit = b.decode(num)
         path = out / "kits" / ("%s_%s.json" % (num, safe_filename(kit["name"])))
         path.write_text(json.dumps(kit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    wavs = user_wavs(data, entries) if wav else []
+    wavs = b.user_sample_ids() if wav else []
     if wavs:
         (out / "wav").mkdir(exist_ok=True)
-        for sid, content in wavs:
-            (out / "wav" / wav_filename(samples.get(sid, str(sid)))).write_bytes(content)
+        for sid in wavs:
+            (out / "wav" / wav_filename(samples.get(sid, str(sid)))).write_bytes(b.user_wav(sid))
     if samples:
         (out / "samples.json").write_text(
             json.dumps({str(k): v for k, v in sorted(samples.items())}, ensure_ascii=False, indent=1) + "\n",
             encoding="utf-8")
     print("%d kits et %d WAV exportés dans %s (%s, %d samples référencés)"
-          % (len(kit_entries(entries)), len(wavs), out, kind, len(samples)))
+          % (len(b.kit_numbers()), len(wavs), out, b.kind, len(samples)))
 
 
 def kit_jsons(indir):
@@ -610,65 +691,40 @@ def kit_jsons(indir):
             raise StrikeError("%s : JSON invalide (%s)" % (f.name, exc))
 
 
-def apply_kit(f, raw, data, samples):
-    try:
-        return encode_kit(raw, data, samples)
-    except (StrikeError, KeyError, TypeError, ValueError) as exc:
-        raise StrikeError("%s : %s" % (f.name, exc))
-
-
-def import_bkf(data, indir):
-    bkf = Bkf.parse(data)
-    samples = sample_catalog(data, parse_bkf(data))
-    known = set(samples.values())
-    contents = {c for _, c in user_wavs(data, parse_bkf(data))}
-    for wav in sorted((Path(indir) / "wav").glob("*.wav")) + sorted((Path(indir) / "wav").glob("*.WAV")):
+def import_dir(data, indir):
+    b = Backup(data)
+    wavs = sorted((Path(indir) / "wav").glob("*.wav")) + sorted((Path(indir) / "wav").glob("*.WAV"))
+    if wavs and b.kind != "bkf":
+        raise StrikeError("l'ajout de samples n'est possible qu'avec un .bkf")
+    known = set(b.samples().values())
+    contents = {b.user_wav(i) for i in b.user_sample_ids()}
+    for wav in wavs:
         name, content = wav.stem, wav.read_bytes()
         if name in known or content in contents:
             continue
         try:
-            sid = bkf.add_sample(name, content)
+            sid = b.add_sample(name, content)
         except StrikeError as exc:
             raise StrikeError("%s : %s" % (wav.name, exc))
-        samples[sid] = name
         known.add(name)
         contents.add(content)
         print("sample %r ajouté (id %d)" % (name, sid))
     changed = 0
     for f, num, kit in kit_jsons(indir):
-        full = "KIT/%s.kit" % num
-        raw = bkf.get_file(full)
-        new = apply_kit(f, raw, kit, samples)
-        if new != raw:
-            bkf.set_file(full, new)
-            changed += 1
-    return bkf.serialize(), changed
-
-
-def import_fac(data, indir):
-    data = bytearray(data)
-    if any((Path(indir) / "wav").glob("*.[wW][aA][vV]")):
-        raise StrikeError("l'ajout de samples n'est possible qu'avec un .bkf")
-    by_num = {e.name[:-4]: e for e in kit_entries(parse_fac(bytes(data)))}
-    changed = 0
-    for f, num, kit in kit_jsons(indir):
-        if num not in by_num:
-            raise StrikeError("%s : kit %s absent de la sauvegarde" % (f.name, num))
-        e = by_num[num]
-        raw = bytes(data[e.offset:e.offset + e.size])
-        new = apply_kit(f, raw, kit, {})
-        if new != raw:
-            data[e.offset:e.offset + e.size] = new
-            changed += 1
-    return bytes(data), changed
+        try:
+            before = b.get_raw(num)
+            b.update(num, kit)
+        except StrikeError as exc:
+            raise StrikeError("%s : %s" % (f.name, exc))
+        changed += b.get_raw(num) != before
+    return b.serialize(), changed
 
 
 def cmd_import(backup, indir, output):
     if Path(output).resolve() == Path(backup).resolve():
         raise StrikeError("refus d'écraser la sauvegarde d'origine")
     data = Path(backup).read_bytes()
-    kind, _ = parse_container(data)
-    out, changed = (import_bkf if kind == "bkf" else import_fac)(data, indir)
+    out, changed = import_dir(data, indir)
     parse_container(out)  # revalide le résultat
     Path(output).write_bytes(out)
     print("%d kit(s) modifié(s), écrit dans %s" % (changed, output))
