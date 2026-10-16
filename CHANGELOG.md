@@ -1,0 +1,13 @@
+# Changelog
+
+## 0.1.0 — 2026-10-16
+
+- Export des kits `.bkf` / `.fac` en JSON et import vers une nouvelle sauvegarde (round-trip à l'identique).
+- Recalcul des sommes de contrôle (kit, en-têtes `PACKBKF` / `FILEH`) ; validation des plages de valeurs.
+- Catalogue des samples (`samples.json`) ; samples désignables par id ou par nom.
+- Documentation des formats `.bkf`, `.fac` et `.kit` dans `docs/`, dont `.had` et les listes de samples.
+- Ajout de samples WAV depuis le dossier `wav/` de l'export (reproduit à l'identique l'import fait par l'appareil).
+- Kits `KITC` : lecture et modification des valeurs des emplacements 1 à 8.
+- Paramètres de pad identifiés : `control` (`p14`, 3 = Click On/Off) et `audio_output` (`p0f`, 4 = Aux+Phone).
+- Vélocités de wave (`velocity_low`, `velocity_high`) ; correction : le sample d'une wave dont la vélocité n'est pas 0–127 n'était ni exporté ni modifiable.
+- Export des WAV des samples utilisateur dans `wav/` (option `--no-wav`) ; l'import ignore les WAV déjà présents (par nom ou par contenu).
