@@ -17,7 +17,7 @@ def main():
     ap.add_argument("--no-browser", action="store_true", help="ne pas ouvrir le navigateur")
     args = ap.parse_args()
     if not WEB_DIST.is_dir():
-        print("Interface non construite : lancer `npm install && npm run build` dans editor/web.")
+        print("Interface non construite : lancer ./editeur.sh, ou `npm ci && npm run build` dans editor/web.")
     url = "http://%s:%d/" % (args.host, args.port)
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, [url]).start()

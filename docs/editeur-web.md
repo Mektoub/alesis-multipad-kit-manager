@@ -3,34 +3,46 @@
 Interface graphique locale (FastAPI + Svelte) pour éditer les kits sans manipuler
 de JSON.
 
-## Installation (une fois)
+## Lancement
 
 Prérequis : Python 3 et Node.js (testé avec Python 3.14 et Node.js 25).
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cd editor/web && npm install && npm run build && cd ../..
+./editeur.sh
 ```
 
-`npm run build` produit l'interface dans `editor/web/dist`, que le serveur
-publie. Il faut le relancer après une modification de l'interface.
+Le script prépare tout ce qui manque, puis lance le serveur :
 
-## Lancement
+1. crée l'environnement virtuel `.venv` s'il n'existe pas ;
+2. installe les dépendances de `requirements.txt`, puis les réinstalle chaque fois
+   que ce fichier change ;
+3. installe les paquets de l'interface (`npm ci`) et la construit dans
+   `editor/web/dist`, puis la reconstruit chaque fois qu'une source de
+   `editor/web/` est modifiée ;
+4. lance `python -m editor` avec les arguments reçus.
 
-```bash
-.venv/bin/python -m editor --root Strike
-```
+Sans `--root`, le dossier `Strike/` du projet est utilisé s'il existe. Variables
+utiles : `PYTHON=python3.12` choisit l'interpréteur qui crée le venv, et
+`REBUILD=1` force la reconstruction de l'interface.
 
 | Option | Rôle | Défaut |
 |---|---|---|
-| `--root DOSSIER` | dossier où chercher les sauvegardes et où enregistrer | dossier courant |
+| `--root DOSSIER` | dossier où chercher les sauvegardes et où enregistrer | `Strike/` du projet, sinon le dossier courant |
 | `--port N` | port HTTP | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
 
 Le navigateur s'ouvre sur http://127.0.0.1:8765/. Le serveur n'écoute que sur la
-machine locale, et ne lit ni n'écrit en dehors du dossier `--root`.
+machine locale, et ne lit ni n'écrit en dehors du dossier `--root`. `Ctrl+C`
+l'arrête.
+
+Sans le script, l'installation manuelle est la suivante :
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cd editor/web && npm ci && npm run build && cd ../..
+.venv/bin/python -m editor --root Strike   # par défaut, la racine est le dossier courant
+```
 
 ## Utilisation
 

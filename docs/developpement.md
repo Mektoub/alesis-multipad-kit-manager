@@ -8,6 +8,7 @@
 | `editor/server.py` | API FastAPI de l'éditeur |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
+| `editeur.sh` | lancement avec préparation automatique du venv et de l'interface |
 | `editor/web/` | interface Svelte (Vite) |
 | `test_strike_kits.py` | tests du format et de la ligne de commande |
 | `test_editor.py` | tests de l'API |

@@ -4,6 +4,7 @@
 
 - Éditeur web local (`python -m editor`) : FastAPI + Svelte, édition des kits, choix et écoute des samples, ajout de WAV, enregistrement sous un nouveau fichier.
 - Classe `Backup` : sauvegarde `.bkf` / `.fac` éditable en mémoire, utilisée par l'éditeur et par `import` / `export`.
+- Script `editeur.sh` : lance l'éditeur en créant ou mettant à jour le venv, les dépendances et l'interface au besoin.
 - Documentation réorganisée : README réduit aux commandes, un guide par cas d'usage dans `docs/` (modifier un kit, ajouter un sample, éditeur web, contenu de l'export, paramètres, limites, développement).
 
 ## 0.1.0 — 2026-10-16
