@@ -59,7 +59,9 @@ Les deux types d'entrée ont la même disposition, sur 0x60 octets :
 | 0x54 | 4 | **offset** du `SDCH` de contenu (0xE0) | **offset** des données |
 | 0x58 | 8 | 0 | 0 |
 
-Les données se suivent sans bourrage : le premier kit commence à 0x26A0, soit
+Les entrées ne sont pas forcément rangées par numéro : dans le fichier étudié,
+la table donne 031, 033, puis 032, et les données suivent l'ordre de
+la table. Les données se suivent sans bourrage : le premier kit commence à 0x26A0, soit
 `0x120 + 100 × 0x60`, et le dernier se termine exactement à la fin du fichier.
 
 ## Sommes de contrôle

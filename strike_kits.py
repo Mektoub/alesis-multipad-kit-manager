@@ -546,6 +546,66 @@ class Bkf:
         del data[size_total:]
         self._save_list("WaveList_User_SortSize.lst", data, count + 1)
 
+    def remove_last_sample(self):
+        """Annule `add_sample` pour le dernier sample ajouté ; retourne son id.
+
+        Sert à construire la sauvegarde de référence des tests. Le comportement de
+        l'appareil lors d'une suppression n'a pas été observé : cette opération
+        n'est pas proposée à l'utilisateur. Le rang mémorisé dans Wave_list.lst
+        (préréglé par l'appareil sur les entrées libres) est laissé en place.
+        """
+        wl = bytearray(self.get_file("WAV/LIST/Wave_list.lst"))
+        count = struct.unpack(">H", wl[0x0A:0x0C])[0]
+        sid = count - 1
+        o = 0x20 + 8 * sid
+        flag_id, loc = struct.unpack(">2H", wl[o:o + 4])
+        if sid < 0 or flag_id != sid:
+            raise StrikeError("aucun sample à retirer")
+        folder, fileno = loc >> 8, loc & 0xFF
+
+        data, n = self._list("wave_list_sort_num.lst")
+        last = 0x20 + 4 * (n - 1)
+        if struct.unpack(">H", data[last + 2:last + 4])[0] != sid:
+            raise StrikeError("le sample %d n'est pas le dernier ajouté" % sid)
+        del data[last:last + 4]
+        self._save_list("wave_list_sort_num.lst", data, n - 1)
+
+        data, n = self._list("wave_list_sort_name.lst")
+        pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k:0x24 + 0x90 * k])[0] == sid)
+        del data[0x20 + 0x90 * pos:0x20 + 0x90 * (pos + 1)]
+        for k in range(pos, n - 1):
+            p = 0x20 + 0x90 * k
+            data[p:p + 2] = struct.pack(">H", (struct.unpack(">H", data[p:p + 2])[0] - 1) & 0xFFFF)
+        self._save_list("wave_list_sort_name.lst", data, n - 1)
+
+        data, groups = self._list("wave_list_sort_group.lst")
+        p = 0x20
+        for _ in range(groups):
+            members = struct.unpack(">H", data[p + 1:p + 3])[0]
+            if data[p + 8:p + 0x18].split(b"\0")[0] == b"New Sample":
+                end = p + 0x18 + 4 * members
+                if members == 0 or struct.unpack(">H", data[end - 2:end])[0] != sid:
+                    raise StrikeError("le sample %d n'est pas le dernier du groupe New Sample" % sid)
+                del data[end - 4:end]
+                data[p + 1:p + 3] = struct.pack(">H", members - 1)
+                break
+            p += 0x18 + 4 * members
+        self._save_list("wave_list_sort_group.lst", data, groups)
+
+        data, n = self._list("WaveList_User_SortSize.lst")
+        size_total = len(data)
+        k = next(k for k in range(n) if struct.unpack(">I", data[0x20 + 8 * k:0x24 + 8 * k])[0] == sid)
+        del data[0x20 + 8 * k:0x28 + 8 * k]
+        data += bytes(size_total - len(data))
+        self._save_list("WaveList_User_SortSize.lst", data, n - 1)
+
+        wl[o:o + 2] = struct.pack(">H", 0x8000 | sid)
+        wl[0x0A:0x0C] = struct.pack(">H", count - 1)
+        self.set_file("WAV/LIST/Wave_list.lst", wl)
+        for kind, ext in (("HEAD", "had"), ("DATA", "wav")):
+            self.records.remove(self.find("WAV/%s/%03d/%d.%s" % (kind, folder, fileno, ext)))
+        return sid
+
 
 def parse_bkf(data):
     bkf = Bkf.parse(data)

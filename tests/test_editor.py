@@ -1,4 +1,4 @@
-"""Tests de l'API de l'éditeur web (FastAPI)."""
+"""Tests de l'API de l'éditeur web (FastAPI), sur la sauvegarde de référence."""
 import io
 import shutil
 import tempfile
@@ -10,8 +10,7 @@ from fastapi.testclient import TestClient
 
 import strike_kits as sk
 from editor.server import create_app
-
-BKF2 = Path(__file__).resolve().parent / "Strike/All User Kit And Sample Backup/Backup002.bkf"
+from tests.outils import REF
 
 
 def wav_bytes(frames=100):
@@ -24,14 +23,13 @@ def wav_bytes(frames=100):
     return buf.getvalue()
 
 
-@unittest.skipUnless(BKF2.exists(), "pas de Backup002")
 class Api(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name)
         (cls.root / "sauvegardes").mkdir()
-        shutil.copy(BKF2, cls.root / "sauvegardes" / "Backup002.bkf")
+        shutil.copy(REF, cls.root / "sauvegardes" / "Backup001.bkf")
 
     @classmethod
     def tearDownClass(cls):
@@ -39,13 +37,13 @@ class Api(unittest.TestCase):
 
     def setUp(self):
         self.client = TestClient(create_app(self.root))
-        r = self.client.post("/api/open", json={"path": "sauvegardes/Backup002.bkf"})
+        r = self.client.post("/api/open", json={"path": "sauvegardes/Backup001.bkf"})
         self.assertEqual(r.status_code, 200, r.text)
         self.state = r.json()
 
     def test_liste_des_sauvegardes(self):
         r = self.client.get("/api/backups")
-        self.assertIn({"path": "sauvegardes/Backup002.bkf", "size": BKF2.stat().st_size}, r.json())
+        self.assertIn({"path": "sauvegardes/Backup001.bkf", "size": REF.stat().st_size}, r.json())
 
     def test_etat_apres_ouverture(self):
         self.assertEqual((self.state["kind"], self.state["dirty"], len(self.state["kits"])), ("bkf", False, 70))
@@ -78,10 +76,10 @@ class Api(unittest.TestCase):
     def test_samples_et_audio(self):
         samples = self.client.get("/api/samples").json()
         self.assertEqual(len(samples), 8073)
-        self.assertIn({"id": 8072, "name": "Crazy in Love sample track", "user": True}, samples)
+        self.assertIn({"id": 8072, "name": "Sample Stuck", "user": True}, samples)
         r = self.client.get("/api/samples/8072/wav")
         self.assertEqual((r.status_code, r.headers["content-type"]), (200, "audio/wav"))
-        self.assertEqual(len(r.content), 27128422)
+        self.assertEqual(len(r.content), 525602)
         self.assertEqual(self.client.get("/api/samples/7903/wav").status_code, 404)
 
     def test_ajout_sample(self):
@@ -95,20 +93,20 @@ class Api(unittest.TestCase):
         kit = self.client.get("/api/kits/034").json()
         kit["name"] = "Enregistre"
         self.client.put("/api/kits/034", json=kit)
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup003.bkf"})
+        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup002.bkf"})
         self.assertEqual(r.status_code, 200, r.text)
-        saved = sk.Backup.open(self.root / "sauvegardes" / "Backup003.bkf")
+        saved = sk.Backup.open(self.root / "sauvegardes" / "Backup002.bkf")
         self.assertEqual(saved.decode("034")["name"], "Enregistre")
         state = self.client.get("/api/state").json()
-        self.assertEqual((state["path"], state["dirty"]), ("sauvegardes/Backup003.bkf", False))
+        self.assertEqual((state["path"], state["dirty"]), ("sauvegardes/Backup002.bkf", False))
         # fichier existant : confirmation requise
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup003.bkf"})
+        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup002.bkf"})
         self.assertEqual(r.status_code, 409)
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup003.bkf", "overwrite": True})
+        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup002.bkf", "overwrite": True})
         self.assertEqual(r.status_code, 200)
 
     def test_enregistrement_refuse(self):
-        for path in ("sauvegardes/Backup002.bkf", "../hors.bkf", "sauvegardes/x.fac", "sauvegardes/x.txt"):
+        for path in ("sauvegardes/Backup001.bkf", "../hors.bkf", "sauvegardes/x.fac", "sauvegardes/x.txt"):
             r = self.client.post("/api/save", json={"path": path, "overwrite": True})
             self.assertEqual(r.status_code, 400, path)
 
@@ -145,13 +143,26 @@ class Api(unittest.TestCase):
         self.assertEqual(len(meta["colors"]), 17)
         self.assertEqual(len(meta["slots"]), 24)
 
-
 class SansSauvegarde(unittest.TestCase):
     def test_etat_vide(self):
         with tempfile.TemporaryDirectory() as tmp:
             client = TestClient(create_app(Path(tmp)))
             self.assertEqual(client.get("/api/state").json()["path"], None)
             self.assertEqual(client.get("/api/kits/031").status_code, 409)
+
+    def test_descriptions_des_parametres(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            meta = TestClient(create_app(Path(tmp))).get("/api/meta").json()
+        pad = {p["name"]: p for p in meta["pad_params"]}
+        wave = {p["name"]: p for p in meta["wave_params"]}
+        self.assertIn("seuil", pad["threshold"]["description"].lower())
+        self.assertIn("non identifié", pad["p13"]["description"])
+        for p in meta["pad_params"] + meta["wave_params"]:
+            self.assertTrue(p["description"], p["name"])
+        self.assertIn("fondu", wave["fade_in"]["description"].lower())
+        for key in ("level", "tempo", "play_color", "play_mode", "stop_color", "stop_mode",
+                    "sample", "velocity_low", "velocity_high"):
+            self.assertTrue(meta["help"][key], key)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@
   }
 </script>
 
-<label class="field" class:unknown={!def.known} title={def.known ? "" : "Paramètre non identifié"}>
+<label class="field" class:unknown={!def.known} title={def.description}>
   <span class="name">
     {def.title}
     {#if def.labels && !def.verified}<span class="hint" title="Libellés supposés d'après le manuel">?</span>{/if}
@@ -44,6 +44,7 @@
   .name {
     color: var(--muted);
     font-size: 13px;
+    cursor: help;
   }
   .unknown .name {
     font-family: ui-monospace, monospace;

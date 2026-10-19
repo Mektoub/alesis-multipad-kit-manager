@@ -29,20 +29,20 @@
   <section>
     <h3>Éclairage</h3>
     {#if "play_color" in slot.light}
-      <div class="light-row"><span class="muted">Play</span><ColorSwatches colors={meta.colors} bind:value={slot.light.play_color} label="Couleur Play" /></div>
+      <div class="light-row" title={meta.help.play_color}><span class="muted">Play</span><ColorSwatches colors={meta.colors} bind:value={slot.light.play_color} label="Couleur Play" /></div>
     {/if}
     {#if "play_mode" in slot.light}
-      <label class="light-row"><span class="muted">Mode Play</span>
+      <label class="light-row" title={meta.help.play_mode}><span class="muted">Mode Play</span>
         <select bind:value={slot.light.play_mode}>
           {#each meta.play_modes as m, i}<option value={i}>{m}</option>{/each}
         </select>
       </label>
     {/if}
     {#if "stop_color" in slot.light}
-      <div class="light-row"><span class="muted">Stop</span><ColorSwatches colors={meta.colors} bind:value={slot.light.stop_color} label="Couleur Stop" /></div>
+      <div class="light-row" title={meta.help.stop_color}><span class="muted">Stop</span><ColorSwatches colors={meta.colors} bind:value={slot.light.stop_color} label="Couleur Stop" /></div>
     {/if}
     {#if "stop_mode" in slot.light}
-      <label class="light-row"><span class="muted">Mode Stop</span>
+      <label class="light-row" title={meta.help.stop_mode}><span class="muted">Mode Stop</span>
         <select bind:value={slot.light.stop_mode}>
           {#each meta.stop_modes as m, i}<option value={i}>{m}</option>{/each}
           {#if slot.light.stop_mode >= meta.stop_modes.length}<option value={slot.light.stop_mode}>Valeur {slot.light.stop_mode}</option>{/if}
