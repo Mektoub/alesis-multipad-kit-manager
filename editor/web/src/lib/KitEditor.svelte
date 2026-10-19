@@ -1,6 +1,7 @@
 <script>
   // Kit : réglages généraux, grille des 9 pads, autres entrées, emplacement choisi.
   import SlotEditor from "./SlotEditor.svelte";
+  import { tooltip } from "./format.js";
 
   let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer, onbulk } = $props();
 
@@ -34,12 +35,12 @@
       <span class="muted">Nom</span>
       <input type="text" maxlength={meta.kit_name_max} bind:value={kit.name} />
     </label>
-    <label title={meta.help.level}>
+    <label title={tooltip(meta.help.level, {}, meta.defaults.kit.level)}>
       <span class="muted">Volume du kit</span>
       <input type="range" min="0" max="100" bind:value={kit.level} />
       <span class="num">{kit.level}</span>
     </label>
-    <label title="{meta.help.tempo} Flèches : ±1 BPM ; une décimale peut être saisie (ex. 98.5).">
+    <label title={tooltip(`${meta.help.tempo} Flèches : ±1 BPM ; une décimale peut être saisie (ex. 98.5).`, {}, meta.defaults.kit.tempo)}>
       <span class="muted">Tempo (BPM)</span>
       <input type="number" min="30" max="280" step="any" bind:value={kit.tempo} />
     </label>

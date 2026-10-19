@@ -1,6 +1,7 @@
 <script>
   // Donne une même valeur à un réglage de plusieurs emplacements.
   import { untrack } from "svelte";
+  import { formatValue } from "./format.js";
   let { kit, meta, source, onapply, onclose } = $props();
 
   // même disposition que la grille de l'éditeur
@@ -45,11 +46,16 @@
 
   let others = $derived(kit.slots.slice(9).map((s) => s.slot));
   let valid = $derived(Number.isInteger(value) && value >= def.min && value <= def.max);
+  let sourceLabel = $derived(kit.slots[source - 1]._label);
+  let defaultValue = $derived(lookup(meta.defaults.slots[source - 1], fieldName));
+
+  function lookup(node, field) {
+    for (const key of field.split(".")) node = node?.[key];
+    return node;
+  }
 
   function currentValue(field) {
-    let node = kit.slots[source - 1];
-    for (const key of field.split(".")) node = node?.[key];
-    return node ?? 0;
+    return lookup(kit.slots[source - 1], field) ?? 0;
   }
 
   function changeField(e) {
@@ -105,7 +111,10 @@
           {/each}
         </select>
       </label>
-      <p class="muted help">{def.description}</p>
+      <p class="muted help">
+        {def.description}
+        {#if defaultValue != null}<br />Par défaut sur {sourceLabel} : {formatValue({ ...def, name: fieldName.split(".").pop() }, defaultValue)}{/if}
+      </p>
       <label class="row">
         <span class="muted">Valeur</span>
         {#if def.labels}

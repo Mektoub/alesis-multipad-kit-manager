@@ -41,7 +41,7 @@ PAD_DESCRIPTIONS = {
                    "Off : le pad suit la dynamique de jeu.",
     "sensitivity": "Gain du pad (1 à 32) : plus la valeur est élevée, plus un coup léger produit un son fort. "
                    "Baisser si le pad sonne trop fort au moindre effleurement.",
-    "threshold": "Seuil de déclenchement (0 à 32, 4 par défaut) : force minimale en dessous de laquelle "
+    "threshold": "Seuil de déclenchement (0 à 32) : force minimale en dessous de laquelle "
                  "la frappe est ignorée. Monter pour éviter les déclenchements parasites "
                  "(vibrations, basses d'une enceinte proche).",
     "control": "Fonction de commande déclenchée par la frappe : kit suivant ou précédent, "
@@ -62,7 +62,7 @@ WAVE_DESCRIPTIONS = {
 }
 HELP = {
     "name": "Nom du kit (16 caractères au plus).",
-    "level": "Volume global du kit (0 à 100, 90 par défaut).",
+    "level": "Volume global du kit (0 à 100).",
     "tempo": "Tempo du kit en BPM (30 à 280) ; remplace le tempo global quand le kit est chargé.",
     "play_color": "Couleur des LED du pad quand un son est joué.",
     "play_mode": "Comportement des LED quand un son est joué : Off, Trigger (faible à fort), "
@@ -75,6 +75,37 @@ HELP = {
     "velocity_high": "Velocity High (1 à 127) : une frappe plus forte ne déclenche pas cette couche. "
                      "En répartissant les plages entre Wave A et Wave B, on superpose deux sons selon la force.",
 }
+
+
+# Valeurs par défaut : celles d'un kit vide écrit par l'appareil (le manuel
+# annonce 90 pour le volume du kit, l'appareil écrit 100). Elles varient d'un
+# emplacement à l'autre pour la note MIDI, la sensibilité et l'éclairage Play.
+DEFAULT_KIT = {"level": 100, "tempo": 120.0}
+DEFAULT_MIDI_NOTES = [36, 37, 38, 40, 41, 42, 44, 45, 46, 43, 42, 39,
+                      48, 49, 50, 51, 43, 124, 125, 126, 127, 53, 57, 53]
+DEFAULT_SENSITIVITY = [16] * 6 + [24] * 3 + [16] * 8 + [8] * 7   # P7–P9, petits pads : 24
+DEFAULT_PAD = {"volume": 90, "pan": 15, "p09": 0, "sync_group": 0, "p0e": 40, "audio_output": 0,
+               "fixed_level": 0, "threshold": 4, "p13": 0, "control": 0, "sound": 0,
+               "p16": 40, "p17": 40}
+DEFAULT_WAVE = {"velocity_low": 0, "velocity_high": 127,
+                "params": {"volume": 90, "pan": 15, "p09": 0, "p10": 0, "p18": 0, "p19": 1,
+                           "fade_in": 0, "fade_out": 0, "priority": 0}}
+
+
+def default_slot(index):
+    pad = dict(DEFAULT_PAD, midi_note=DEFAULT_MIDI_NOTES[index], sensitivity=DEFAULT_SENSITIVITY[index])
+    params = {sk.param_name(sk.PAD_PARAMS, rid): pad[sk.param_name(sk.PAD_PARAMS, rid)]
+              for rid, _, _ in sk.PAD_LAYOUT}
+    play = (16, 3) if index < 11 else (8, 1)   # White / Audio Breath, sinon Sky Blue / Trigger
+    wave = {"velocity_low": DEFAULT_WAVE["velocity_low"], "velocity_high": DEFAULT_WAVE["velocity_high"],
+            "params": dict(DEFAULT_WAVE["params"])}
+    return {"params": params,
+            "light": {"play_color": play[0], "play_mode": play[1], "stop_color": 8, "stop_mode": 1},
+            "wave_a": wave, "wave_b": {**wave, "params": dict(wave["params"])}}
+
+
+def defaults():
+    return {"kit": DEFAULT_KIT, "slots": [default_slot(i) for i in range(sk.SLOT_COUNT)]}
 
 
 def describe(name, lo, hi, descriptions):
@@ -99,6 +130,7 @@ def meta():
         "pad_params": params(sk.PAD_LAYOUT, sk.PAD_PARAMS, PAD_DESCRIPTIONS),
         "wave_params": params(sk.WAVE_LAYOUT, sk.WAVE_PARAMS, WAVE_DESCRIPTIONS),
         "help": HELP,
+        "defaults": defaults(),
         "colors": [{"name": n, "css": c} for n, c in COLORS],
         "play_modes": PLAY_MODES,
         "stop_modes": STOP_MODES,
