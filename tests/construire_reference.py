@@ -14,6 +14,7 @@ Usage :
   python3 tests/construire_reference.py Backup003.bkf STRIKE_BACKUP_KIT.fac \\
       SnareUF.wav "Sample Stuck.wav" -o tests/ressources/Backup001.bkf
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -28,7 +29,7 @@ def build(bkf3, fac, wav_8071, wav_8072):
     assert b.remove_last_sample() == 8071
     assert b.add_sample("SnareUF", wav_8071) == 8071
     assert b.add_sample("Sample Stuck", wav_8072) == 8072
-    kits = {e.name: fac[e.offset:e.offset + e.size] for e in sk.kit_entries(sk.parse_fac(fac))}
+    kits = {e.name: fac[e.offset : e.offset + e.size] for e in sk.kit_entries(sk.parse_fac(fac))}
     b.set_file("KIT/040.kit", kits["005.kit"])
     return b.serialize()
 

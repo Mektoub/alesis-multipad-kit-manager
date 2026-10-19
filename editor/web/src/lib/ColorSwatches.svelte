@@ -3,7 +3,7 @@
 </script>
 
 <div class="swatches" role="radiogroup" aria-label={label}>
-  {#each colors as c, i}
+  {#each colors as c, i (c.name)}
     <button
       type="button"
       role="radio"

@@ -6,6 +6,7 @@ Contenu de la référence (voir construire_reference.py) :
   - 040 « Ham & Beans » (kit d'usine) : P5 wave B sample 107, vélocité 126–127 ;
   - autres kits vides (KITH) ; samples utilisateur 8071 « SnareUF » et 8072 « Sample Stuck ».
 """
+
 import json
 import struct
 import tempfile
@@ -187,6 +188,7 @@ class AjoutSample(unittest.TestCase):
     def test_regles_de_l_ajout(self):
         """Règles relevées en comparant deux sauvegardes faites par l'appareil avant
         et après l'import d'un WAV (docs/format-bkf.md, « Ajout d'un sample »)."""
+
         def lst(files, name):
             data = files["WAV/LIST/" + name]
             return data, struct.unpack(">H", data[0x0A:0x0C])[0]
@@ -200,9 +202,10 @@ class AjoutSample(unittest.TestCase):
         after = files_of(out)
         self.assertEqual(sid, 8073)
         # en-tête : nombre de fichiers + 2, nombre de WAV + 1
-        self.assertEqual(struct.unpack("<2I", out[0x10:0x18]),
-                         (struct.unpack("<I", self.data[0x10:0x14])[0] + 2,
-                          struct.unpack("<I", self.data[0x14:0x18])[0] + 1))
+        self.assertEqual(
+            struct.unpack("<2I", out[0x10:0x18]),
+            (struct.unpack("<I", self.data[0x10:0x14])[0] + 2, struct.unpack("<I", self.data[0x14:0x18])[0] + 1),
+        )
         # .wav copié tel quel, .had et .wav à la suite des autres
         self.assertEqual(after["WAV/DATA/080/73.wav"], wav)
         names = [r.full for r in bkf.records]
@@ -210,26 +213,26 @@ class AjoutSample(unittest.TestCase):
         self.assertEqual(names[names.index("WAV/HEAD/080/73.had") - 1], "WAV/HEAD/080/72.had")
         # Wave_list : entrée 8073 libérée du drapeau 0x8000
         wl, n = lst(after, "Wave_list.lst")
-        self.assertEqual((n, struct.unpack(">H", wl[0x20 + 8 * sid:0x22 + 8 * sid])[0]), (8074, sid))
+        self.assertEqual((n, struct.unpack(">H", wl[0x20 + 8 * sid : 0x22 + 8 * sid])[0]), (8074, sid))
         # sort_num : (rang, id) ajouté avant la paire nulle finale
         num, n = lst(after, "wave_list_sort_num.lst")
-        self.assertEqual(struct.unpack(">4H", num[0x20 + 4 * (n - 1):0x28 + 4 * (n - 1)]), (8073, sid, 0, 0))
+        self.assertEqual(struct.unpack(">4H", num[0x20 + 4 * (n - 1) : 0x28 + 4 * (n - 1)]), (8073, sid, 0, 0))
         # sort_name : insertion alphabétique, compteur des entrées suivantes + 1
         old, _ = lst(before, "wave_list_sort_name.lst")
         new, n = lst(after, "wave_list_sort_name.lst")
-        pos = next(k for k in range(n) if struct.unpack(">H", new[0x22 + 0x90 * k:0x24 + 0x90 * k])[0] == sid)
+        pos = next(k for k in range(n) if struct.unpack(">H", new[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == sid)
         o = 0x20 + 0x90 * pos
-        self.assertEqual(struct.unpack(">3H", new[o:o + 6]), (pos, sid, len("Nouveau son") + 4))
-        self.assertEqual(new[o + 0x10:o + 0x1B], b"Nouveau son")
-        self.assertLess(new[o - 0x80:o].split(b"\0")[0].lower(), b"nouveau son")
-        follow = struct.unpack(">H", new[o + 0x90:o + 0x92])[0]
-        self.assertEqual(follow, struct.unpack(">H", old[o:o + 2])[0] + 1)
+        self.assertEqual(struct.unpack(">3H", new[o : o + 6]), (pos, sid, len("Nouveau son") + 4))
+        self.assertEqual(new[o + 0x10 : o + 0x1B], b"Nouveau son")
+        self.assertLess(new[o - 0x80 : o].split(b"\0")[0].lower(), b"nouveau son")
+        follow = struct.unpack(">H", new[o + 0x90 : o + 0x92])[0]
+        self.assertEqual(follow, struct.unpack(">H", old[o : o + 2])[0] + 1)
         # groupe New Sample : (n, id) ajouté en fin
         grp, _ = lst(after, "wave_list_sort_group.lst")
         i = grp.index(b"New Sample") - 8
-        members = struct.unpack(">H", grp[i + 1:i + 3])[0]
+        members = struct.unpack(">H", grp[i + 1 : i + 3])[0]
         end = i + 0x18 + 4 * members
-        self.assertEqual(struct.unpack(">2H", grp[end - 4:end]), (members - 1, sid))
+        self.assertEqual(struct.unpack(">2H", grp[end - 4 : end]), (members - 1, sid))
         # SortSize : (id, taille) inséré par taille croissante, en tête car le plus petit
         size, n = lst(after, "WaveList_User_SortSize.lst")
         self.assertEqual((n, struct.unpack(">2I", size[0x20:0x28])), (35, (sid, len(wav))))
@@ -483,14 +486,19 @@ class ModificationGroupee(unittest.TestCase):
 
     def test_sections_et_kit_kitc(self):
         targets = list(range(1, 10))
-        for field, value in (("wave_b.params.volume", 70), ("light.play_color", 9),
-                             ("wave_a.velocity_high", 100), ("params.control", 3)):
+        for field, value in (
+            ("wave_b.params.volume", 70),
+            ("light.play_color", 9),
+            ("wave_a.velocity_high", 100),
+            ("params.control", 3),
+        ):
             kit, _ = self.b.set_slots("032", targets, field, value)
             self.assertEqual(self.values(kit, field)[:9], [value] * 9, field)
         before = self.values(self.b.decode("032"), "wave_a.sample")
         kit, _ = self.b.set_slots("032", [2, 4], "wave_a.sample", "Sample Stuck")
-        self.assertEqual(self.values(kit, "wave_a.sample"),
-                         [8072 if n in (2, 4) else v for n, v in enumerate(before, 1)])
+        self.assertEqual(
+            self.values(kit, "wave_a.sample"), [8072 if n in (2, 4) else v for n, v in enumerate(before, 1)]
+        )
 
     def test_valeur_hors_plage_sans_effet(self):
         raw = self.b.get_raw("033")
@@ -500,9 +508,15 @@ class ModificationGroupee(unittest.TestCase):
         self.assertFalse(self.b.dirty)
 
     def test_champ_ou_emplacement_invalide(self):
-        for targets, field in (([1], "params.inconnu"), ([1], "autre.volume"), ([1], "light.couleur"),
-                               ([1], "wave_c.params.volume"), ([1], "params"), ([25], "params.volume"),
-                               ([], "params.volume")):
+        for targets, field in (
+            ([1], "params.inconnu"),
+            ([1], "autre.volume"),
+            ([1], "light.couleur"),
+            ([1], "wave_c.params.volume"),
+            ([1], "params"),
+            ([25], "params.volume"),
+            ([], "params.volume"),
+        ):
             with self.assertRaises(sk.StrikeError, msg=(targets, field)):
                 self.b.set_slots("033", targets, field, 1)
 
@@ -519,8 +533,7 @@ class ModificationMultiKits(unittest.TestCase):
         skipped = self.b.set_slots_in_kits(["031", "032", "033"], [1, 3, 9], "params.sensitivity", 20)
         self.assertEqual(skipped, [])
         for n in ("031", "032", "033"):
-            self.assertEqual(self.sensitivity(n),
-                             [20 if p in (1, 3, 9) else v for p, v in enumerate(before[n], 1)], n)
+            self.assertEqual(self.sensitivity(n), [20 if p in (1, 3, 9) else v for p, v in enumerate(before[n], 1)], n)
         self.assertEqual(self.sensitivity("034"), before["034"])
         self.assertTrue(self.b.dirty)
 

@@ -64,7 +64,7 @@
 
   <div class="others">
     <span class="muted">Autres entrées (déclencheurs, pédales… correspondance non vérifiée) :</span>
-    {#each others as s, i}
+    {#each others as s, i (s.slot)}
       <button class="chip" class:selected={selected === i + 9} class:used={s.wave_a.sample != null || s.wave_b.sample != null} onclick={() => (selected = i + 9)}>
         {s.slot}
       </button>

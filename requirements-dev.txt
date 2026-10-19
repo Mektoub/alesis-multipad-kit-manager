@@ -1,0 +1,3 @@
+# Développement : dépendances de l'éditeur et des tests, plus l'analyse de code.
+-r requirements.txt
+ruff==0.17.1

@@ -207,7 +207,7 @@
   <h1>Strike Kit Editor</h1>
   <div class="open">
     <select bind:value={chosenBackup} aria-label="Sauvegarde à ouvrir">
-      {#each backups as b}<option value={b.path}>{b.path}</option>{/each}
+      {#each backups as b (b.path)}<option value={b.path}>{b.path}</option>{/each}
       {#if !backups.length}<option value="">Aucune sauvegarde .bkf/.fac trouvée</option>{/if}
     </select>
     <button onclick={() => openBackup(chosenBackup)} disabled={!chosenBackup}>Ouvrir</button>
