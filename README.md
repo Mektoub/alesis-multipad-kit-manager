@@ -1,4 +1,4 @@
-# Strike MultiPad Kit Manager
+# Alesis Strike MultiPad - Kit Manager
 
 Outils pour créer et modifier sur ordinateur les « user kits » de l'Alesis
 Strike MultiPad, à partir de ses sauvegardes USB :

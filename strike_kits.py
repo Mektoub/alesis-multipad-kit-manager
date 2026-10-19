@@ -11,6 +11,7 @@ du dossier `wav/` (.bkf uniquement) et recalcule les sommes de contrôle. Les
 octets non décodés sont conservés tels quels, si bien qu'un dossier non modifié
 redonne un fichier identique octet pour octet.
 """
+
 import argparse
 import json
 import re
@@ -32,25 +33,55 @@ TEMPO_OFF = 0x10
 # octets « valeur » font foi : id/min/max sont remplacés par 0xFF, 0x00 ou par
 # des structures qui recouvrent la zone (l'octet valeur restant à sa place).
 KITC_MASKED_SLOTS = 8
-PAD_LAYOUT = [(0x00, 0, 100), (0x02, 0, 31), (0x08, 0, 127), (0x09, 0, 4),
-              (0x0C, 0, 16), (0x0E, 0, 16), (0x0F, 0, 5), (0x10, 0, 127),
-              (0x11, 1, 32), (0x12, 0, 32), (0x13, 0, 7), (0x14, 0, 13),
-              (0x15, 0, 1), (0x16, 0, 127), (0x17, 0, 16)]
-WAVE_LAYOUT = [(0x00, 0, 100), (0x02, 0, 32), (0x09, 0, 5), (0x10, 0, 127),
-               (0x18, 0, 255), (0x19, 0, 1), (0x1A, 0, 100), (0x1B, 0, 100),
-               (0x1C, 0, 2)]
+PAD_LAYOUT = [
+    (0x00, 0, 100),
+    (0x02, 0, 31),
+    (0x08, 0, 127),
+    (0x09, 0, 4),
+    (0x0C, 0, 16),
+    (0x0E, 0, 16),
+    (0x0F, 0, 5),
+    (0x10, 0, 127),
+    (0x11, 1, 32),
+    (0x12, 0, 32),
+    (0x13, 0, 7),
+    (0x14, 0, 13),
+    (0x15, 0, 1),
+    (0x16, 0, 127),
+    (0x17, 0, 16),
+]
+WAVE_LAYOUT = [
+    (0x00, 0, 100),
+    (0x02, 0, 32),
+    (0x09, 0, 5),
+    (0x10, 0, 127),
+    (0x18, 0, 255),
+    (0x19, 0, 1),
+    (0x1A, 0, 100),
+    (0x1B, 0, 100),
+    (0x1C, 0, 2),
+]
 PAD_PARAMS = {
-    0x00: "volume", 0x02: "pan", 0x08: "midi_note", 0x0C: "sync_group",
+    0x00: "volume",
+    0x02: "pan",
+    0x08: "midi_note",
+    0x0C: "sync_group",
     0x0F: "audio_output",
-    0x10: "fixed_level", 0x11: "sensitivity", 0x12: "threshold", 0x14: "control",
+    0x10: "fixed_level",
+    0x11: "sensitivity",
+    0x12: "threshold",
+    0x14: "control",
     0x15: "sound",
 }
 WAVE_PARAMS = {
-    0x00: "volume", 0x02: "pan", 0x1A: "fade_in", 0x1B: "fade_out", 0x1C: "priority",
+    0x00: "volume",
+    0x02: "pan",
+    0x1A: "fade_in",
+    0x1B: "fade_out",
+    0x1C: "priority",
 }
 # Éclairage : octet à offset fixe dans l'emplacement -> valeur max.
-LIGHT_FIELDS = {"play_color": (0x10, 16), "play_mode": (0x11, 6),
-                "stop_color": (0x14, 16), "stop_mode": (0x15, 6)}
+LIGHT_FIELDS = {"play_color": (0x10, 16), "play_mode": (0x11, 6), "stop_color": (0x14, 16), "stop_mode": (0x15, 6)}
 
 PAD_RECORDS = 0x28
 WAVES = {"wave_a": 0x80, "wave_b": 0xE0}
@@ -66,6 +97,7 @@ class StrikeError(Exception):
 # --------------------------------------------------------------------------
 # Kits
 # --------------------------------------------------------------------------
+
 
 def kit_checksum(kit):
     """Somme de contrôle des kits et des .had (octet 0x08)."""
@@ -87,8 +119,7 @@ def record_readable(kit, off, rid, lo, hi, masked):
     """Vrai si l'octet valeur de l'enregistrement à `off` est exploitable."""
     if masked:
         return True
-    return (kit[off] in (rid, 0xFF, 0x00)
-            and (kit[off + 2], kit[off + 3]) in ((lo, hi), (0xFF, 0xFF), (0, 0)))
+    return kit[off] in (rid, 0xFF, 0x00) and (kit[off + 2], kit[off + 3]) in ((lo, hi), (0xFF, 0xFF), (0, 0))
 
 
 def is_masked(kit, index):
@@ -139,9 +170,9 @@ def decode_kit(kit, samples=None):
     samples = samples or {}
     out = {
         "format": kit_format(kit),
-        "name": bytes(kit[NAME_OFF:NAME_OFF + NAME_LEN]).split(b"\0")[0].decode("latin-1"),
+        "name": bytes(kit[NAME_OFF : NAME_OFF + NAME_LEN]).split(b"\0")[0].decode("latin-1"),
         "level": kit[LEVEL_OFF],
-        "tempo": struct.unpack(">H", kit[TEMPO_OFF:TEMPO_OFF + 2])[0] / 10,
+        "tempo": struct.unpack(">H", kit[TEMPO_OFF : TEMPO_OFF + 2])[0] / 10,
         "slots": [],
     }
     for i in range(SLOT_COUNT):
@@ -154,7 +185,7 @@ def decode_kit(kit, samples=None):
             w = base + woff
             entry = {}
             if wave_header_readable(kit, w):
-                sid = struct.unpack(">H", kit[w:w + 2])[0]
+                sid = struct.unpack(">H", kit[w : w + 2])[0]
                 entry["sample"] = None if sid == NO_SAMPLE else sid
                 if sid in samples:
                     entry["_sample_name"] = samples[sid]
@@ -178,8 +209,9 @@ def resolve_sample(value, samples, where):
             return ids[0]
         if not ids:
             raise StrikeError("%s : sample introuvable %r (voir samples.json)" % (where, value))
-        raise StrikeError("%s : nom de sample ambigu %r (ids %s), utiliser l'id"
-                          % (where, value, ", ".join(map(str, sorted(ids)))))
+        raise StrikeError(
+            "%s : nom de sample ambigu %r (ids %s), utiliser l'id" % (where, value, ", ".join(map(str, sorted(ids))))
+        )
     raise StrikeError("%s : sample doit être un id, un nom ou null" % where)
 
 
@@ -193,18 +225,18 @@ def encode_kit(raw, data, samples=None):
     name = data["name"].encode("latin-1")
     if len(name) > NAME_LEN:
         raise StrikeError("nom de kit trop long (%d caractères max) : %r" % (NAME_LEN, data["name"]))
-    if name != bytes(kit[NAME_OFF:NAME_OFF + NAME_LEN]).split(b"\0")[0]:
-        kit[NAME_OFF:NAME_OFF + NAME_LEN] = name.ljust(NAME_LEN, b"\0")
+    if name != bytes(kit[NAME_OFF : NAME_OFF + NAME_LEN]).split(b"\0")[0]:
+        kit[NAME_OFF : NAME_OFF + NAME_LEN] = name.ljust(NAME_LEN, b"\0")
 
     if data["level"] != kit[LEVEL_OFF]:
         if not 0 <= data["level"] <= 100:
             raise StrikeError("level hors plage [0, 100]")
         kit[LEVEL_OFF] = data["level"]
     tempo = round(data["tempo"] * 10)
-    if tempo != struct.unpack(">H", kit[TEMPO_OFF:TEMPO_OFF + 2])[0]:
+    if tempo != struct.unpack(">H", kit[TEMPO_OFF : TEMPO_OFF + 2])[0]:
         if not 300 <= tempo <= 2800:
             raise StrikeError("tempo hors plage [30, 280]")
-        kit[TEMPO_OFF:TEMPO_OFF + 2] = struct.pack(">H", tempo)
+        kit[TEMPO_OFF : TEMPO_OFF + 2] = struct.pack(">H", tempo)
 
     for slot in data["slots"]:
         i = slot["slot"] - 1
@@ -235,17 +267,23 @@ def encode_kit(raw, data, samples=None):
                 if not wave_header_readable(kit, w):
                     raise StrikeError("%s : sample et vélocité non modifiables dans ce kit" % label)
                 if "sample" in header:
-                    kit[w:w + 2] = struct.pack(">H", resolve_sample(header["sample"], samples, label))
+                    kit[w : w + 2] = struct.pack(">H", resolve_sample(header["sample"], samples, label))
                 low = header.get("velocity_low", kit[w + 2])
                 high = header.get("velocity_high", kit[w + 3])
                 if (low, high) != (kit[w + 2], kit[w + 3]):
-                    if not (isinstance(low, int) and isinstance(high, int)
-                            and 0 <= low <= 126 and 1 <= high <= 127 and low <= high):
-                        raise StrikeError("%s : velocity_low=%r / velocity_high=%r invalides "
-                                          "(0–126, 1–127, low ≤ high)" % (label, low, high))
+                    if not (
+                        isinstance(low, int)
+                        and isinstance(high, int)
+                        and 0 <= low <= 126
+                        and 1 <= high <= 127
+                        and low <= high
+                    ):
+                        raise StrikeError(
+                            "%s : velocity_low=%r / velocity_high=%r invalides "
+                            "(0–126, 1–127, low ≤ high)" % (label, low, high)
+                        )
                     kit[w + 2], kit[w + 3] = low, high
-            encode_params(kit, w + WAVE_RECORDS, WAVE_LAYOUT, WAVE_PARAMS,
-                          slot[wave].get("params", {}), label, masked)
+            encode_params(kit, w + WAVE_RECORDS, WAVE_LAYOUT, WAVE_PARAMS, slot[wave].get("params", {}), label, masked)
 
     kit[8] = kit_checksum(kit)
     return bytes(kit)
@@ -289,8 +327,7 @@ def copy_slot_settings(kit, source, targets, parts, include_midi_note=False):
                 copy(src[part], dst[part], list(src[part]), part, target)
             else:
                 copy(src[part], dst[part], [k for k in WAVE_HEADER_KEYS if k in src[part]], part, target)
-                copy(src[part]["params"], dst[part]["params"], list(src[part]["params"]),
-                     part + ".params", target)
+                copy(src[part]["params"], dst[part]["params"], list(src[part]["params"]), part + ".params", target)
     return skipped
 
 
@@ -335,15 +372,16 @@ def set_slots_value(kit, targets, field, value):
 # WAV
 # --------------------------------------------------------------------------
 
+
 def wav_info(data):
     """(canaux, offset des données, taille des données) d'un WAV PCM 16 bits 44,1 kHz."""
     if data[:4] != b"RIFF" or data[8:12] != b"WAVE":
         raise StrikeError("ce n'est pas un fichier WAV")
     fmt, chunk, o = None, None, 12
     while o + 8 <= len(data):
-        cid, size = data[o:o + 4], struct.unpack("<I", data[o + 4:o + 8])[0]
+        cid, size = data[o : o + 4], struct.unpack("<I", data[o + 4 : o + 8])[0]
         if cid == b"fmt ":
-            fmt = struct.unpack("<HHIIHH", data[o + 8:o + 24])
+            fmt = struct.unpack("<HHIIHH", data[o + 8 : o + 24])
         elif cid == b"data":
             chunk = (o + 8, size)
         o += 8 + size + (size & 1)
@@ -351,8 +389,10 @@ def wav_info(data):
         raise StrikeError("WAV sans chunk fmt ou data")
     tag, channels, rate, _, _, bits = fmt
     if tag != 1 or bits != 16 or rate != 44100 or channels not in (1, 2):
-        raise StrikeError("WAV PCM 16 bits, 44,1 kHz, mono ou stéréo requis "
-                          "(reçu : format %d, %d bits, %d Hz, %d canaux)" % (tag, bits, rate, channels))
+        raise StrikeError(
+            "WAV PCM 16 bits, 44,1 kHz, mono ou stéréo requis "
+            "(reçu : format %d, %d bits, %d Hz, %d canaux)" % (tag, bits, rate, channels)
+        )
     if chunk[0] + chunk[1] > len(data):
         raise StrikeError("WAV tronqué")
     return channels, chunk[0], chunk[1]
@@ -364,13 +404,12 @@ def make_had(name, channels, data_off, data_len, path):
     had[4:6] = b"\x00\x10"
     had[0x14:0x18] = bytes([16, channels]) + struct.pack(">H", 44100)
     end = data_off + data_len
-    had[0x18:0x38] = struct.pack(">8I", data_off, data_off, data_len, 0,
-                                 data_off, end, data_off, end)
+    had[0x18:0x38] = struct.pack(">8I", data_off, data_off, data_len, 0, data_off, end, data_off, end)
     raw = name.encode("latin-1")
     had[0x3F] = len(raw)
     had[0x40:0x50] = raw[:16].ljust(16, b"\0")
     had[0x58:0x60] = b"PATH" + struct.pack(">I", len(path))
-    had[0x60:0x60 + len(path)] = path.encode("latin-1")
+    had[0x60 : 0x60 + len(path)] = path.encode("latin-1")
     had[8] = kit_checksum(had)
     return bytes(had)
 
@@ -378,6 +417,7 @@ def make_had(name, channels, data_off, data_len, path):
 # --------------------------------------------------------------------------
 # Conteneur .bkf
 # --------------------------------------------------------------------------
+
 
 class Entry:
     def __init__(self, path, name, offset, size):
@@ -419,18 +459,18 @@ class Bkf:
             raise StrikeError("somme de contrôle de l'en-tête .bkf invalide")
         records, p = [], 0x40
         while p < len(data):
-            if data[p:p + 8] != b"FILEH\0\0\0":
+            if data[p : p + 8] != b"FILEH\0\0\0":
                 raise StrikeError("enregistrement FILEH attendu à 0x%x" % p)
-            if sum(data[p + 0x10:p + 0x180]) & 0xFF != data[p + 0x0B]:
+            if sum(data[p + 0x10 : p + 0x180]) & 0xFF != data[p + 0x0B]:
                 raise StrikeError("somme de contrôle FILEH invalide à 0x%x" % p)
-            nxt = struct.unpack("<I", data[p + 0x10:p + 0x14])[0]
-            path = data[p + 0x60:p + 0xE0].split(b"\0")[0].decode("latin-1")
-            name = data[p + 0xF0:p + 0x170].split(b"\0")[0].decode("latin-1")
-            size = struct.unpack("<I", data[p + 0x174:p + 0x178])[0]
+            nxt = struct.unpack("<I", data[p + 0x10 : p + 0x14])[0]
+            path = data[p + 0x60 : p + 0xE0].split(b"\0")[0].decode("latin-1")
+            name = data[p + 0xF0 : p + 0x170].split(b"\0")[0].decode("latin-1")
+            size = struct.unpack("<I", data[p + 0x174 : p + 0x178])[0]
             end = p + 0x180 + size
             if nxt < end or nxt > len(data):
                 raise StrikeError("chaînage FILEH invalide à 0x%x" % p)
-            records.append(Record(path, name, data[p + 0x180:end], nxt - end))
+            records.append(Record(path, name, data[p + 0x180 : end], nxt - end))
             p = nxt
         count = struct.unpack("<I", data[0x10:0x14])[0]
         if count != len(records):
@@ -495,16 +535,15 @@ class Bkf:
         o = 0x20 + 8 * count
         if o + 8 > len(wl):
             raise StrikeError("table des samples pleine")
-        flag_id, loc = struct.unpack(">2H", wl[o:o + 4])
+        flag_id, loc = struct.unpack(">2H", wl[o : o + 4])
         if flag_id != 0x8000 | count:
             raise StrikeError("table des samples non contiguë : cas non pris en charge")
         sid, folder, fileno = count, loc >> 8, loc & 0xFF
         if folder != sid // 100 or fileno != sid % 100 or fileno < 10:
-            raise StrikeError("emplacement de sample %03d/%d non vérifié : cas non pris en charge"
-                              % (folder, fileno))
+            raise StrikeError("emplacement de sample %03d/%d non vérifié : cas non pris en charge" % (folder, fileno))
         rank = count
-        wl[o:o + 2] = struct.pack(">H", sid)
-        wl[o + 6:o + 8] = struct.pack(">H", rank)
+        wl[o : o + 2] = struct.pack(">H", sid)
+        wl[o + 6 : o + 8] = struct.pack(">H", rank)
         wl[0x0A:0x0C] = struct.pack(">H", count + 1)
         self.set_file("WAV/LIST/Wave_list.lst", wl)
 
@@ -514,11 +553,17 @@ class Bkf:
         self._add_sort_size(sid, len(wav))
 
         rel = "\\%03d\\%d" % (folder, fileno)
-        self.insert_after_last("S:\\WAV\\HEAD\\", Record(
-            "S:\\WAV\\HEAD\\%03d\\" % folder, "%d.had" % fileno,
-            make_had(name, channels, data_off, data_len, rel + ".wav")))
-        self.insert_after_last("S:\\WAV\\DATA\\", Record(
-            "S:\\WAV\\DATA\\%03d\\" % folder, "%d.wav" % fileno, bytes(wav)))
+        self.insert_after_last(
+            "S:\\WAV\\HEAD\\",
+            Record(
+                "S:\\WAV\\HEAD\\%03d\\" % folder,
+                "%d.had" % fileno,
+                make_had(name, channels, data_off, data_len, rel + ".wav"),
+            ),
+        )
+        self.insert_after_last(
+            "S:\\WAV\\DATA\\", Record("S:\\WAV\\DATA\\%03d\\" % folder, "%d.wav" % fileno, bytes(wav))
+        )
         return sid
 
     def _list(self, name):
@@ -541,12 +586,12 @@ class Bkf:
         pos = count
         for k in range(count):
             o = 0x20 + 0x90 * k
-            if data[o + 0x10:o + 0x90].split(b"\0")[0].decode("latin-1").lower() > key:
+            if data[o + 0x10 : o + 0x90].split(b"\0")[0].decode("latin-1").lower() > key:
                 pos = k
                 break
         for k in range(pos, count):
             o = 0x20 + 0x90 * k
-            data[o:o + 2] = struct.pack(">H", (struct.unpack(">H", data[o:o + 2])[0] + 1) & 0xFFFF)
+            data[o : o + 2] = struct.pack(">H", (struct.unpack(">H", data[o : o + 2])[0] + 1) & 0xFFFF)
         entry = bytearray(0x90)
         entry[0:6] = struct.pack(">3H", pos, sid, len(name) + 4)
         entry[0x10:0x90] = name.encode("latin-1").ljust(0x80, b"\0")
@@ -558,11 +603,11 @@ class Bkf:
         data, groups = self._list("wave_list_sort_group.lst")
         o = 0x20
         for _ in range(groups):
-            members = struct.unpack(">H", data[o + 1:o + 3])[0]
-            if data[o + 8:o + 0x18].split(b"\0")[0].decode("latin-1") == group:
+            members = struct.unpack(">H", data[o + 1 : o + 3])[0]
+            if data[o + 8 : o + 0x18].split(b"\0")[0].decode("latin-1") == group:
                 end = o + 0x18 + 4 * members
                 data[end:end] = struct.pack(">2H", members, sid)
-                data[o + 1:o + 3] = struct.pack(">H", members + 1)
+                data[o + 1 : o + 3] = struct.pack(">H", members + 1)
                 self._save_list("wave_list_sort_group.lst", data, groups)
                 return
             o += 0x18 + 4 * members
@@ -573,7 +618,7 @@ class Bkf:
         size_total = len(data)
         pos = count
         for k in range(count):
-            if struct.unpack(">I", data[0x24 + 8 * k:0x28 + 8 * k])[0] >= size:
+            if struct.unpack(">I", data[0x24 + 8 * k : 0x28 + 8 * k])[0] >= size:
                 pos = k
                 break
         o = 0x20 + 8 * pos
@@ -595,48 +640,48 @@ class Bkf:
         count = struct.unpack(">H", wl[0x0A:0x0C])[0]
         sid = count - 1
         o = 0x20 + 8 * sid
-        flag_id, loc = struct.unpack(">2H", wl[o:o + 4])
+        flag_id, loc = struct.unpack(">2H", wl[o : o + 4])
         if sid < 0 or flag_id != sid:
             raise StrikeError("aucun sample à retirer")
         folder, fileno = loc >> 8, loc & 0xFF
 
         data, n = self._list("wave_list_sort_num.lst")
         last = 0x20 + 4 * (n - 1)
-        if struct.unpack(">H", data[last + 2:last + 4])[0] != sid:
+        if struct.unpack(">H", data[last + 2 : last + 4])[0] != sid:
             raise StrikeError("le sample %d n'est pas le dernier ajouté" % sid)
-        del data[last:last + 4]
+        del data[last : last + 4]
         self._save_list("wave_list_sort_num.lst", data, n - 1)
 
         data, n = self._list("wave_list_sort_name.lst")
-        pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k:0x24 + 0x90 * k])[0] == sid)
-        del data[0x20 + 0x90 * pos:0x20 + 0x90 * (pos + 1)]
+        pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == sid)
+        del data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)]
         for k in range(pos, n - 1):
             p = 0x20 + 0x90 * k
-            data[p:p + 2] = struct.pack(">H", (struct.unpack(">H", data[p:p + 2])[0] - 1) & 0xFFFF)
+            data[p : p + 2] = struct.pack(">H", (struct.unpack(">H", data[p : p + 2])[0] - 1) & 0xFFFF)
         self._save_list("wave_list_sort_name.lst", data, n - 1)
 
         data, groups = self._list("wave_list_sort_group.lst")
         p = 0x20
         for _ in range(groups):
-            members = struct.unpack(">H", data[p + 1:p + 3])[0]
-            if data[p + 8:p + 0x18].split(b"\0")[0] == b"New Sample":
+            members = struct.unpack(">H", data[p + 1 : p + 3])[0]
+            if data[p + 8 : p + 0x18].split(b"\0")[0] == b"New Sample":
                 end = p + 0x18 + 4 * members
-                if members == 0 or struct.unpack(">H", data[end - 2:end])[0] != sid:
+                if members == 0 or struct.unpack(">H", data[end - 2 : end])[0] != sid:
                     raise StrikeError("le sample %d n'est pas le dernier du groupe New Sample" % sid)
-                del data[end - 4:end]
-                data[p + 1:p + 3] = struct.pack(">H", members - 1)
+                del data[end - 4 : end]
+                data[p + 1 : p + 3] = struct.pack(">H", members - 1)
                 break
             p += 0x18 + 4 * members
         self._save_list("wave_list_sort_group.lst", data, groups)
 
         data, n = self._list("WaveList_User_SortSize.lst")
         size_total = len(data)
-        k = next(k for k in range(n) if struct.unpack(">I", data[0x20 + 8 * k:0x24 + 8 * k])[0] == sid)
-        del data[0x20 + 8 * k:0x28 + 8 * k]
+        k = next(k for k in range(n) if struct.unpack(">I", data[0x20 + 8 * k : 0x24 + 8 * k])[0] == sid)
+        del data[0x20 + 8 * k : 0x28 + 8 * k]
         data += bytes(size_total - len(data))
         self._save_list("WaveList_User_SortSize.lst", data, n - 1)
 
-        wl[o:o + 2] = struct.pack(">H", 0x8000 | sid)
+        wl[o : o + 2] = struct.pack(">H", 0x8000 | sid)
         wl[0x0A:0x0C] = struct.pack(">H", count - 1)
         self.set_file("WAV/LIST/Wave_list.lst", wl)
         for kind, ext in (("HEAD", "had"), ("DATA", "wav")):
@@ -657,10 +702,10 @@ def parse_fac(data):
     if data[:4] != b"SDRH":
         raise StrikeError("ce n'est pas un fichier .fac (SDRH)")
     entries, p = [], 0x120
-    while data[p:p + 4] == b"FIEH":
-        name = data[p + 8:p + 0x48].split(b"\0")[0].decode("latin-1")
-        ext = data[p + 0x48:p + 0x4C].split(b"\0")[0].decode("latin-1")
-        size, off = struct.unpack(">I", data[p + 0x4C:p + 0x50])[0], struct.unpack(">I", data[p + 0x54:p + 0x58])[0]
+    while data[p : p + 4] == b"FIEH":
+        name = data[p + 8 : p + 0x48].split(b"\0")[0].decode("latin-1")
+        ext = data[p + 0x48 : p + 0x4C].split(b"\0")[0].decode("latin-1")
+        size, off = struct.unpack(">I", data[p + 0x4C : p + 0x50])[0], struct.unpack(">I", data[p + 0x54 : p + 0x58])[0]
         entries.append(Entry("KIT/", "%s.%s" % (name, ext), off, size))
         p += 0x60
     return entries
@@ -681,8 +726,8 @@ def kit_entries(entries):
 def sample_catalog_from_list(lst):
     catalog = {}
     for p in range(0x20, len(lst) - 0x8F, 0x90):
-        sid = struct.unpack(">H", lst[p + 2:p + 4])[0]
-        name = lst[p + 0x10:p + 0x90].split(b"\0")[0].decode("latin-1")
+        sid = struct.unpack(">H", lst[p + 2 : p + 4])[0]
+        name = lst[p + 0x10 : p + 0x90].split(b"\0")[0].decode("latin-1")
         if name:
             catalog[sid] = name
     return catalog
@@ -691,7 +736,7 @@ def sample_catalog_from_list(lst):
 def build_catalog(files):
     """id -> nom, à partir de [(chemin normalisé, nom, contenu)] : liste triée par nom et .had."""
     catalog = {}
-    for path, name, content in files:
+    for _path, name, content in files:
         if name.lower() == "wave_list_sort_name.lst":
             catalog.update(sample_catalog_from_list(content))
     for path, name, content in files:
@@ -703,7 +748,7 @@ def build_catalog(files):
 
 
 def sample_catalog(data, entries):
-    return build_catalog([(e.path, e.name, data[e.offset:e.offset + e.size]) for e in entries])
+    return build_catalog([(e.path, e.name, data[e.offset : e.offset + e.size]) for e in entries])
 
 
 def wav_sample_id(path, name):
@@ -733,35 +778,36 @@ class Backup:
     def kit_numbers(self):
         if self.fac is not None:
             return sorted(self._fac_kits)
-        return sorted(r.name[:-4] for r in self.bkf.records
-                      if norm_path(r.path) == "KIT/" and r.name.endswith(".kit"))
+        return sorted(r.name[:-4] for r in self.bkf.records if norm_path(r.path) == "KIT/" and r.name.endswith(".kit"))
 
     def get_raw(self, num):
         if num not in self.kit_numbers():
             raise StrikeError("kit %s absent de la sauvegarde" % num)
         if self.fac is not None:
             e = self._fac_kits[num]
-            return bytes(self.fac[e.offset:e.offset + e.size])
+            return bytes(self.fac[e.offset : e.offset + e.size])
         return self.bkf.get_file("KIT/%s.kit" % num)
 
     def _set_raw(self, num, kit):
         if self.fac is not None:
             e = self._fac_kits[num]
-            self.fac[e.offset:e.offset + e.size] = kit
+            self.fac[e.offset : e.offset + e.size] = kit
         else:
             self.bkf.set_file("KIT/%s.kit" % num, kit)
 
     def samples(self):
         if self._catalog is None:
-            self._catalog = {} if self.bkf is None else build_catalog(
-                [(norm_path(r.path), r.name, r.data) for r in self.bkf.records])
+            self._catalog = (
+                {}
+                if self.bkf is None
+                else build_catalog([(norm_path(r.path), r.name, r.data) for r in self.bkf.records])
+            )
         return self._catalog
 
     def user_sample_ids(self):
         if self.bkf is None:
             return []
-        return sorted(i for i in (wav_sample_id(norm_path(r.path), r.name) for r in self.bkf.records)
-                      if i is not None)
+        return sorted(i for i in (wav_sample_id(norm_path(r.path), r.name) for r in self.bkf.records) if i is not None)
 
     def user_wav(self, sid):
         if self.bkf is not None:
@@ -779,7 +825,7 @@ class Backup:
         try:
             return raw, encode_kit(raw, data, self.samples())
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise StrikeError("JSON de kit invalide : %r" % exc)
+            raise StrikeError("JSON de kit invalide : %r" % exc) from exc
 
     def update(self, num, data):
         raw, kit = self._encode(num, data)
@@ -830,7 +876,7 @@ class Backup:
                 skipped += [(num, n, f) for n, f in set_slots_value(kit, targets, field, value)]
                 encoded.append((num,) + self._encode(num, kit))
             except StrikeError as exc:
-                raise StrikeError("kit %s : %s" % (num, exc))
+                raise StrikeError("kit %s : %s" % (num, exc)) from exc
         for num, raw, kit in encoded:
             if kit != raw:
                 self._set_raw(num, kit)
@@ -858,6 +904,7 @@ class Backup:
 # Commandes
 # --------------------------------------------------------------------------
 
+
 def safe_filename(text):
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", text).strip("_") or "kit"
 
@@ -883,9 +930,12 @@ def cmd_export(backup, outdir, wav=True):
     if samples:
         (out / "samples.json").write_text(
             json.dumps({str(k): v for k, v in sorted(samples.items())}, ensure_ascii=False, indent=1) + "\n",
-            encoding="utf-8")
-    print("%d kits et %d WAV exportés dans %s (%s, %d samples référencés)"
-          % (len(b.kit_numbers()), len(wavs), out, b.kind, len(samples)))
+            encoding="utf-8",
+        )
+    print(
+        "%d kits et %d WAV exportés dans %s (%s, %d samples référencés)"
+        % (len(b.kit_numbers()), len(wavs), out, b.kind, len(samples))
+    )
 
 
 def kit_jsons(indir):
@@ -896,7 +946,7 @@ def kit_jsons(indir):
         try:
             yield f, f.name.split("_")[0].split(".")[0], json.loads(f.read_text(encoding="utf-8"))
         except ValueError as exc:
-            raise StrikeError("%s : JSON invalide (%s)" % (f.name, exc))
+            raise StrikeError("%s : JSON invalide (%s)" % (f.name, exc)) from exc
 
 
 def import_dir(data, indir):
@@ -913,7 +963,7 @@ def import_dir(data, indir):
         try:
             sid = b.add_sample(name, content)
         except StrikeError as exc:
-            raise StrikeError("%s : %s" % (wav.name, exc))
+            raise StrikeError("%s : %s" % (wav.name, exc)) from exc
         known.add(name)
         contents.add(content)
         print("sample %r ajouté (id %d)" % (name, sid))
@@ -923,7 +973,7 @@ def import_dir(data, indir):
             before = b.get_raw(num)
             b.update(num, kit)
         except StrikeError as exc:
-            raise StrikeError("%s : %s" % (f.name, exc))
+            raise StrikeError("%s : %s" % (f.name, exc)) from exc
         changed += b.get_raw(num) != before
     return b.serialize(), changed
 

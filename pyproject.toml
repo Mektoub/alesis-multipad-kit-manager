@@ -1,0 +1,11 @@
+# Configuration des outils de développement (le projet n'est pas un paquet installable).
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+extend-exclude = ["editor/web", "mes_kits", "Backups"]
+
+[tool.ruff.lint]
+# Erreurs réelles (F, E9), style PEP 8 (E, W), ordre des imports (I), pièges courants (B).
+# La modernisation (UP) n'est pas activée : le code garde le style "%s" % x.
+select = ["E", "F", "W", "I", "B"]

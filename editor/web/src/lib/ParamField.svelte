@@ -14,7 +14,7 @@
   </span>
   {#if def.labels}
     <select bind:value>
-      {#each { length: def.max - def.min + 1 } as _, i}
+      {#each { length: def.max - def.min + 1 } as _, i (i)}
         <option value={def.min + i}>{def.labels[def.min + i] ?? `Valeur ${def.min + i}`}</option>
       {/each}
     </select>

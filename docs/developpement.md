@@ -9,6 +9,7 @@
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
 | `editeur.sh` | lancement avec préparation automatique du venv et de l'interface |
+| `dev.sh` | analyse, tests et build en local, comme la CI |
 | `editor/web/` | interface Svelte (Vite) |
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
 | `tests/test_editor.py` | tests de l'API |
@@ -26,6 +27,22 @@ Dans `strike_kits.py` :
 - `Backup` : sauvegarde `.bkf` ou `.fac` ouverte en mémoire, utilisée par l'éditeur
   et par les commandes.
 
+## En une commande : `dev.sh`
+
+`./dev.sh` lance les mêmes vérifications que la CI. Au besoin, il crée `.venv`,
+installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
+
+| Commande | Rôle |
+|---|---|
+| `./dev.sh lint` | `ruff check`, `ruff format --check`, ESLint ; n'écrit rien |
+| `./dev.sh lint --fix` | corrige ce qui peut l'être et reformate (ruff, ESLint) |
+| `./dev.sh test` | tous les tests |
+| `./dev.sh test tests.test_editor.ModeBureau` | seulement les tests indiqués |
+| `./dev.sh build` | build de l'interface dans `editor/web/dist` |
+| `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
+
+Les sections suivantes détaillent les commandes appelées.
+
 ## Tests
 
 ```bash
@@ -33,6 +50,32 @@ python3 -m unittest -v tests.test_strike_kits                 # sans dépendance
 .venv/bin/python -m unittest -v tests.test_editor             # nécessite requirements.txt
 .venv/bin/python -m unittest discover -s tests -t .           # tout
 ```
+
+## Analyse du code
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt   # ruff, en plus des dépendances de l'éditeur
+.venv/bin/ruff check .                          # erreurs, style PEP 8, imports, pièges courants
+.venv/bin/ruff format .                         # formatage (lignes de 120 caractères)
+cd editor/web && npm run lint                   # ESLint : JavaScript et Svelte
+```
+
+Réglages : `pyproject.toml` (`[tool.ruff]`) et `editor/web/eslint.config.js`. La
+modernisation des chaînes `"%s" % x` en f-strings (règles `UP` de ruff) n'est pas
+activée.
+
+## Intégration continue
+
+`.github/workflows/ci.yml` (GitHub Actions) se déclenche à chaque push sur `main`
+et sur chaque pull request. Deux jobs, sous Ubuntu :
+
+| Job | Étapes |
+|---|---|
+| Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
+| Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm run build` |
+
+Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
+ci-dessus).
 
 Tous les tests reposent sur **une seule sauvegarde**, `tests/ressources/Backup001.bkf`
 (5 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été
@@ -71,4 +114,5 @@ npm run dev     # développement, avec le serveur lancé à côté
 npm run build   # production, dans editor/web/dist
 ```
 
-Les versions des paquets sont figées dans `package.json` et `requirements.txt`.
+Les versions des paquets sont figées dans `package.json`, `requirements.txt` et
+`requirements-dev.txt`.

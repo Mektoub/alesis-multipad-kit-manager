@@ -1,4 +1,5 @@
 """Tests de l'API de l'éditeur web (FastAPI), sur la sauvegarde de référence."""
+
 import io
 import json
 import os
@@ -145,8 +146,9 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.get("/api/kits/041").json()["name"], "WhereIs")
         for body in ({"target": "032", "mode": "copy"}, {"target": "200", "mode": "swap"}):
             self.assertEqual(self.client.post("/api/kits/032/transfer", json=body).status_code, 400)
-        self.assertEqual(self.client.post("/api/kits/032/transfer",
-                                          json={"target": "040", "mode": "move"}).status_code, 422)
+        self.assertEqual(
+            self.client.post("/api/kits/032/transfer", json={"target": "040", "mode": "move"}).status_code, 422
+        )
 
     def test_modification_multi_kits(self):
         body = {"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}
@@ -161,7 +163,8 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.post("/api/kits/set", json=body).status_code, 400)
 
     def test_modification_groupee(self):
-        r = self.client.post("/api/kits/033/set", json={"targets": [1, 2, 9], "field": "params.sensitivity", "value": 20})
+        body = {"targets": [1, 2, 9], "field": "params.sensitivity", "value": 20}
+        r = self.client.post("/api/kits/033/set", json=body)
         self.assertEqual(r.status_code, 200, r.text)
         kit = r.json()["kit"]
         self.assertEqual([kit["slots"][i]["params"]["sensitivity"] for i in (0, 1, 2, 8)], [20, 20, 16, 20])
@@ -190,6 +193,7 @@ class Api(unittest.TestCase):
         self.assertEqual(len(meta["colors"]), 17)
         self.assertEqual(len(meta["slots"]), 24)
 
+
 class SansSauvegarde(unittest.TestCase):
     def test_etat_vide(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -207,10 +211,18 @@ class SansSauvegarde(unittest.TestCase):
         for p in meta["pad_params"] + meta["wave_params"]:
             self.assertTrue(p["description"], p["name"])
         self.assertIn("fondu", wave["fade_in"]["description"].lower())
-        for key in ("level", "tempo", "play_color", "play_mode", "stop_color", "stop_mode",
-                    "sample", "velocity_low", "velocity_high"):
+        for key in (
+            "level",
+            "tempo",
+            "play_color",
+            "play_mode",
+            "stop_color",
+            "stop_mode",
+            "sample",
+            "velocity_low",
+            "velocity_high",
+        ):
             self.assertTrue(meta["help"][key], key)
-
 
     def test_valeurs_par_defaut(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -228,7 +240,7 @@ class SansSauvegarde(unittest.TestCase):
         empty = sk.Backup.open(REF).decode("041")
         self.assertEqual(empty["name"], "Empty")
         self.assertEqual(defaults["kit"], {"level": empty["level"], "tempo": empty["tempo"]})
-        for want, got in zip(empty["slots"], defaults["slots"]):
+        for want, got in zip(empty["slots"], defaults["slots"], strict=True):
             self.assertEqual(got["params"], want["params"], want["slot"])
             self.assertEqual(got["light"], want["light"], want["slot"])
             for w in ("wave_a", "wave_b"):
@@ -379,13 +391,43 @@ class ModeBureau(unittest.TestCase):
 
 
 class Lancement(unittest.TestCase):
+    def test_interface_absente_avertissement_sur_stderr(self):
+        """Sans interface construite (cas de la CI), l'avertissement part sur la sortie
+        d'erreur : la sortie standard ne contient que les lignes utiles."""
+        import contextlib
+        from unittest import mock
+
+        import editor.__main__ as launcher
+
+        out, err = io.StringIO(), io.StringIO()
+        fake_run = lambda app, host, port, on_ready: on_ready(None, 4321)  # noqa: E731
+        argv = ["editor", "--port", "0", "--no-browser", "--root", str(REF.parent)]
+        with (
+            mock.patch.object(launcher, "WEB_DIST", Path(REF.parent) / "absent"),
+            mock.patch.object(launcher, "run", fake_run),
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.dict(os.environ, {}, clear=False),
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+        ):
+            os.environ.pop("STRIKE_TOKEN", None)
+            launcher.main()
+        self.assertIn("Interface non construite", err.getvalue())
+        self.assertTrue(out.getvalue().startswith("Éditeur disponible sur http://127.0.0.1:4321/"), out.getvalue())
+        self.assertNotIn("Interface non construite", out.getvalue())
+
     def test_arret_propre_par_ctrl_c(self):
         """Ctrl+C (SIGINT) arrête l'éditeur sans trace d'erreur, avec le code 0."""
         project = Path(__file__).resolve().parent.parent
         env = {k: v for k, v in os.environ.items() if k != "STRIKE_TOKEN"}
-        p = subprocess.Popen([sys.executable, "-m", "editor", "--port", "0", "--no-browser",
-                              "--root", str(REF.parent)],
-                             cwd=project, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            [sys.executable, "-m", "editor", "--port", "0", "--no-browser", "--root", str(REF.parent)],
+            cwd=project,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         try:
             self.assertIn("Éditeur disponible", p.stdout.readline())
             p.send_signal(signal.SIGINT)
@@ -416,8 +458,9 @@ class Lancement(unittest.TestCase):
             try:
                 self.assertTrue(announced["ready"])
                 self.assertGreater(announced["port"], 0)
-                req = urllib.request.Request("http://127.0.0.1:%d/api/state" % announced["port"],
-                                             headers={"X-Strike-Token": "t"})
+                req = urllib.request.Request(
+                    "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-Strike-Token": "t"}
+                )
                 with urllib.request.urlopen(req, timeout=5) as resp:
                     self.assertEqual(json.load(resp)["path"], None)
             finally:
