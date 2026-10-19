@@ -2,8 +2,9 @@
   // Une couche (wave A ou B) : sample, plage de vélocité, mixage.
   import ParamField from "./ParamField.svelte";
   import { onPlaying, toggle } from "./player.js";
+  import { tooltip } from "./format.js";
 
-  let { wave, title, meta, sampleIndex, onpick } = $props();
+  let { wave, title, meta, sampleIndex, defaults, onpick } = $props();
 
   let playing = $state(null);
   $effect(() => onPlaying((id) => (playing = id)));
@@ -42,23 +43,23 @@
       {/if}
     </div>
     <div class="velocity">
-      <span class="muted" title="{meta.help.velocity_low} {meta.help.velocity_high}">Vélocité</span>
-      <input type="number" min="0" max="126" bind:value={wave.velocity_low} onchange={() => clampVelocity("low")} title={meta.help.velocity_low} />
+      <span class="muted" title={tooltip(`${meta.help.velocity_low} ${meta.help.velocity_high}`, {}, `${defaults.velocity_low} à ${defaults.velocity_high}`)}>Vélocité</span>
+      <input type="number" min="0" max="126" bind:value={wave.velocity_low} onchange={() => clampVelocity("low")} title={tooltip(meta.help.velocity_low, {}, defaults.velocity_low)} />
       <span class="muted">à</span>
-      <input type="number" min="1" max="127" bind:value={wave.velocity_high} onchange={() => clampVelocity("high")} title={meta.help.velocity_high} />
+      <input type="number" min="1" max="127" bind:value={wave.velocity_high} onchange={() => clampVelocity("high")} title={tooltip(meta.help.velocity_high, {}, defaults.velocity_high)} />
     </div>
   {:else}
     <p class="muted">Sample et vélocité illisibles dans ce kit.</p>
   {/if}
 
   {#each known as def (def.name)}
-    <ParamField {def} bind:value={wave.params[def.name]} />
+    <ParamField {def} bind:value={wave.params[def.name]} defaultValue={defaults.params[def.name]} />
   {/each}
   {#if unknown.length}
     <details>
       <summary class="muted">Paramètres non identifiés ({unknown.length})</summary>
       {#each unknown as def (def.name)}
-        <ParamField {def} bind:value={wave.params[def.name]} />
+        <ParamField {def} bind:value={wave.params[def.name]} defaultValue={defaults.params[def.name]} />
       {/each}
     </details>
   {/if}

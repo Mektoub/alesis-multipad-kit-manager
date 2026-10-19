@@ -177,5 +177,28 @@ class SansSauvegarde(unittest.TestCase):
             self.assertTrue(meta["help"][key], key)
 
 
+    def test_valeurs_par_defaut(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            meta = TestClient(create_app(Path(tmp))).get("/api/meta").json()
+        d = meta["defaults"]
+        self.assertEqual((d["kit"]["level"], d["kit"]["tempo"]), (100, 120.0))
+        self.assertEqual([s["params"]["sensitivity"] for s in d["slots"][:9]], [16] * 6 + [24] * 3)
+        self.assertEqual([s["params"]["midi_note"] for s in d["slots"][:3]], [36, 37, 38])
+        self.assertEqual(d["slots"][0]["wave_a"]["velocity_high"], 127)
+
+    def test_valeurs_par_defaut_conformes_au_kit_vide(self):
+        """La table correspond exactement à un kit vide écrit par l'appareil."""
+        with tempfile.TemporaryDirectory() as tmp:
+            defaults = TestClient(create_app(Path(tmp))).get("/api/meta").json()["defaults"]
+        empty = sk.Backup.open(REF).decode("041")
+        self.assertEqual(empty["name"], "Empty")
+        self.assertEqual(defaults["kit"], {"level": empty["level"], "tempo": empty["tempo"]})
+        for want, got in zip(empty["slots"], defaults["slots"]):
+            self.assertEqual(got["params"], want["params"], want["slot"])
+            self.assertEqual(got["light"], want["light"], want["slot"])
+            for w in ("wave_a", "wave_b"):
+                self.assertEqual(got[w], {k: v for k, v in want[w].items() if k != "sample"}, (want["slot"], w))
+
+
 if __name__ == "__main__":
     unittest.main()

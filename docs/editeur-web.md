@@ -59,8 +59,12 @@ cd editor/web && npm ci && npm run build && cd ../..
    - *Éclairage* : couleurs et modes Play / Stop ;
    - *Wave A / Wave B* : sample, plage de vélocité, mixage.
 
-   Survoler le nom d'un réglage affiche sa description, d'après le manuel. Pour un
-   paramètre non identifié, l'infobulle donne sa plage et, le cas échéant, une piste.
+   Survoler le nom d'un réglage affiche sa description, d'après le manuel, et sa
+   valeur par défaut pour le pad affiché. Celle-ci est relevée dans un kit vide
+   écrit par l'appareil, et varie pour certains réglages : note MIDI propre à chaque
+   emplacement, Sensitivity à 16 sur P1–P6 mais 24 sur les petits pads P7–P9. Pour
+   un paramètre non identifié, l'infobulle donne aussi sa plage et, le cas échéant,
+   une piste.
 6. **Recopier un pad** : *Copier vers…* (en haut des réglages du pad) copie ses
    réglages vers un ou plusieurs autres emplacements. On choisit les sections (pad,
    éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
