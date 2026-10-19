@@ -66,7 +66,12 @@ cd editor/web && npm ci && npm run build && cd ../..
    éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
    la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
    message de confirmation.
-7. **Déplacer ou dupliquer un kit** : *Déplacer / copier le kit…* (à côté du tempo)
+7. **Modifier plusieurs pads** : *Modifier plusieurs pads…* (en haut des réglages
+   du pad) donne une même valeur à un réglage sur une sélection de pads, par
+   exemple Sensitivity = 20 sur P1, P3, P5 et P9. On choisit le réglage (pad,
+   éclairage, vélocité ou mixage d'une wave), la valeur, bornée par sa plage, puis
+   les pads. La valeur proposée est celle du pad courant.
+8. **Déplacer ou dupliquer un kit** : *Déplacer / copier le kit…* (à côté du tempo)
    - *Déplacer / échanger* : le kit va au numéro choisi. Si ce kit est vide, c'est
      un déplacement (le numéro d'origine devient vide) ; sinon les deux kits sont
      échangés ;
@@ -75,11 +80,11 @@ cd editor/web && npm ci && npm run build && cd ../..
 
    Un kit ne contient pas son propre numéro : l'opération recopie ses octets tels
    quels, samples et réglages compris.
-8. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
+9. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
    perso. La zone du bas ajoute un WAV par glisser-déposer
    (voir [Ajouter un sample](ajouter-un-sample.md)).
-9. **Enregistrer sous** : le nom suivant est proposé (`Backup003.bkf` après
+10. **Enregistrer sous** : le nom suivant est proposé (`Backup003.bkf` après
    `Backup002.bkf`). Si le fichier existe, une confirmation est demandée.
    L'enregistrement sur la sauvegarde d'origine est refusé.
 
@@ -102,6 +107,7 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
+| POST | `/api/kits/{num}/set` | même valeur pour un champ de plusieurs emplacements (`{"targets": [1, 3, 5], "field": "params.sensitivity", "value": 20}` ; champs : `params.*`, `light.*`, `wave_a.*` / `wave_b.*` dont `sample` et les vélocités, `wave_a.params.*` / `wave_b.params.*`) |
 | POST | `/api/kits/{num}/transfer` | copier le kit vers un autre numéro (`{"target": "040", "mode": "copy"}`) ou échanger les deux kits (`"mode": "swap"`) ; renvoie l'état |
 | POST | `/api/kits/{num}/copy` | recopier un emplacement (`{"source": 9, "targets": [7, 8], "parts": ["params", "light", "wave_a", "wave_b"], "include_midi_note": false}`) |
 | GET | `/api/samples` | catalogue des samples |

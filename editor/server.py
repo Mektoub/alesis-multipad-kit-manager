@@ -35,6 +35,12 @@ class CopyRequest(BaseModel):
     include_midi_note: bool = False
 
 
+class SetRequest(BaseModel):
+    targets: list[int]
+    field: str
+    value: int | str | None
+
+
 class TransferRequest(BaseModel):
     target: str
     mode: Literal["copy", "swap"]
@@ -134,6 +140,14 @@ def create_app(root):
             b = kit_or_404(num)
             kit, skipped = strike_errors(lambda: b.copy_slot(
                 num, req.source, req.targets, req.parts, req.include_midi_note))
+            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+
+    @app.post("/api/kits/{num}/set")
+    def set_slots(num: str, req: SetRequest):
+        """Applique une même valeur à un champ de plusieurs emplacements."""
+        with s.lock:
+            b = kit_or_404(num)
+            kit, skipped = strike_errors(lambda: b.set_slots(num, req.targets, req.field, req.value))
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
 
     @app.post("/api/kits/{num}/transfer")

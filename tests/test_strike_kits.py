@@ -459,6 +459,54 @@ class RecopiePad(unittest.TestCase):
                 sk.copy_slot_settings(kit, src, dests, parts)
 
 
+class ModificationGroupee(unittest.TestCase):
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+
+    def values(self, kit, field):
+        out = []
+        for s in kit["slots"]:
+            node = s
+            for key in field.split("."):
+                node = node[key]
+            out.append(node)
+        return out
+
+    def test_sensitivity_sur_une_selection(self):
+        before = self.values(self.b.decode("033"), "params.sensitivity")
+        kit, skipped = self.b.set_slots("033", [1, 3, 5, 9], "params.sensitivity", 20)
+        self.assertEqual(skipped, [])
+        expected = [20 if n in (1, 3, 5, 9) else v for n, v in enumerate(before, 1)]
+        self.assertEqual(self.values(kit, "params.sensitivity"), expected)
+        self.assertEqual(self.values(self.b.decode("033"), "params.sensitivity"), expected)
+        self.assertTrue(self.b.dirty)
+
+    def test_sections_et_kit_kitc(self):
+        targets = list(range(1, 10))
+        for field, value in (("wave_b.params.volume", 70), ("light.play_color", 9),
+                             ("wave_a.velocity_high", 100), ("params.control", 3)):
+            kit, _ = self.b.set_slots("032", targets, field, value)
+            self.assertEqual(self.values(kit, field)[:9], [value] * 9, field)
+        before = self.values(self.b.decode("032"), "wave_a.sample")
+        kit, _ = self.b.set_slots("032", [2, 4], "wave_a.sample", "Sample Stuck")
+        self.assertEqual(self.values(kit, "wave_a.sample"),
+                         [8072 if n in (2, 4) else v for n, v in enumerate(before, 1)])
+
+    def test_valeur_hors_plage_sans_effet(self):
+        raw = self.b.get_raw("033")
+        with self.assertRaisesRegex(sk.StrikeError, "hors plage"):
+            self.b.set_slots("033", [1, 2], "params.sensitivity", 40)
+        self.assertEqual(self.b.get_raw("033"), raw)
+        self.assertFalse(self.b.dirty)
+
+    def test_champ_ou_emplacement_invalide(self):
+        for targets, field in (([1], "params.inconnu"), ([1], "autre.volume"), ([1], "light.couleur"),
+                               ([1], "wave_c.params.volume"), ([1], "params"), ([25], "params.volume"),
+                               ([], "params.volume")):
+            with self.assertRaises(sk.StrikeError, msg=(targets, field)):
+                self.b.set_slots("033", targets, field, 1)
+
+
 class CopieKit(unittest.TestCase):
     def setUp(self):
         self.b = sk.Backup.open(REF)

@@ -2,7 +2,7 @@
   // Kit : réglages généraux, grille des 9 pads, autres entrées, emplacement choisi.
   import SlotEditor from "./SlotEditor.svelte";
 
-  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer } = $props();
+  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer, onbulk } = $props();
 
   // Disposition de l'appareil : 7-8-9 en haut (pads deux fois moins hauts),
   // 4-5-6 au milieu, 1-2-3 en bas.
@@ -73,7 +73,10 @@
   <div class="editor">
     <div class="editor-head">
       <h2>{slot._label}</h2>
-      <button onclick={() => oncopy(selected + 1)}>Copier vers…</button>
+      <span class="actions">
+        <button onclick={() => onbulk(selected + 1)} title="Donner une même valeur à un réglage de plusieurs pads">Modifier plusieurs pads…</button>
+        <button onclick={() => oncopy(selected + 1)}>Copier vers…</button>
+      </span>
     </div>
     {#key selected}
       <SlotEditor {slot} {meta} {sampleIndex} {onpick} />
@@ -168,6 +171,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
   }
   .sample {

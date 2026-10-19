@@ -294,6 +294,43 @@ def copy_slot_settings(kit, source, targets, parts, include_midi_note=False):
     return skipped
 
 
+def slot_field_names():
+    """Champs modifiables en groupe, au format « section.clé »."""
+    pad = [param_name(PAD_PARAMS, r) for r, _, _ in PAD_LAYOUT]
+    wave = [param_name(WAVE_PARAMS, r) for r, _, _ in WAVE_LAYOUT]
+    names = ["params." + n for n in pad] + ["light." + n for n in LIGHT_FIELDS]
+    for w in WAVES:
+        names += ["%s.%s" % (w, k) for k in WAVE_HEADER_KEYS] + ["%s.params.%s" % (w, n) for n in wave]
+    return names
+
+
+def set_slots_value(kit, targets, field, value):
+    """Donne la valeur `value` au champ `field` (ex. « params.sensitivity »,
+    « wave_a.params.volume ») des emplacements `targets`, dans le JSON `kit`.
+
+    La valeur est validée à l'encodage du kit. Retourne les emplacements où le
+    champ est absent, donc non modifié : [(emplacement, champ)].
+    """
+    if field not in slot_field_names():
+        raise StrikeError("champ inconnu : %s" % field)
+    if not targets:
+        raise StrikeError("aucun emplacement choisi")
+    for n in targets:
+        if not isinstance(n, int) or not 1 <= n <= SLOT_COUNT:
+            raise StrikeError("emplacement %r inexistant (1 à %d)" % (n, SLOT_COUNT))
+    *path, key = field.split(".")
+    skipped = []
+    for n in targets:
+        node = kit["slots"][n - 1]
+        for part in path:
+            node = node[part]
+        if key in node:
+            node[key] = value
+        else:
+            skipped.append((n, field))
+    return skipped
+
+
 # --------------------------------------------------------------------------
 # WAV
 # --------------------------------------------------------------------------
@@ -767,6 +804,11 @@ class Backup:
         self._set_raw(a, raw_b)
         self._set_raw(b, raw_a)
         self.dirty = True
+
+    def set_slots(self, num, targets, field, value):
+        kit = self.decode(num)
+        skipped = set_slots_value(kit, targets, field, value)
+        return self.update(num, kit), skipped
 
     def copy_slot(self, num, source, targets, parts, include_midi_note=False):
         kit = self.decode(num)
