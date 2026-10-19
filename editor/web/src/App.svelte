@@ -3,6 +3,7 @@
   import { api } from "./lib/api.js";
   import KitEditor from "./lib/KitEditor.svelte";
   import CopyDialog from "./lib/CopyDialog.svelte";
+  import KitTransferDialog from "./lib/KitTransferDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
 
   let meta = $state(null);
@@ -17,6 +18,7 @@
   let notice = $state("");
   let picking = $state(null); // "wave_a" | "wave_b" | null
   let copyFrom = $state(null); // emplacement source de la recopie
+  let transferring = $state(false); // fenêtre « Déplacer / copier le kit »
   let savePath = $state("");
   let saving = $state(false);
   let syncing = $state(false);
@@ -78,6 +80,18 @@
       const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
       notice += ` Champs illisibles dans ce kit, non copiés : ${list}.`;
     }
+  }
+
+  async function transferKit({ target, mode }) {
+    await flush();
+    const source = currentNum;
+    const before = session.kits.find((k) => k.num === target)?.name;
+    session = await api.transferKit(source, { target, mode });
+    transferring = false;
+    if (mode === "copy") notice = `Kit ${source} copié en ${target}.`;
+    else if (before === "Empty") notice = `Kit ${source} déplacé en ${target}.`;
+    else notice = `Kits ${source} et ${target} échangés.`;
+    await loadKit(target);
   }
 
   async function loadKit(num, resetSlot = true) {
@@ -211,7 +225,7 @@
     </aside>
     <section class="content">
       {#if kit}
-        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} />
+        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} />
       {/if}
     </section>
   </main>
@@ -224,6 +238,10 @@
 
 {#if copyFrom && kit}
   <CopyDialog {kit} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
+{/if}
+
+{#if transferring && kit}
+  <KitTransferDialog kits={session.kits} source={currentNum} ontransfer={transferKit} onclose={() => (transferring = false)} />
 {/if}
 
 {#if picking && kit}

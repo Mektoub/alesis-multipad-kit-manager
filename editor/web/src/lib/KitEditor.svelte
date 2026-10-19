@@ -2,7 +2,7 @@
   // Kit : réglages généraux, grille des 9 pads, autres entrées, emplacement choisi.
   import SlotEditor from "./SlotEditor.svelte";
 
-  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy } = $props();
+  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer } = $props();
 
   // Disposition de l'appareil : 7-8-9 en haut (pads deux fois moins hauts),
   // 4-5-6 au milieu, 1-2-3 en bas.
@@ -41,9 +41,10 @@
     </label>
     <label>
       <span class="muted">Tempo (BPM)</span>
-      <input type="number" min="30" max="280" step="0.1" bind:value={kit.tempo} />
+      <input type="number" min="30" max="280" step="any" bind:value={kit.tempo} title="Flèches : ±1 BPM ; une décimale peut être saisie (ex. 98.5)" />
     </label>
     <span class="format muted" title="KITC : format écrit par l'appareil quand on enregistre un kit">{kit.format}</span>
+    <button onclick={ontransfer}>Déplacer / copier le kit…</button>
   </div>
 
   <div class="pads">

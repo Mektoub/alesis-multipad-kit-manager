@@ -434,5 +434,41 @@ class RecopiePad(unittest.TestCase):
                 sk.copy_slot_settings(kit, src, dests, parts)
 
 
+@unittest.skipUnless(BKF3.exists() and FAC.exists(), "pas de Backup003 ou de .fac")
+class CopieKit(unittest.TestCase):
+    def setUp(self):
+        self.b = sk.Backup.open(BKF3)
+        self.raw = {n: self.b.get_raw(n) for n in ("031", "032", "040")}
+
+    def test_copie(self):
+        self.b.copy_kit("032", "040")
+        self.assertEqual(self.b.get_raw("040"), self.raw["032"])
+        self.assertEqual(self.b.get_raw("032"), self.raw["032"])
+        self.assertTrue(self.b.dirty)
+        out = sk.Backup(self.b.serialize())  # conteneur valide
+        self.assertEqual(out.decode("040")["name"], "CrazyInLove")
+
+    def test_echange(self):
+        self.b.swap_kits("031", "040")
+        self.assertEqual((self.b.get_raw("031"), self.b.get_raw("040")), (self.raw["040"], self.raw["031"]))
+        self.assertEqual(sk.Backup(self.b.serialize()).decode("040")["name"], "WhereIs")
+
+    def test_fac(self):
+        b = sk.Backup.open(FAC)
+        source = b.get_raw("005")
+        b.copy_kit("005", "050")
+        b.swap_kits("001", "002")
+        out = sk.Backup(b.serialize())
+        self.assertEqual(out.get_raw("050"), source)
+        self.assertEqual((out.decode("001")["name"], out.decode("002")["name"]), ("Cash Money Kit", "Power Duel"))
+
+    def test_kits_invalides(self):
+        for a, b in (("032", "032"), ("032", "101"), ("999", "040")):
+            for op in (self.b.copy_kit, self.b.swap_kits):
+                with self.assertRaises(sk.StrikeError):
+                    op(a, b)
+        self.assertFalse(self.b.dirty)
+
+
 if __name__ == "__main__":
     unittest.main()

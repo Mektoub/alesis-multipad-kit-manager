@@ -112,6 +112,21 @@ class Api(unittest.TestCase):
             r = self.client.post("/api/save", json={"path": path, "overwrite": True})
             self.assertEqual(r.status_code, 400, path)
 
+    def test_copie_et_echange_de_kits(self):
+        r = self.client.post("/api/kits/032/transfer", json={"target": "040", "mode": "copy"})
+        self.assertEqual(r.status_code, 200, r.text)
+        names = {k["num"]: k["name"] for k in r.json()["kits"]}
+        self.assertEqual((names["032"], names["040"]), ("CrazyInLove", "CrazyInLove"))
+        self.assertTrue(r.json()["dirty"])
+        r = self.client.post("/api/kits/031/transfer", json={"target": "041", "mode": "swap"})
+        names = {k["num"]: k["name"] for k in r.json()["kits"]}
+        self.assertEqual((names["031"], names["041"]), ("Empty", "WhereIs"))
+        self.assertEqual(self.client.get("/api/kits/041").json()["name"], "WhereIs")
+        for body in ({"target": "032", "mode": "copy"}, {"target": "200", "mode": "swap"}):
+            self.assertEqual(self.client.post("/api/kits/032/transfer", json=body).status_code, 400)
+        self.assertEqual(self.client.post("/api/kits/032/transfer",
+                                          json={"target": "040", "mode": "move"}).status_code, 422)
+
     def test_recopie_pad(self):
         r = self.client.post("/api/kits/032/copy", json={"source": 5, "targets": [1, 2], "parts": ["wave_a"]})
         self.assertEqual(r.status_code, 200, r.text)

@@ -687,6 +687,27 @@ class Backup:
             self.dirty = True
         return self.decode(num)
 
+    def _two_kits(self, a, b):
+        if a == b:
+            raise StrikeError("le kit source et le kit cible sont identiques (%s)" % a)
+        return self.get_raw(a), self.get_raw(b)
+
+    def copy_kit(self, source, target):
+        """Remplace le kit `target` par une copie du kit `source`.
+
+        Un kit ne contient pas son propre numéro : copier ses octets suffit.
+        """
+        raw, _ = self._two_kits(source, target)
+        self._set_raw(target, raw)
+        self.dirty = True
+
+    def swap_kits(self, a, b):
+        """Échange deux kits (déplacer un kit = l'échanger avec un kit vide)."""
+        raw_a, raw_b = self._two_kits(a, b)
+        self._set_raw(a, raw_b)
+        self._set_raw(b, raw_a)
+        self.dirty = True
+
     def copy_slot(self, num, source, targets, parts, include_midi_note=False):
         kit = self.decode(num)
         skipped = copy_slot_settings(kit, source, targets, parts, include_midi_note)

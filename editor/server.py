@@ -5,6 +5,7 @@ ni écrit en dehors.
 """
 import threading
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
@@ -32,6 +33,11 @@ class CopyRequest(BaseModel):
     targets: list[int]
     parts: list[str]
     include_midi_note: bool = False
+
+
+class TransferRequest(BaseModel):
+    target: str
+    mode: Literal["copy", "swap"]
 
 
 class Session:
@@ -129,6 +135,15 @@ def create_app(root):
             kit, skipped = strike_errors(lambda: b.copy_slot(
                 num, req.source, req.targets, req.parts, req.include_midi_note))
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+
+    @app.post("/api/kits/{num}/transfer")
+    def transfer_kit(num: str, req: TransferRequest):
+        """Copie le kit `num` vers `target`, ou échange les deux kits."""
+        with s.lock:
+            b = kit_or_404(num)
+            op = b.copy_kit if req.mode == "copy" else b.swap_kits
+            strike_errors(lambda: op(num, req.target))
+            return s.state()
 
     @app.get("/api/samples")
     def samples():
