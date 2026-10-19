@@ -11,6 +11,8 @@
 - Éditeur web : les flèches du champ tempo avancent de 1 BPM (au lieu de 0,1) ; une valeur décimale reste saisissable.
 - Éditeur web : les infobulles indiquent la valeur par défaut du réglage pour le pad affiché (relevée dans un kit vide de l'appareil ; `/api/meta` expose `defaults`).
 - Éditeur web : « Modifier plusieurs pads… » donne une même valeur à un réglage sur une sélection de pads (`set_slots_value`, `Backup.set_slots`, route `POST /api/kits/{num}/set`).
+- Serveur de l'éditeur pilotable par l'application de bureau (étape 1 du passage à Electron) : jeton `STRIKE_TOKEN` exigé sur `/api/*` (en-tête `X-Strike-Token`), `--port 0` et ligne `{"ready": true, "port": N}` une fois à l'écoute, changement de dossier de travail (`POST /api/root`).
+- Ouvrir une autre sauvegarde avec des modifications non enregistrées est refusé par le serveur (409) sauf confirmation (`force`) ; l'interface demande confirmation.
 - `editeur.sh` : dossier de sauvegardes par défaut `Backups/` (sinon `Strike/`, puis le dossier courant) ; les `.bkf` / `.fac` de `Backups/` sont ignorés par Git.
 - Éditeur web : la modification groupée peut s'appliquer aux mêmes pads de plusieurs kits, tout ou rien (`Backup.set_slots_in_kits`, route `POST /api/kits/set`).
 - Tests : une seule sauvegarde de référence, `tests/ressources/Backup001.bkf` (5 Mo, construite par `tests/construire_reference.py`), indépendante des sauvegardes de travail de `Strike/` ; tests déplacés dans `tests/`, `.fac` construit en mémoire. `Bkf.remove_last_sample` (inverse de `add_sample`, réservé aux tests).

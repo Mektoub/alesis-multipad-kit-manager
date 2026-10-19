@@ -30,13 +30,30 @@ utiles : `PYTHON=python3.12` choisit l'interpréteur qui crée le venv, et
 | Option | Rôle | Défaut |
 |---|---|---|
 | `--root DOSSIER` | dossier où chercher les sauvegardes et où enregistrer | `Backups/` du projet, sinon `Strike/`, sinon le dossier courant |
-| `--port N` | port HTTP | 8765 |
+| `--port N` | port HTTP (`0` : un port libre est choisi) | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
 
 Le navigateur s'ouvre sur http://127.0.0.1:8765/. Le serveur n'écoute que sur la
 machine locale, et ne lit ni n'écrit en dehors du dossier `--root`. `Ctrl+C`
 l'arrête.
+
+### Mode bureau (application Electron)
+
+Quand la variable d'environnement `STRIKE_TOKEN` est définie, le serveur passe en
+mode bureau, prévu pour être piloté par l'application Electron :
+
+- chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec ce jeton,
+  sinon elle reçoit une erreur 403 ; un autre programme de la machine ne peut donc
+  pas piloter l'éditeur ;
+- le dossier de travail peut être changé (`POST /api/root`), pour suivre la
+  fenêtre « Ouvrir » du système ;
+- une fois à l'écoute, le serveur écrit sur sa sortie standard une ligne
+  `{"ready": true, "port": N}`, utile avec `--port 0`.
+
+```bash
+STRIKE_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --no-browser
+```
 
 Sans le script, l'installation manuelle est la suivante :
 
@@ -112,7 +129,8 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 | Méthode | Route | Rôle |
 |---|---|---|
 | GET | `/api/backups` | sauvegardes trouvées dans le dossier racine |
-| POST | `/api/open` | ouvrir une sauvegarde (`{"path": …}`) |
+| POST | `/api/open` | ouvrir une sauvegarde (`{"path": …, "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
+| POST | `/api/root` | mode bureau uniquement : changer de dossier de travail (`{"path": "/chemin/absolu", "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
