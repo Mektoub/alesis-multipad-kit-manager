@@ -1,7 +1,7 @@
 """Lance l'éditeur : python -m editor [--root DOSSIER] [--port 8765].
 
 Mode bureau (application Electron) : si la variable d'environnement STRIKE_TOKEN
-est définie, l'API exige ce jeton et le dossier de travail peut être changé.
+est définie, l'API exige ce jeton et les fichiers sont désignés par chemin absolu.
 Avec --port 0, un port libre est choisi. Une fois le serveur prêt, une ligne JSON
 `{"ready": true, "port": N}` est écrite sur la sortie standard en mode bureau.
 """
@@ -47,7 +47,9 @@ def run(app, host, port, on_ready=None):
 
 def main():
     ap = argparse.ArgumentParser(description="Éditeur web des kits du Strike MultiPad")
-    ap.add_argument("--root", default=".", help="dossier contenant les sauvegardes (défaut : dossier courant)")
+    ap.add_argument("--root", default=".",
+                    help="mode développement : dossier des sauvegardes, hors duquel rien n'est lu ni écrit "
+                         "(défaut : dossier courant ; ignoré en mode bureau)")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8765, help="port d'écoute (0 : port libre)")
     ap.add_argument("--no-browser", action="store_true", help="ne pas ouvrir le navigateur")

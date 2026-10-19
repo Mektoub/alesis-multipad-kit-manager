@@ -149,17 +149,19 @@
     }
   }
 
-  async function save(overwrite = false) {
+  // `path` null : « Enregistrer » dans le fichier ouvert (copie .bak du fichier
+  // d'origine faite par le serveur) ; sinon « Enregistrer sous ».
+  async function save(path = null, overwrite = false) {
     saving = true;
     error = notice = "";
     try {
-      await new Promise((r) => setTimeout(r, 400)); // laisse partir la dernière modification
-      session = await api.save(savePath, overwrite);
+      await flush(); // la dernière modification compte
+      session = await api.save(path, overwrite);
       notice = `Enregistré dans ${session.path}`;
       backups = await api.backups();
       savePath = nextName(session.path);
     } catch (err) {
-      if (err.status === 409 && confirm(`${err.message}\nL'écraser ?`)) return save(true);
+      if (err.status === 409 && confirm(`${err.message}\nL'écraser ?`)) return save(path, true);
       error = err.message;
     } finally {
       saving = false;
@@ -216,7 +218,8 @@
         {syncing ? "Synchronisation…" : session.dirty ? "Modifications non enregistrées" : "À jour"}
       </span>
       <input type="text" bind:value={savePath} aria-label="Fichier de destination" />
-      <button class="primary" onclick={() => save()} disabled={saving}>Enregistrer sous</button>
+      <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
+      <button onclick={() => save(savePath)} disabled={saving}>Enregistrer sous</button>
     </div>
   {/if}
 </header>

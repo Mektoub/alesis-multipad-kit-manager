@@ -68,7 +68,7 @@ class Api(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.text)
         self.assertEqual((r.json()["dirty"], self.client.get("/api/kits/033").json()["name"]), (False, "Empty"))
 
-    def test_pas_de_changement_de_dossier_sans_jeton(self):
+    def test_plus_de_dossier_de_travail_modifiable(self):
         self.assertEqual(self.client.post("/api/root", json={"path": str(self.root)}).status_code, 404)
 
     def test_ouverture_hors_racine_refusee(self):
@@ -121,14 +121,15 @@ class Api(unittest.TestCase):
         self.assertEqual(saved.decode("034")["name"], "Enregistre")
         state = self.client.get("/api/state").json()
         self.assertEqual((state["path"], state["dirty"]), ("sauvegardes/Backup002.bkf", False))
-        # fichier existant : confirmation requise
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup002.bkf"})
+        # autre fichier existant : confirmation requise
+        shutil.copy(REF, self.root / "sauvegardes" / "Autre.bkf")
+        r = self.client.post("/api/save", json={"path": "sauvegardes/Autre.bkf"})
         self.assertEqual(r.status_code, 409)
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup002.bkf", "overwrite": True})
+        r = self.client.post("/api/save", json={"path": "sauvegardes/Autre.bkf", "overwrite": True})
         self.assertEqual(r.status_code, 200)
 
     def test_enregistrement_refuse(self):
-        for path in ("sauvegardes/Backup001.bkf", "../hors.bkf", "sauvegardes/x.fac", "sauvegardes/x.txt"):
+        for path in ("../hors.bkf", "/tmp/hors-du-dossier.bkf", "sauvegardes/x.fac", "sauvegardes/x.txt"):
             r = self.client.post("/api/save", json={"path": path, "overwrite": True})
             self.assertEqual(r.status_code, 400, path)
 
@@ -234,9 +235,75 @@ class SansSauvegarde(unittest.TestCase):
                 self.assertEqual(got[w], {k: v for k, v in want[w].items() if k != "sample"}, (want["slot"], w))
 
 
+class Enregistrement(unittest.TestCase):
+    """« Enregistrer » écrit dans le fichier ouvert ; au premier enregistrement de
+    chaque session, l'état précédent est copié dans <fichier>.N.bak."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.file = self.root / "Backup001.bkf"
+        shutil.copy(REF, self.file)
+        self.client = TestClient(create_app(self.root))
+        self.open()
+
+    def open(self, force=False):
+        r = self.client.post("/api/open", json={"path": "Backup001.bkf", "force": force})
+        self.assertEqual(r.status_code, 200, r.text)
+
+    def rename(self, name):
+        kit = self.client.get("/api/kits/033").json()
+        kit["name"] = name
+        self.assertEqual(self.client.put("/api/kits/033", json=kit).status_code, 200)
+
+    def test_enregistrer_dans_le_fichier_ouvert(self):
+        original = self.file.read_bytes()
+        self.rename("Premier")
+        r = self.client.post("/api/save", json={})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual((r.json()["path"], r.json()["dirty"]), ("Backup001.bkf", False))
+        self.assertEqual(sk.Backup.open(self.file).decode("033")["name"], "Premier")
+        self.assertEqual((self.root / "Backup001.bkf.1.bak").read_bytes(), original)
+        # deuxième enregistrement de la même session : pas de nouvelle copie
+        self.rename("Second")
+        self.client.post("/api/save", json={})
+        self.assertEqual(sorted(p.name for p in self.root.glob("*.bak")), ["Backup001.bkf.1.bak"])
+        # nouvelle session : nouvelle copie numérotée, avec l'état précédent
+        before = self.file.read_bytes()
+        self.open()
+        self.rename("Troisieme")
+        self.client.post("/api/save", json={})
+        self.assertEqual((self.root / "Backup001.bkf.2.bak").read_bytes(), before)
+        self.assertEqual((self.root / "Backup001.bkf.1.bak").read_bytes(), original)
+
+    def test_enregistrer_sous_le_meme_nom_equivaut_a_enregistrer(self):
+        self.rename("Meme nom")
+        r = self.client.post("/api/save", json={"path": "Backup001.bkf"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertTrue((self.root / "Backup001.bkf.1.bak").exists())
+
+    def test_enregistrer_sous_puis_enregistrer(self):
+        self.rename("Copie")
+        r = self.client.post("/api/save", json={"path": "Backup002.bkf"})
+        self.assertEqual((r.status_code, r.json()["path"]), (200, "Backup002.bkf"))
+        self.assertEqual(list(self.root.glob("*.bak")), [])
+        # « Enregistrer » écrit désormais dans la copie ; elle vient de l'éditeur,
+        # ce n'est pas un fichier d'origine : pas de .bak
+        self.rename("Copie modifiee")
+        self.client.post("/api/save", json={})
+        self.assertEqual(sk.Backup.open(self.root / "Backup002.bkf").decode("033")["name"], "Copie modifiee")
+        self.assertEqual(sk.Backup.open(self.file).decode("033")["name"], "Empty")
+        self.assertEqual(list(self.root.glob("*.bak")), [])
+
+    def test_enregistrer_sans_sauvegarde_ouverte(self):
+        client = TestClient(create_app(self.root))
+        self.assertEqual(client.post("/api/save", json={}).status_code, 409)
+
+
 class ModeBureau(unittest.TestCase):
     """Avec un jeton (application Electron) : API réservée au porteur du jeton,
-    dossier de travail modifiable."""
+    fichiers ouverts et enregistrés par chemin absolu, n'importe où."""
 
     TOKEN = "secret-de-test"
 
@@ -247,43 +314,68 @@ class ModeBureau(unittest.TestCase):
         self.a, self.b = base / "a", base / "b"
         self.a.mkdir()
         self.b.mkdir()
-        shutil.copy(REF, self.b / "Ma sauvegarde.bkf")
-        self.client = TestClient(create_app(self.a, token=self.TOKEN))
+        self.file = self.b / "Ma sauvegarde.bkf"
+        shutil.copy(REF, self.file)
+        self.client = TestClient(create_app(token=self.TOKEN))
         self.client.headers["X-Strike-Token"] = self.TOKEN
 
+    def open(self, path, **kw):
+        return self.client.post("/api/open", json=dict(path=str(path), **kw))
+
     def test_jeton_exige(self):
-        anonymous = TestClient(create_app(self.a, token=self.TOKEN))
+        anonymous = TestClient(create_app(token=self.TOKEN))
         for headers in ({}, {"X-Strike-Token": "faux"}):
             r = anonymous.get("/api/state", headers=headers)
             self.assertEqual(r.status_code, 403, headers)
         self.assertEqual(self.client.get("/api/state").status_code, 200)
 
-    def test_changement_de_dossier(self):
-        r = self.client.post("/api/root", json={"path": str(self.b)})
+    def test_ouvrir_par_chemin_absolu(self):
+        r = self.open(self.file)
         self.assertEqual(r.status_code, 200, r.text)
-        self.assertEqual((r.json()["root"], r.json()["path"]), (str(self.b.resolve()), None))
-        self.assertEqual([b["path"] for b in self.client.get("/api/backups").json()], ["Ma sauvegarde.bkf"])
-        r = self.client.post("/api/open", json={"path": "Ma sauvegarde.bkf"})
-        self.assertEqual((r.status_code, r.json()["path"]), (200, "Ma sauvegarde.bkf"))
-        # la règle « rien hors du dossier de travail » reste en vigueur
-        self.assertEqual(self.client.post("/api/open", json={"path": "../a/x.bkf"}).status_code, 400)
+        self.assertEqual((r.json()["path"], r.json()["kind"]), (str(self.file), "bkf"))
+        for path in ("Ma sauvegarde.bkf", self.b / "inexistant.bkf", self.b):
+            self.assertEqual(self.open(path).status_code, 400, path)
 
-    def test_dossier_invalide(self):
-        for path in ("relatif/dossier", str(self.b / "inexistant"), str(self.b / "Ma sauvegarde.bkf")):
-            r = self.client.post("/api/root", json={"path": path})
-            self.assertEqual(r.status_code, 400, path)
+    def test_pas_de_liste_ni_de_dossier_de_travail(self):
+        self.assertEqual(self.client.get("/api/backups").status_code, 404)
+        self.assertEqual(self.client.post("/api/root", json={"path": str(self.a)}).status_code, 404)
 
-    def test_changement_de_dossier_avec_modifications_non_enregistrees(self):
-        self.client.post("/api/root", json={"path": str(self.b)})
-        self.client.post("/api/open", json={"path": "Ma sauvegarde.bkf"})
+    def test_enregistrer_et_enregistrer_sous(self):
+        self.open(self.file)
+        kit = self.client.get("/api/kits/033").json()
+        kit["name"] = "Bureau"
+        self.client.put("/api/kits/033", json=kit)
+        # « Enregistrer sous » un autre fichier existant : confirmation requise
+        existing = self.a / "Existant.bkf"
+        shutil.copy(REF, existing)
+        self.assertEqual(self.client.post("/api/save", json={"path": str(existing)}).status_code, 409)
+        # « Enregistrer sous » ailleurs
+        target = self.a / "Copie.bkf"
+        r = self.client.post("/api/save", json={"path": str(target)})
+        self.assertEqual((r.status_code, r.json()["path"]), (200, str(target)))
+        r = self.client.post("/api/save", json={"path": str(existing), "overwrite": True})
+        self.assertEqual((r.status_code, r.json()["path"]), (200, str(existing)))
+        r = self.client.post("/api/save", json={"path": str(target), "overwrite": True})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.client.post("/api/save", json={"path": "relatif.bkf"}).status_code, 400)
+        # « Enregistrer » : écrit dans la copie (pas de .bak : ce n'est pas un original)
+        r = self.client.post("/api/save", json={})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(list(self.a.glob("*.bak")), [])
+        self.assertEqual(sk.Backup.open(target).decode("033")["name"], "Bureau")
+        # « Enregistrer » sur le fichier d'origine ouvert : .bak dans son dossier
+        self.open(self.file, force=True)
+        self.client.put("/api/kits/033", json=kit)
+        self.client.post("/api/save", json={})
+        self.assertTrue((self.b / "Ma sauvegarde.bkf.1.bak").exists())
+
+    def test_ouvrir_avec_modifications_non_enregistrees(self):
+        self.open(self.file)
         kit = self.client.get("/api/kits/033").json()
         kit["name"] = "Pas enregistre"
         self.client.put("/api/kits/033", json=kit)
-        r = self.client.post("/api/root", json={"path": str(self.a)})
-        self.assertEqual(r.status_code, 409)
-        self.assertEqual(self.client.get("/api/state").json()["root"], str(self.b.resolve()))
-        r = self.client.post("/api/root", json={"path": str(self.a), "force": True})
-        self.assertEqual((r.status_code, r.json()["root"], r.json()["path"]), (200, str(self.a.resolve()), None))
+        self.assertEqual(self.open(self.file).status_code, 409)
+        self.assertEqual(self.open(self.file, force=True).status_code, 200)
 
 
 class Lancement(unittest.TestCase):
