@@ -41,6 +41,10 @@ class SetRequest(BaseModel):
     value: int | str | None
 
 
+class MultiSetRequest(SetRequest):
+    kits: list[str]
+
+
 class TransferRequest(BaseModel):
     target: str
     mode: Literal["copy", "swap"]
@@ -141,6 +145,14 @@ def create_app(root):
             kit, skipped = strike_errors(lambda: b.copy_slot(
                 num, req.source, req.targets, req.parts, req.include_midi_note))
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+
+    @app.post("/api/kits/set")
+    def set_slots_in_kits(req: MultiSetRequest):
+        """Même valeur, mêmes emplacements, dans plusieurs kits (tout ou rien)."""
+        with s.lock:
+            b = s.require()
+            skipped = strike_errors(lambda: b.set_slots_in_kits(req.kits, req.targets, req.field, req.value))
+            return dict(s.state(), skipped=[{"kit": k, "slot": n, "field": f} for k, n, f in skipped])
 
     @app.post("/api/kits/{num}/set")
     def set_slots(num: str, req: SetRequest):

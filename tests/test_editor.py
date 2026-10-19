@@ -125,6 +125,18 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.post("/api/kits/032/transfer",
                                           json={"target": "040", "mode": "move"}).status_code, 422)
 
+    def test_modification_multi_kits(self):
+        body = {"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}
+        r = self.client.post("/api/kits/set", json=body)
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertTrue(r.json()["dirty"])
+        self.assertEqual(r.json()["skipped"], [])
+        for num in ("031", "032"):
+            kit = self.client.get("/api/kits/%s" % num).json()
+            self.assertEqual([kit["slots"][i]["params"]["sensitivity"] for i in (0, 8)], [20, 20], num)
+        body["value"] = 99
+        self.assertEqual(self.client.post("/api/kits/set", json=body).status_code, 400)
+
     def test_modification_groupee(self):
         r = self.client.post("/api/kits/033/set", json={"targets": [1, 2, 9], "field": "params.sensitivity", "value": 20})
         self.assertEqual(r.status_code, 200, r.text)
