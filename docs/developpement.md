@@ -35,7 +35,7 @@ python3 -m unittest -v tests.test_strike_kits                 # sans dépendance
 ```
 
 Tous les tests reposent sur **une seule sauvegarde**, `tests/ressources/Backup001.bkf`
-(5 Mo), indépendante des sauvegardes de travail du dossier `Strike/`. Elle a été
+(5 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été
 construite par `tests/construire_reference.py` à partir d'une vraie sauvegarde de
 l'appareil :
 

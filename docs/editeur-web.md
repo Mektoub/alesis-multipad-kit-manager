@@ -21,13 +21,15 @@ Le script prépare tout ce qui manque, puis lance le serveur :
    `editor/web/` est modifiée ;
 4. lance `python -m editor` avec les arguments reçus.
 
-Sans `--root`, le dossier `Strike/` du projet est utilisé s'il existe. Variables
+Sans `--root`, le dossier `Backups/` du projet est utilisé s'il existe (sinon
+`Strike/`, puis le dossier courant). Les `.bkf` et `.fac` de `Backups/` sont
+ignorés par Git. Variables
 utiles : `PYTHON=python3.12` choisit l'interpréteur qui crée le venv, et
 `REBUILD=1` force la reconstruction de l'interface.
 
 | Option | Rôle | Défaut |
 |---|---|---|
-| `--root DOSSIER` | dossier où chercher les sauvegardes et où enregistrer | `Strike/` du projet, sinon le dossier courant |
+| `--root DOSSIER` | dossier où chercher les sauvegardes et où enregistrer | `Backups/` du projet, sinon `Strike/`, sinon le dossier courant |
 | `--port N` | port HTTP | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
