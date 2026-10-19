@@ -24,7 +24,7 @@
 <section class="wave">
   <h3>{title}</h3>
   {#if hasHeader}
-    <div class="sample">
+    <div class="sample" title={meta.help.sample}>
       <button class="pick" onclick={onpick} title="Choisir un sample">
         {#if sample}
           <span class="name">{sample.name}</span><span class="muted">#{sample.id}</span>
@@ -42,10 +42,10 @@
       {/if}
     </div>
     <div class="velocity">
-      <span class="muted">Vélocité</span>
-      <input type="number" min="0" max="126" bind:value={wave.velocity_low} onchange={() => clampVelocity("low")} />
+      <span class="muted" title="{meta.help.velocity_low} {meta.help.velocity_high}">Vélocité</span>
+      <input type="number" min="0" max="126" bind:value={wave.velocity_low} onchange={() => clampVelocity("low")} title={meta.help.velocity_low} />
       <span class="muted">à</span>
-      <input type="number" min="1" max="127" bind:value={wave.velocity_high} onchange={() => clampVelocity("high")} />
+      <input type="number" min="1" max="127" bind:value={wave.velocity_high} onchange={() => clampVelocity("high")} title={meta.help.velocity_high} />
     </div>
   {:else}
     <p class="muted">Sample et vélocité illisibles dans ce kit.</p>

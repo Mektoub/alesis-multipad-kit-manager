@@ -135,7 +135,11 @@ Les samples ont des id **denses de 0 à 8 071** : l'id est l'indice dans
   (quasi alphabétique, insensible à la casse ; quelques exceptions de ponctuation).
   - +0x00 : u16, compteur de position. À l'insertion, l'entrée reçoit sa position
     et **toutes les entrées suivantes sont incrémentées de 1**. Les valeurs
-    d'usine (position modulo 256) sont l'héritage de ce mécanisme.
+    d'usine (position modulo 256) sont l'héritage de ce mécanisme. L'octet de
+    poids faible vaut toujours la position modulo 256 ; l'octet de poids fort
+    contient le reste de la position pour un sample ajouté récemment (1832 pour
+    « Crazy in Love »), mais 0 pour un sample ajouté en 2016 (« WIMH sample
+    track », 102 à la position 7782). L'outil écrit la position complète.
   - +0x02 : u16, **id du sample** ;
   - +0x04 : u16, longueur du nom d'origine (nom du fichier importé, `.wav` compris) ;
   - +0x10 : **nom complet**, 0x80 octets. L'appareil ajoute `_id` aux noms en double.

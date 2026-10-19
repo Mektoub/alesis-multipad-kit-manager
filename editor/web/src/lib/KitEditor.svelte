@@ -30,18 +30,18 @@
 
 <div class="kit">
   <div class="settings">
-    <label>
+    <label title={meta.help.name}>
       <span class="muted">Nom</span>
       <input type="text" maxlength={meta.kit_name_max} bind:value={kit.name} />
     </label>
-    <label>
+    <label title={meta.help.level}>
       <span class="muted">Volume du kit</span>
       <input type="range" min="0" max="100" bind:value={kit.level} />
       <span class="num">{kit.level}</span>
     </label>
-    <label>
+    <label title="{meta.help.tempo} Flèches : ±1 BPM ; une décimale peut être saisie (ex. 98.5).">
       <span class="muted">Tempo (BPM)</span>
-      <input type="number" min="30" max="280" step="any" bind:value={kit.tempo} title="Flèches : ±1 BPM ; une décimale peut être saisie (ex. 98.5)" />
+      <input type="number" min="30" max="280" step="any" bind:value={kit.tempo} />
     </label>
     <span class="format muted" title="KITC : format écrit par l'appareil quand on enregistre un kit">{kit.format}</span>
     <button onclick={ontransfer}>Déplacer / copier le kit…</button>
