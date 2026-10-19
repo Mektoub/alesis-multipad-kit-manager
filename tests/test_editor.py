@@ -391,6 +391,31 @@ class ModeBureau(unittest.TestCase):
 
 
 class Lancement(unittest.TestCase):
+    def test_interface_absente_avertissement_sur_stderr(self):
+        """Sans interface construite (cas de la CI), l'avertissement part sur la sortie
+        d'erreur : la sortie standard ne contient que les lignes utiles."""
+        import contextlib
+        from unittest import mock
+
+        import editor.__main__ as launcher
+
+        out, err = io.StringIO(), io.StringIO()
+        fake_run = lambda app, host, port, on_ready: on_ready(None, 4321)  # noqa: E731
+        argv = ["editor", "--port", "0", "--no-browser", "--root", str(REF.parent)]
+        with (
+            mock.patch.object(launcher, "WEB_DIST", Path(REF.parent) / "absent"),
+            mock.patch.object(launcher, "run", fake_run),
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.dict(os.environ, {}, clear=False),
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+        ):
+            os.environ.pop("STRIKE_TOKEN", None)
+            launcher.main()
+        self.assertIn("Interface non construite", err.getvalue())
+        self.assertTrue(out.getvalue().startswith("Éditeur disponible sur http://127.0.0.1:4321/"), out.getvalue())
+        self.assertNotIn("Interface non construite", out.getvalue())
+
     def test_arret_propre_par_ctrl_c(self):
         """Ctrl+C (SIGINT) arrête l'éditeur sans trace d'erreur, avec le code 0."""
         project = Path(__file__).resolve().parent.parent
