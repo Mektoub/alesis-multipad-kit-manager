@@ -62,7 +62,7 @@ def main():
     if not WEB_DIST.is_dir():
         print(
             "Interface non construite : lancer ./editeur.sh, ou `npm ci && npm run build` dans editor/web.",
-            file=sys.stderr if token else sys.stdout,
+            file=sys.stderr,  # avertissement : la sortie standard reste réservée aux lignes utiles
         )
 
     def on_ready(_server, port):
