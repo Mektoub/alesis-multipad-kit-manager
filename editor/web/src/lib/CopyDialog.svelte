@@ -1,5 +1,7 @@
 <script>
   // Recopie des réglages d'un emplacement vers d'autres.
+  import { SvelteSet } from "svelte/reactivity";
+
   let { kit, source, oncopy, onclose } = $props();
 
   const PARTS = [
@@ -11,8 +13,9 @@
   // même disposition que la grille de l'éditeur
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];
 
-  let targets = $state(new Set());
-  let parts = $state(new Set(PARTS.map((p) => p.key)));
+  // sélections réactives, modifiées en place
+  const targets = new SvelteSet();
+  const parts = new SvelteSet(PARTS.map((p) => p.key));
   let includeMidi = $state(false);
   let busy = $state(false);
   let error = $state("");
@@ -20,13 +23,13 @@
   let others = $derived(kit.slots.slice(9).map((s) => s.slot));
 
   function toggle(set, value) {
-    const next = new Set(set);
-    next.has(value) ? next.delete(value) : next.add(value);
-    return next;
+    if (set.has(value)) set.delete(value);
+    else set.add(value);
   }
 
   function selectPads(all) {
-    targets = new Set(all ? [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => n !== source) : []);
+    targets.clear();
+    if (all) for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) if (n !== source) targets.add(n);
   }
 
   async function submit() {
@@ -68,14 +71,14 @@
         </span>
       </div>
       <div class="pads">
-        {#each PAD_ROWS as row}
-          {#each row as n}
+        {#each PAD_ROWS as row, r (r)}
+          {#each row as n (n)}
             <button
               class="target"
               class:on={targets.has(n)}
               disabled={n === source}
               aria-pressed={targets.has(n)}
-              onclick={() => (targets = toggle(targets, n))}
+              onclick={() => toggle(targets, n)}
             >
               P{n}
             </button>
@@ -85,13 +88,13 @@
       <details>
         <summary class="muted">Autres entrées (10 à 24)</summary>
         <div class="others">
-          {#each others as n}
+          {#each others as n (n)}
             <button
               class="target small"
               class:on={targets.has(n)}
               disabled={n === source}
               aria-pressed={targets.has(n)}
-              onclick={() => (targets = toggle(targets, n))}
+              onclick={() => toggle(targets, n)}
             >
               {n}
             </button>
@@ -102,8 +105,8 @@
 
     <section>
       <h3>Quoi</h3>
-      {#each PARTS as p}
-        <label><input type="checkbox" checked={parts.has(p.key)} onchange={() => (parts = toggle(parts, p.key))} /> {p.label}</label>
+      {#each PARTS as p (p.key)}
+        <label><input type="checkbox" checked={parts.has(p.key)} onchange={() => toggle(parts, p.key)} /> {p.label}</label>
       {/each}
       <label class="midi">
         <input type="checkbox" bind:checked={includeMidi} disabled={!parts.has("params")} />

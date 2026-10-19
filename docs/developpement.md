@@ -34,6 +34,32 @@ python3 -m unittest -v tests.test_strike_kits                 # sans dépendance
 .venv/bin/python -m unittest discover -s tests -t .           # tout
 ```
 
+## Analyse du code
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt   # ruff, en plus des dépendances de l'éditeur
+.venv/bin/ruff check .                          # erreurs, style PEP 8, imports, pièges courants
+.venv/bin/ruff format .                         # formatage (lignes de 120 caractères)
+cd editor/web && npm run lint                   # ESLint : JavaScript et Svelte
+```
+
+Réglages : `pyproject.toml` (`[tool.ruff]`) et `editor/web/eslint.config.js`. La
+modernisation des chaînes `"%s" % x` en f-strings (règles `UP` de ruff) n'est pas
+activée.
+
+## Intégration continue
+
+`.github/workflows/ci.yml` (GitHub Actions) se déclenche à chaque push sur `main`
+et sur chaque pull request. Deux jobs, sous Ubuntu :
+
+| Job | Étapes |
+|---|---|
+| Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
+| Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm run build` |
+
+Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
+ci-dessus).
+
 Tous les tests reposent sur **une seule sauvegarde**, `tests/ressources/Backup001.bkf`
 (5 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été
 construite par `tests/construire_reference.py` à partir d'une vraie sauvegarde de
@@ -71,4 +97,5 @@ npm run dev     # développement, avec le serveur lancé à côté
 npm run build   # production, dans editor/web/dist
 ```
 
-Les versions des paquets sont figées dans `package.json` et `requirements.txt`.
+Les versions des paquets sont figées dans `package.json`, `requirements.txt` et
+`requirements-dev.txt`.

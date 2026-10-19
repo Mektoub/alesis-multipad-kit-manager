@@ -5,6 +5,7 @@ est définie, l'API exige ce jeton et les fichiers sont désignés par chemin ab
 Avec --port 0, un port libre est choisi. Une fois le serveur prêt, une ligne JSON
 `{"ready": true, "port": N}` est écrite sur la sortie standard en mode bureau.
 """
+
 import argparse
 import json
 import os
@@ -47,17 +48,22 @@ def run(app, host, port, on_ready=None):
 
 def main():
     ap = argparse.ArgumentParser(description="Éditeur web des kits du Strike MultiPad")
-    ap.add_argument("--root", default=".",
-                    help="mode développement : dossier des sauvegardes, hors duquel rien n'est lu ni écrit "
-                         "(défaut : dossier courant ; ignoré en mode bureau)")
+    ap.add_argument(
+        "--root",
+        default=".",
+        help="mode développement : dossier des sauvegardes, hors duquel rien n'est lu ni écrit "
+        "(défaut : dossier courant ; ignoré en mode bureau)",
+    )
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8765, help="port d'écoute (0 : port libre)")
     ap.add_argument("--no-browser", action="store_true", help="ne pas ouvrir le navigateur")
     args = ap.parse_args()
     token = os.environ.get("STRIKE_TOKEN") or None
     if not WEB_DIST.is_dir():
-        print("Interface non construite : lancer ./editeur.sh, ou `npm ci && npm run build` dans editor/web.",
-              file=sys.stderr if token else sys.stdout)
+        print(
+            "Interface non construite : lancer ./editeur.sh, ou `npm ci && npm run build` dans editor/web.",
+            file=sys.stderr if token else sys.stdout,
+        )
 
     def on_ready(_server, port):
         if token:

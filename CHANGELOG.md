@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 — en cours
+
+- Intégration continue GitHub Actions (`.github/workflows/ci.yml`) : sur chaque push sur `main` et chaque pull request, `ruff check`, `ruff format --check` et tests sous Python 3.14 ; ESLint et build de l'interface sous Node 24.
+- Analyse du code : ruff (`pyproject.toml`, `requirements-dev.txt`) avec les règles E, F, W, I, B et formatage automatique ; ESLint avec les règles recommandées JavaScript et Svelte (`editor/web/eslint.config.js`, `npm run lint`).
+- Code mis en conformité : formatage ruff, `raise … from`, clés des listes `{#each}`, sélections des fenêtres en `SvelteSet`.
+
 ## 0.2.0 — 2026-10-16
 
 - Éditeur web local (`python -m editor`) : FastAPI + Svelte, édition des kits, choix et écoute des samples, ajout de WAV, enregistrement sous un nouveau fichier.
