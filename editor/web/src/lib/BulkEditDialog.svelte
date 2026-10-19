@@ -1,8 +1,9 @@
 <script>
-  // Donne une même valeur à un réglage de plusieurs emplacements.
+  // Donne une même valeur à un réglage de plusieurs emplacements, dans le kit
+  // courant ou dans plusieurs kits (mêmes emplacements dans chacun).
   import { untrack } from "svelte";
   import { formatValue } from "./format.js";
-  let { kit, meta, source, onapply, onclose } = $props();
+  let { kit, meta, source, kits, currentNum, onapply, onclose } = $props();
 
   // même disposition que la grille de l'éditeur
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];
@@ -41,6 +42,7 @@
   // valeurs de départ (la fenêtre est recréée à chaque ouverture)
   let value = $state(untrack(() => currentValue("params.sensitivity")));
   let targets = $state(untrack(() => new Set([source])));
+  let chosenKits = $state(untrack(() => new Set([currentNum])));
   let busy = $state(false);
   let error = $state("");
 
@@ -69,6 +71,18 @@
     targets = next;
   }
 
+  function toggleKit(num) {
+    const next = new Set(chosenKits);
+    next.has(num) ? next.delete(num) : next.add(num);
+    chosenKits = next;
+  }
+
+  function selectKits(which) {
+    if (which === "current") chosenKits = new Set([currentNum]);
+    else if (which === "used") chosenKits = new Set(kits.filter((k) => k.name !== "Empty").map((k) => k.num));
+    else chosenKits = new Set();
+  }
+
   function selectPads(all) {
     targets = new Set(all ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : []);
   }
@@ -77,7 +91,13 @@
     busy = true;
     error = "";
     try {
-      await onapply({ targets: [...targets].sort((a, b) => a - b), field: fieldName, value, title: def.title });
+      await onapply({
+        kits: kits.map((k) => k.num).filter((n) => chosenKits.has(n)),
+        targets: [...targets].sort((a, b) => a - b),
+        field: fieldName,
+        value,
+        title: def.title,
+      });
     } catch (err) {
       error = err.message;
       busy = false;
@@ -162,12 +182,34 @@
       </details>
     </section>
 
+    <section>
+      <div class="head">
+        <h3>Kits ({chosenKits.size})</h3>
+        <span>
+          <button class="link" onclick={() => selectKits("current")}>kit courant</button>
+          <button class="link" onclick={() => selectKits("used")}>kits non vides</button>
+          <button class="link" onclick={() => selectKits("none")}>aucun</button>
+        </span>
+      </div>
+      <p class="muted help kits-help">Les mêmes pads sont modifiés dans chaque kit coché.</p>
+      <ul class="kits">
+        {#each kits as k (k.num)}
+          <li>
+            <label class:empty={k.name === "Empty"}>
+              <input type="checkbox" checked={chosenKits.has(k.num)} onchange={() => toggleKit(k.num)} />
+              <span class="num">{k.num}</span> {k.name}{k.num === currentNum ? " (courant)" : ""}
+            </label>
+          </li>
+        {/each}
+      </ul>
+    </section>
+
     {#if error}<p class="error">{error}</p>{/if}
 
     <footer>
       <button onclick={onclose}>Annuler</button>
-      <button class="primary" onclick={submit} disabled={busy || !targets.size || !valid}>
-        Appliquer à {targets.size} emplacement(s)
+      <button class="primary" onclick={submit} disabled={busy || !targets.size || !chosenKits.size || !valid}>
+        Appliquer à {targets.size} pad(s){chosenKits.size > 1 ? ` × ${chosenKits.size} kits` : ""}
       </button>
     </footer>
   </div>
@@ -268,6 +310,33 @@
   details summary {
     cursor: pointer;
     font-size: 13px;
+  }
+  .kits {
+    list-style: none;
+    margin: 0;
+    padding: 4px 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .kits label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    padding: 2px 0;
+  }
+  .kits .empty {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .kits .num {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+  .kits-help {
+    margin: 0;
   }
   .error {
     margin: 0;

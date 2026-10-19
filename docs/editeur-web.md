@@ -74,7 +74,10 @@ cd editor/web && npm ci && npm run build && cd ../..
    du pad) donne une même valeur à un réglage sur une sélection de pads, par
    exemple Sensitivity = 20 sur P1, P3, P5 et P9. On choisit le réglage (pad,
    éclairage, vélocité ou mixage d'une wave), la valeur, bornée par sa plage, puis
-   les pads. La valeur proposée est celle du pad courant.
+   les pads. La valeur proposée est celle du pad courant. La section *Kits* permet
+   d'appliquer la même valeur aux **mêmes pads de plusieurs kits** (kit courant
+   coché par défaut, raccourci *kits non vides*). L'opération est tout ou rien :
+   si un kit refuse la valeur, aucun n'est modifié.
 8. **Déplacer ou dupliquer un kit** : *Déplacer / copier le kit…* (à côté du tempo)
    - *Déplacer / échanger* : le kit va au numéro choisi. Si ce kit est vide, c'est
      un déplacement (le numéro d'origine devient vide) ; sinon les deux kits sont
@@ -111,6 +114,7 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
+| POST | `/api/kits/set` | même chose dans plusieurs kits, tout ou rien (`{"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}`) ; renvoie l'état et les champs absents |
 | POST | `/api/kits/{num}/set` | même valeur pour un champ de plusieurs emplacements (`{"targets": [1, 3, 5], "field": "params.sensitivity", "value": 20}` ; champs : `params.*`, `light.*`, `wave_a.*` / `wave_b.*` dont `sample` et les vélocités, `wave_a.params.*` / `wave_b.params.*`) |
 | POST | `/api/kits/{num}/transfer` | copier le kit vers un autre numéro (`{"target": "040", "mode": "copy"}`) ou échanger les deux kits (`"mode": "swap"`) ; renvoie l'état |
 | POST | `/api/kits/{num}/copy` | recopier un emplacement (`{"source": 9, "targets": [7, 8], "parts": ["params", "light", "wave_a", "wave_b"], "include_midi_note": false}`) |

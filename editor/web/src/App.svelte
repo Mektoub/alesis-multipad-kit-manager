@@ -84,17 +84,17 @@
     }
   }
 
-  async function bulkSet({ targets, field, value, title }) {
+  async function bulkSet({ kits, targets, field, value, title }) {
     await flush();
-    const { kit: updated, skipped } = await api.setSlots(currentNum, { targets, field, value });
-    lastSynced = JSON.stringify(updated);
-    kit = updated;
-    session.dirty = true;
+    const { skipped, ...state } = await api.setSlotsInKits({ kits, targets, field, value });
+    session = state;
     bulkFrom = null;
-    const dest = targets.map((n) => updated.slots[n - 1]._label).join(", ");
-    notice = `${title} = ${value} appliqué à ${dest}.`;
+    await loadKit(currentNum, false);
+    const dest = targets.map((n) => kit.slots[n - 1]._label).join(", ");
+    const where = kits.length === 1 ? `du kit ${kits[0]}` : `de ${kits.length} kits`;
+    notice = `${title} = ${value} appliqué à ${dest} ${where}.`;
     if (skipped.length) {
-      notice += ` Champ absent, non modifié : ${skipped.map((s) => updated.slots[s.slot - 1]._label).join(", ")}.`;
+      notice += ` Champ absent, non modifié : ${skipped.map((s) => `kit ${s.kit} ${kit.slots[s.slot - 1]._label}`).join(", ")}.`;
     }
   }
 
@@ -257,7 +257,7 @@
 {/if}
 
 {#if bulkFrom && kit}
-  <BulkEditDialog {kit} {meta} source={bulkFrom} onapply={bulkSet} onclose={() => (bulkFrom = null)} />
+  <BulkEditDialog {kit} {meta} source={bulkFrom} kits={session.kits} {currentNum} onapply={bulkSet} onclose={() => (bulkFrom = null)} />
 {/if}
 
 {#if transferring && kit}

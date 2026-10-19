@@ -773,12 +773,16 @@ class Backup:
     def decode(self, num):
         return decode_kit(self.get_raw(num), self.samples())
 
-    def update(self, num, data):
+    def _encode(self, num, data):
+        """(octets d'origine, octets encodés) du kit `num` modifié selon `data`."""
         raw = self.get_raw(num)
         try:
-            kit = encode_kit(raw, data, self.samples())
+            return raw, encode_kit(raw, data, self.samples())
         except (KeyError, TypeError, ValueError, AttributeError) as exc:
             raise StrikeError("JSON de kit invalide : %r" % exc)
+
+    def update(self, num, data):
+        raw, kit = self._encode(num, data)
         if kit != raw:
             self._set_raw(num, kit)
             self.dirty = True
@@ -809,6 +813,29 @@ class Backup:
         kit = self.decode(num)
         skipped = set_slots_value(kit, targets, field, value)
         return self.update(num, kit), skipped
+
+    def set_slots_in_kits(self, nums, targets, field, value):
+        """`set_slots` sur plusieurs kits, mêmes emplacements dans chacun.
+
+        Tout ou rien : chaque kit est validé avant qu'aucun ne soit modifié.
+        Retourne les champs absents : [(kit, emplacement, champ)].
+        """
+        nums = list(dict.fromkeys(nums))
+        if not nums:
+            raise StrikeError("aucun kit choisi")
+        encoded, skipped = [], []
+        for num in nums:
+            kit = self.decode(num)
+            try:
+                skipped += [(num, n, f) for n, f in set_slots_value(kit, targets, field, value)]
+                encoded.append((num,) + self._encode(num, kit))
+            except StrikeError as exc:
+                raise StrikeError("kit %s : %s" % (num, exc))
+        for num, raw, kit in encoded:
+            if kit != raw:
+                self._set_raw(num, kit)
+                self.dirty = True
+        return skipped
 
     def copy_slot(self, num, source, targets, parts, include_midi_note=False):
         kit = self.decode(num)

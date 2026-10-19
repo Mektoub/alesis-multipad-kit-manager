@@ -507,6 +507,36 @@ class ModificationGroupee(unittest.TestCase):
                 self.b.set_slots("033", targets, field, 1)
 
 
+class ModificationMultiKits(unittest.TestCase):
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+
+    def sensitivity(self, num):
+        return [s["params"]["sensitivity"] for s in self.b.decode(num)["slots"][:9]]
+
+    def test_memes_pads_dans_plusieurs_kits(self):
+        before = {n: self.sensitivity(n) for n in ("031", "032", "033", "034")}
+        skipped = self.b.set_slots_in_kits(["031", "032", "033"], [1, 3, 9], "params.sensitivity", 20)
+        self.assertEqual(skipped, [])
+        for n in ("031", "032", "033"):
+            self.assertEqual(self.sensitivity(n),
+                             [20 if p in (1, 3, 9) else v for p, v in enumerate(before[n], 1)], n)
+        self.assertEqual(self.sensitivity("034"), before["034"])
+        self.assertTrue(self.b.dirty)
+
+    def test_atomique(self):
+        raws = {n: self.b.get_raw(n) for n in ("031", "032")}
+        for kits, value in ((["031", "032"], 40), (["031", "999"], 20), ([], 20)):
+            with self.assertRaises(sk.StrikeError, msg=(kits, value)):
+                self.b.set_slots_in_kits(kits, [1], "params.sensitivity", value)
+        self.assertEqual({n: self.b.get_raw(n) for n in raws}, raws)
+        self.assertFalse(self.b.dirty)
+
+    def test_doublons_ignores(self):
+        self.b.set_slots_in_kits(["033", "033"], [1], "params.sensitivity", 20)
+        self.assertEqual(self.sensitivity("033")[0], 20)
+
+
 class CopieKit(unittest.TestCase):
     def setUp(self):
         self.b = sk.Backup.open(REF)
