@@ -46,8 +46,9 @@ mode bureau, prévu pour être piloté par l'application Electron :
 - chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec ce jeton,
   sinon elle reçoit une erreur 403 ; un autre programme de la machine ne peut donc
   pas piloter l'éditeur ;
-- le dossier de travail peut être changé (`POST /api/root`), pour suivre la
-  fenêtre « Ouvrir » du système ;
+- les fichiers sont ouverts et enregistrés par **chemin absolu**, n'importe où,
+  comme dans tout éditeur (fenêtres « Ouvrir » et « Enregistrer sous » du
+  système) ; il n'y a ni dossier de travail ni liste des sauvegardes ;
 - une fois à l'écoute, le serveur écrit sur sa sortie standard une ligne
   `{"ready": true, "port": N}`, utile avec `--port 0`.
 
@@ -110,13 +111,16 @@ cd editor/web && npm ci && npm run build && cd ../..
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
    perso. La zone du bas ajoute un WAV par glisser-déposer
    (voir [Ajouter un sample](ajouter-un-sample.md)).
-10. **Enregistrer sous** : le nom suivant est proposé (`Backup003.bkf` après
-   `Backup002.bkf`). Si le fichier existe, une confirmation est demandée.
-   L'enregistrement sur la sauvegarde d'origine est refusé.
+10. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
+   chaque session sur un fichier d'origine, son état précédent est copié dans
+   `<fichier>.N.bak` (`Backup001.bkf.1.bak`, puis `.2.bak` à la session suivante) :
+   rien n'est perdu. **Enregistrer sous** écrit dans un autre fichier (le nom
+   suivant est proposé, `Backup003.bkf` après `Backup002.bkf`), qui devient le
+   fichier ouvert ; si ce fichier existe, une confirmation est demandée.
 
 Chaque modification est envoyée au serveur et validée aussitôt. Une valeur refusée
 (hors plage, par exemple) affiche un message et le kit revient à son dernier état
-valide. Les modifications restent en mémoire jusqu'à *Enregistrer sous*. Le
+valide. Les modifications restent en mémoire jusqu'à *Enregistrer*. Le
 navigateur prévient si l'on quitte la page avec des modifications non enregistrées.
 
 Charger ensuite le fichier produit sur l'appareil comme décrit dans
@@ -128,9 +132,8 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| GET | `/api/backups` | sauvegardes trouvées dans le dossier racine |
-| POST | `/api/open` | ouvrir une sauvegarde (`{"path": …, "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
-| POST | `/api/root` | mode bureau uniquement : changer de dossier de travail (`{"path": "/chemin/absolu", "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
+| GET | `/api/backups` | mode développement uniquement : sauvegardes trouvées dans le dossier `--root` |
+| POST | `/api/open` | ouvrir une sauvegarde (`{"path": …, "force": false}` ; chemin absolu en mode bureau, relatif à `--root` en mode développement) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
@@ -141,7 +144,7 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
-| POST | `/api/save` | enregistrer (`{"path": …, "overwrite": false}`) |
+| POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs.
 

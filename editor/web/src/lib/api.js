@@ -40,6 +40,7 @@ export const api = {
     form.append("file", file);
     return request("POST", "/api/samples", form);
   },
-  save: (path, overwrite = false) => request("POST", "/api/save", { path, overwrite }),
+  // sans chemin : « Enregistrer » dans le fichier ouvert ; avec : « Enregistrer sous »
+  save: (path = null, overwrite = false) => request("POST", "/api/save", path == null ? {} : { path, overwrite }),
   wavUrl: (id) => `/api/samples/${id}/wav`,
 };
