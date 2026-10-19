@@ -9,6 +9,7 @@
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
 | `editeur.sh` | lancement avec préparation automatique du venv et de l'interface |
+| `dev.sh` | analyse, tests et build en local, comme la CI |
 | `editor/web/` | interface Svelte (Vite) |
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
 | `tests/test_editor.py` | tests de l'API |
@@ -25,6 +26,22 @@ Dans `strike_kits.py` :
   la construction de la sauvegarde de référence) ;
 - `Backup` : sauvegarde `.bkf` ou `.fac` ouverte en mémoire, utilisée par l'éditeur
   et par les commandes.
+
+## En une commande : `dev.sh`
+
+`./dev.sh` lance les mêmes vérifications que la CI. Au besoin, il crée `.venv`,
+installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
+
+| Commande | Rôle |
+|---|---|
+| `./dev.sh lint` | `ruff check`, `ruff format --check`, ESLint ; n'écrit rien |
+| `./dev.sh lint --fix` | corrige ce qui peut l'être et reformate (ruff, ESLint) |
+| `./dev.sh test` | tous les tests |
+| `./dev.sh test tests.test_editor.ModeBureau` | seulement les tests indiqués |
+| `./dev.sh build` | build de l'interface dans `editor/web/dist` |
+| `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
+
+Les sections suivantes détaillent les commandes appelées.
 
 ## Tests
 

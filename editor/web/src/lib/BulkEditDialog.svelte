@@ -9,33 +9,37 @@
   // même disposition que la grille de l'éditeur
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];
 
-  const light = [
-    { key: "play_color", title: "Couleur Play", labels: meta.colors.map((c) => c.name) },
-    { key: "play_mode", title: "Mode Play", labels: meta.play_modes },
-    { key: "stop_color", title: "Couleur Stop", labels: meta.colors.map((c) => c.name) },
-    { key: "stop_mode", title: "Mode Stop", labels: meta.stop_modes },
-  ];
-
-  function fromParam(prefix, group, d) {
-    return { field: `${prefix}.${d.name}`, group, title: d.title, min: d.min, max: d.max,
-             labels: d.labels, description: d.description, known: d.known };
+  // Réglages proposés, construits une fois à l'ouverture (`meta` ne change pas).
+  function buildFields(meta) {
+    const colorNames = meta.colors.map((c) => c.name);
+    const light = [
+      { key: "play_color", title: "Couleur Play", labels: colorNames },
+      { key: "play_mode", title: "Mode Play", labels: meta.play_modes },
+      { key: "stop_color", title: "Couleur Stop", labels: colorNames },
+      { key: "stop_mode", title: "Mode Stop", labels: meta.stop_modes },
+    ];
+    const fromParam = (prefix, group, d) => ({
+      field: `${prefix}.${d.name}`, group, title: d.title, min: d.min, max: d.max,
+      labels: d.labels, description: d.description, known: d.known,
+    });
+    return [
+      ...meta.pad_params.map((d) => fromParam("params", "Pad", d)),
+      ...light.map((l) => ({ field: `light.${l.key}`, group: "Éclairage", title: l.title, min: 0,
+                             max: l.labels.length - 1, labels: l.labels, description: meta.help[l.key], known: true })),
+      ...["wave_a", "wave_b"].flatMap((w) => {
+        const group = w === "wave_a" ? "Wave A" : "Wave B";
+        return [
+          { field: `${w}.velocity_low`, group, title: "Velocity Low", min: 0, max: 126,
+            description: meta.help.velocity_low, known: true },
+          { field: `${w}.velocity_high`, group, title: "Velocity High", min: 1, max: 127,
+            description: meta.help.velocity_high, known: true },
+          ...meta.wave_params.map((d) => fromParam(`${w}.params`, group, d)),
+        ];
+      }),
+    ];
   }
 
-  const FIELDS = [
-    ...meta.pad_params.map((d) => fromParam("params", "Pad", d)),
-    ...light.map((l) => ({ field: `light.${l.key}`, group: "Éclairage", title: l.title, min: 0,
-                           max: l.labels.length - 1, labels: l.labels, description: meta.help[l.key], known: true })),
-    ...["wave_a", "wave_b"].flatMap((w) => {
-      const group = w === "wave_a" ? "Wave A" : "Wave B";
-      return [
-        { field: `${w}.velocity_low`, group, title: "Velocity Low", min: 0, max: 126,
-          description: meta.help.velocity_low, known: true },
-        { field: `${w}.velocity_high`, group, title: "Velocity High", min: 1, max: 127,
-          description: meta.help.velocity_high, known: true },
-        ...meta.wave_params.map((d) => fromParam(`${w}.params`, group, d)),
-      ];
-    }),
-  ];
+  const FIELDS = untrack(() => buildFields(meta));
   const GROUPS = [...new Set(FIELDS.map((f) => f.group))];
 
   let fieldName = $state("params.sensitivity");
