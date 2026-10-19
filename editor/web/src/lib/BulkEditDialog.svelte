@@ -2,47 +2,53 @@
   // Donne une même valeur à un réglage de plusieurs emplacements, dans le kit
   // courant ou dans plusieurs kits (mêmes emplacements dans chacun).
   import { untrack } from "svelte";
+  import { SvelteSet } from "svelte/reactivity";
   import { formatValue } from "./format.js";
   let { kit, meta, source, kits, currentNum, onapply, onclose } = $props();
 
   // même disposition que la grille de l'éditeur
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];
 
-  const light = [
-    { key: "play_color", title: "Couleur Play", labels: meta.colors.map((c) => c.name) },
-    { key: "play_mode", title: "Mode Play", labels: meta.play_modes },
-    { key: "stop_color", title: "Couleur Stop", labels: meta.colors.map((c) => c.name) },
-    { key: "stop_mode", title: "Mode Stop", labels: meta.stop_modes },
-  ];
-
-  function fromParam(prefix, group, d) {
-    return { field: `${prefix}.${d.name}`, group, title: d.title, min: d.min, max: d.max,
-             labels: d.labels, description: d.description, known: d.known };
+  // Réglages proposés, construits une fois à l'ouverture (`meta` ne change pas).
+  function buildFields(meta) {
+    const colorNames = meta.colors.map((c) => c.name);
+    const light = [
+      { key: "play_color", title: "Couleur Play", labels: colorNames },
+      { key: "play_mode", title: "Mode Play", labels: meta.play_modes },
+      { key: "stop_color", title: "Couleur Stop", labels: colorNames },
+      { key: "stop_mode", title: "Mode Stop", labels: meta.stop_modes },
+    ];
+    const fromParam = (prefix, group, d) => ({
+      field: `${prefix}.${d.name}`, group, title: d.title, min: d.min, max: d.max,
+      labels: d.labels, description: d.description, known: d.known,
+    });
+    return [
+      ...meta.pad_params.map((d) => fromParam("params", "Pad", d)),
+      ...light.map((l) => ({ field: `light.${l.key}`, group: "Éclairage", title: l.title, min: 0,
+                             max: l.labels.length - 1, labels: l.labels, description: meta.help[l.key], known: true })),
+      ...["wave_a", "wave_b"].flatMap((w) => {
+        const group = w === "wave_a" ? "Wave A" : "Wave B";
+        return [
+          { field: `${w}.velocity_low`, group, title: "Velocity Low", min: 0, max: 126,
+            description: meta.help.velocity_low, known: true },
+          { field: `${w}.velocity_high`, group, title: "Velocity High", min: 1, max: 127,
+            description: meta.help.velocity_high, known: true },
+          ...meta.wave_params.map((d) => fromParam(`${w}.params`, group, d)),
+        ];
+      }),
+    ];
   }
 
-  const FIELDS = [
-    ...meta.pad_params.map((d) => fromParam("params", "Pad", d)),
-    ...light.map((l) => ({ field: `light.${l.key}`, group: "Éclairage", title: l.title, min: 0,
-                           max: l.labels.length - 1, labels: l.labels, description: meta.help[l.key], known: true })),
-    ...["wave_a", "wave_b"].flatMap((w) => {
-      const group = w === "wave_a" ? "Wave A" : "Wave B";
-      return [
-        { field: `${w}.velocity_low`, group, title: "Velocity Low", min: 0, max: 126,
-          description: meta.help.velocity_low, known: true },
-        { field: `${w}.velocity_high`, group, title: "Velocity High", min: 1, max: 127,
-          description: meta.help.velocity_high, known: true },
-        ...meta.wave_params.map((d) => fromParam(`${w}.params`, group, d)),
-      ];
-    }),
-  ];
+  const FIELDS = untrack(() => buildFields(meta));
   const GROUPS = [...new Set(FIELDS.map((f) => f.group))];
 
   let fieldName = $state("params.sensitivity");
   let def = $derived(FIELDS.find((f) => f.field === fieldName));
   // valeurs de départ (la fenêtre est recréée à chaque ouverture)
   let value = $state(untrack(() => currentValue("params.sensitivity")));
-  let targets = $state(untrack(() => new Set([source])));
-  let chosenKits = $state(untrack(() => new Set([currentNum])));
+  // sélections réactives, modifiées en place
+  const targets = untrack(() => new SvelteSet([source]));
+  const chosenKits = untrack(() => new SvelteSet([currentNum]));
   let busy = $state(false);
   let error = $state("");
 
@@ -65,26 +71,24 @@
     value = currentValue(fieldName);
   }
 
-  function toggle(n) {
-    const next = new Set(targets);
-    next.has(n) ? next.delete(n) : next.add(n);
-    targets = next;
+  function toggle(set, value) {
+    if (set.has(value)) set.delete(value);
+    else set.add(value);
   }
 
-  function toggleKit(num) {
-    const next = new Set(chosenKits);
-    next.has(num) ? next.delete(num) : next.add(num);
-    chosenKits = next;
+  function replace(set, values) {
+    set.clear();
+    for (const v of values) set.add(v);
   }
 
   function selectKits(which) {
-    if (which === "current") chosenKits = new Set([currentNum]);
-    else if (which === "used") chosenKits = new Set(kits.filter((k) => k.name !== "Empty").map((k) => k.num));
-    else chosenKits = new Set();
+    if (which === "current") replace(chosenKits, [currentNum]);
+    else if (which === "used") replace(chosenKits, kits.filter((k) => k.name !== "Empty").map((k) => k.num));
+    else chosenKits.clear();
   }
 
   function selectPads(all) {
-    targets = new Set(all ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : []);
+    replace(targets, all ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : []);
   }
 
   async function submit() {
@@ -122,7 +126,7 @@
       <label class="row">
         <span class="muted">Réglage</span>
         <select value={fieldName} onchange={changeField}>
-          {#each GROUPS as g}
+          {#each GROUPS as g (g)}
             <optgroup label={g}>
               {#each FIELDS.filter((f) => f.group === g) as f (f.field)}
                 <option value={f.field}>{f.title}</option>
@@ -139,7 +143,7 @@
         <span class="muted">Valeur</span>
         {#if def.labels}
           <select bind:value>
-            {#each { length: def.max - def.min + 1 } as _, i}
+            {#each { length: def.max - def.min + 1 } as _, i (i)}
               <option value={def.min + i}>{def.labels[def.min + i] ?? `Valeur ${def.min + i}`}</option>
             {/each}
           </select>
@@ -162,9 +166,9 @@
         </span>
       </div>
       <div class="pads">
-        {#each PAD_ROWS as row}
-          {#each row as n}
-            <button class="target" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(n)}>
+        {#each PAD_ROWS as row, r (r)}
+          {#each row as n (n)}
+            <button class="target" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(targets, n)}>
               P{n}
             </button>
           {/each}
@@ -173,8 +177,8 @@
       <details>
         <summary class="muted">Autres entrées (10 à 24)</summary>
         <div class="others">
-          {#each others as n}
-            <button class="target small" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(n)}>
+          {#each others as n (n)}
+            <button class="target small" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(targets, n)}>
               {n}
             </button>
           {/each}
@@ -196,7 +200,7 @@
         {#each kits as k (k.num)}
           <li>
             <label class:empty={k.name === "Empty"}>
-              <input type="checkbox" checked={chosenKits.has(k.num)} onchange={() => toggleKit(k.num)} />
+              <input type="checkbox" checked={chosenKits.has(k.num)} onchange={() => toggle(chosenKits, k.num)} />
               <span class="num">{k.num}</span> {k.name}{k.num === currentNum ? " (courant)" : ""}
             </label>
           </li>

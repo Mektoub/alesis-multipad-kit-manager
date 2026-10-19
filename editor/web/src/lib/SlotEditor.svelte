@@ -39,7 +39,7 @@
     {#if "play_mode" in slot.light}
       <label class="light-row" title={lightTip("play_mode", meta.play_modes)}><span class="muted">Mode Play</span>
         <select bind:value={slot.light.play_mode}>
-          {#each meta.play_modes as m, i}<option value={i}>{m}</option>{/each}
+          {#each meta.play_modes as m, i (m)}<option value={i}>{m}</option>{/each}
         </select>
       </label>
     {/if}
@@ -49,7 +49,7 @@
     {#if "stop_mode" in slot.light}
       <label class="light-row" title={lightTip("stop_mode", meta.stop_modes)}><span class="muted">Mode Stop</span>
         <select bind:value={slot.light.stop_mode}>
-          {#each meta.stop_modes as m, i}<option value={i}>{m}</option>{/each}
+          {#each meta.stop_modes as m, i (m)}<option value={i}>{m}</option>{/each}
           {#if slot.light.stop_mode >= meta.stop_modes.length}<option value={slot.light.stop_mode}>Valeur {slot.light.stop_mode}</option>{/if}
         </select>
       </label>

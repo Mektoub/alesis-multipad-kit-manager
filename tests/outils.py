@@ -3,6 +3,7 @@
 Tous les tests reposent sur une seule sauvegarde, tests/ressources/Backup001.bkf
 (voir construire_reference.py pour son contenu et sa construction).
 """
+
 import struct
 import wave
 from pathlib import Path
@@ -13,12 +14,12 @@ REF = Path(__file__).resolve().parent / "ressources" / "Backup001.bkf"
 
 
 def files_of(data):
-    return {e.full: data[e.offset:e.offset + e.size] for e in sk.parse_bkf(data)}
+    return {e.full: data[e.offset : e.offset + e.size] for e in sk.parse_bkf(data)}
 
 
 def kits_of(data):
     _, entries = sk.parse_container(data)
-    return {e.name: data[e.offset:e.offset + e.size] for e in sk.kit_entries(entries)}
+    return {e.name: data[e.offset : e.offset + e.size] for e in sk.kit_entries(entries)}
 
 
 def make_wav(path, sampwidth=2, rate=44100, channels=1, frames=100):
@@ -37,11 +38,12 @@ def make_fac(kits):
     SDRH, SDCH racine, DIRH « KIT », SDCH du répertoire, une entrée FIEH de 0x60
     octets par kit, puis les données mises bout à bout.
     """
+
     def name_entry(tag, name):
         e = bytearray(0x60)
         e[0:4] = tag
         e[4:8] = struct.pack(">I", len(name))
-        e[8:8 + len(name)] = name.encode("ascii")
+        e[8 : 8 + len(name)] = name.encode("ascii")
         return e
 
     head = bytearray(0x120)

@@ -9,11 +9,12 @@ Deux modes :
 « Enregistrer » écrit dans le fichier ouvert ; au premier enregistrement d'une
 session sur un fichier d'origine, son état précédent est copié dans <fichier>.N.bak.
 """
+
 import secrets
 import shutil
 import threading
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -35,7 +36,7 @@ class OpenRequest(BaseModel):
 
 
 class SaveRequest(BaseModel):
-    path: str | None = None   # absent : enregistrer dans le fichier ouvert
+    path: str | None = None  # absent : enregistrer dans le fichier ouvert
     overwrite: bool = False
 
 
@@ -74,9 +75,9 @@ class Session:
         self.desktop = desktop
         self.root = None if desktop else Path(root or ".").resolve()
         self.backup = None
-        self.file = None          # fichier ouvert (chemin absolu)
-        self.original = False     # le fichier ouvert n'a pas été écrit par l'éditeur
-        self.backed_up = False    # copie .bak déjà faite pour cette session
+        self.file = None  # fichier ouvert (chemin absolu)
+        self.original = False  # le fichier ouvert n'a pas été écrit par l'éditeur
+        self.backed_up = False  # copie .bak déjà faite pour cette session
         self.lock = threading.Lock()
 
     def resolve(self, path):
@@ -111,17 +112,22 @@ class Session:
         kits = []
         for num in b.kit_numbers():
             raw = b.get_raw(num)
-            kits.append({"num": num, "format": sk.kit_format(raw),
-                         "name": sk.decode_kit(raw)["name"]})
-        return {"path": self.display(self.file), "root": root, "kind": b.kind, "dirty": b.dirty,
-                "kits": kits, "user_samples": len(b.user_sample_ids())}
+            kits.append({"num": num, "format": sk.kit_format(raw), "name": sk.decode_kit(raw)["name"]})
+        return {
+            "path": self.display(self.file),
+            "root": root,
+            "kind": b.kind,
+            "dirty": b.dirty,
+            "kits": kits,
+            "user_samples": len(b.user_sample_ids()),
+        }
 
 
 def strike_errors(fn):
     try:
         return fn()
     except sk.StrikeError as exc:
-        raise HTTPException(400, str(exc))
+        raise HTTPException(400, str(exc)) from exc
 
 
 def create_app(root=None, token=None):
@@ -130,19 +136,28 @@ def create_app(root=None, token=None):
     app = FastAPI(title="Éditeur Strike MultiPad")
 
     if token:
+
         @app.middleware("http")
         async def require_token(request: Request, call_next):
             if request.url.path.startswith("/api/") and not secrets.compare_digest(
-                    request.headers.get(TOKEN_HEADER, ""), token):
+                request.headers.get(TOKEN_HEADER, ""), token
+            ):
                 return JSONResponse({"detail": "jeton absent ou invalide"}, status_code=403)
             return await call_next(request)
 
     else:
+
         @app.get("/api/backups")
         def backups():
             """Mode développement : sauvegardes du dossier de travail."""
-            found = sorted(p for p in s.root.rglob("*") if p.suffix.lower() in EXTENSIONS and p.is_file()
-                           and ".venv" not in p.parts and "node_modules" not in p.parts)
+            found = sorted(
+                p
+                for p in s.root.rglob("*")
+                if p.suffix.lower() in EXTENSIONS
+                and p.is_file()
+                and ".venv" not in p.parts
+                and "node_modules" not in p.parts
+            )
             return [{"path": s.display(p), "size": p.stat().st_size} for p in found]
 
     @app.post("/api/open")
@@ -188,8 +203,9 @@ def create_app(root=None, token=None):
     def copy_slot(num: str, req: CopyRequest):
         with s.lock:
             b = kit_or_404(num)
-            kit, skipped = strike_errors(lambda: b.copy_slot(
-                num, req.source, req.targets, req.parts, req.include_midi_note))
+            kit, skipped = strike_errors(
+                lambda: b.copy_slot(num, req.source, req.targets, req.parts, req.include_midi_note)
+            )
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
 
     @app.post("/api/kits/set")
@@ -222,8 +238,7 @@ def create_app(root=None, token=None):
         with s.lock:
             b = s.require()
             user = set(b.user_sample_ids())
-            return [{"id": sid, "name": name, "user": sid in user}
-                    for sid, name in sorted(b.samples().items())]
+            return [{"id": sid, "name": name, "user": sid in user} for sid, name in sorted(b.samples().items())]
 
     @app.get("/api/samples/{sid}/wav")
     def sample_wav(sid: int):
@@ -234,7 +249,7 @@ def create_app(root=None, token=None):
             return Response(b.user_wav(sid), media_type="audio/wav")
 
     @app.post("/api/samples")
-    async def add_sample(file: UploadFile = File(...)):
+    async def add_sample(file: Annotated[UploadFile, File()]):
         content = await file.read()
         name = Path(file.filename or "").stem
         with s.lock:
