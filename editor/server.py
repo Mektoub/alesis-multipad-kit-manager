@@ -1,14 +1,17 @@
 """API de l'éditeur : une sauvegarde ouverte à la fois, éditée en mémoire.
 
-Les chemins sont relatifs au dossier racine donné au lancement ; rien n'est lu
-ni écrit en dehors.
+Les chemins sont relatifs au dossier de travail ; rien n'est lu ni écrit en
+dehors. Avec un jeton (mode bureau, application Electron), chaque requête
+/api/* doit porter l'en-tête X-Strike-Token, et le dossier de travail peut être
+changé (POST /api/root).
 """
+import secrets
 import threading
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -17,10 +20,18 @@ from editor.meta import meta
 
 WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
 EXTENSIONS = (".bkf", ".fac")
+TOKEN_HEADER = "X-Strike-Token"
+UNSAVED = "des modifications ne sont pas enregistrées"
 
 
 class OpenRequest(BaseModel):
     path: str
+    force: bool = False
+
+
+class RootRequest(BaseModel):
+    path: str
+    force: bool = False
 
 
 class SaveRequest(BaseModel):
@@ -67,6 +78,11 @@ class Session:
     def relative(self, path):
         return path.relative_to(self.root).as_posix()
 
+    def check_unsaved(self, force):
+        """409 si des modifications seraient perdues, sauf confirmation (`force`)."""
+        if self.backup is not None and self.backup.dirty and not force:
+            raise HTTPException(409, UNSAVED)
+
     def require(self):
         if self.backup is None:
             raise HTTPException(409, "aucune sauvegarde ouverte")
@@ -92,9 +108,28 @@ def strike_errors(fn):
         raise HTTPException(400, str(exc))
 
 
-def create_app(root):
+def create_app(root, token=None):
     s = Session(root)
     app = FastAPI(title="Éditeur Strike MultiPad")
+
+    if token:
+        @app.middleware("http")
+        async def require_token(request: Request, call_next):
+            if request.url.path.startswith("/api/") and not secrets.compare_digest(
+                    request.headers.get(TOKEN_HEADER, ""), token):
+                return JSONResponse({"detail": "jeton absent ou invalide"}, status_code=403)
+            return await call_next(request)
+
+        @app.post("/api/root")
+        def change_root(req: RootRequest):
+            """Change de dossier de travail (fenêtre « Ouvrir » de l'application)."""
+            path = Path(req.path)
+            if not path.is_absolute() or not path.is_dir():
+                raise HTTPException(400, "dossier introuvable : %s" % req.path)
+            with s.lock:
+                s.check_unsaved(req.force)
+                s.root, s.backup, s.path, s.source = path.resolve(), None, None, None
+                return s.state()
 
     @app.get("/api/backups")
     def backups():
@@ -107,8 +142,11 @@ def create_app(root):
         path = s.resolve(req.path)
         if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
             raise HTTPException(400, "sauvegarde introuvable : %s" % req.path)
+        with s.lock:
+            s.check_unsaved(req.force)
         backup = strike_errors(lambda: sk.Backup.open(path))
         with s.lock:
+            s.check_unsaved(req.force)  # une modification a pu arriver pendant la lecture
             s.backup, s.path, s.source = backup, s.relative(path), path
             return s.state()
 

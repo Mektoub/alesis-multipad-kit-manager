@@ -131,16 +131,20 @@
     return candidate;
   }
 
-  async function openBackup(path) {
-    if (session?.dirty && !confirm("Des modifications ne sont pas enregistrées. Ouvrir quand même ?")) return;
+  async function openBackup(path, force = false) {
     error = notice = "";
     try {
-      session = await api.open(path);
+      if (!force) await flush(); // la dernière modification compte pour le serveur
+      session = await api.open(path, force);
       samples = await api.samples();
       savePath = nextName(session.path);
       const first = session.kits.find((k) => k.name !== "Empty") ?? session.kits[0];
       await loadKit(first.num);
     } catch (err) {
+      // le serveur refuse d'abandonner des modifications non enregistrées sans confirmation
+      if (err.status === 409 && confirm("Des modifications ne sont pas enregistrées. Ouvrir quand même ?")) {
+        return openBackup(path, true);
+      }
       error = err.message;
     }
   }
