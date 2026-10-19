@@ -66,7 +66,13 @@ def main():
         if not args.no_browser:
             threading.Timer(0.5, webbrowser.open, [url]).start()
 
-    run(create_app(args.root, token=token), args.host, args.port, on_ready)
+    try:
+        run(create_app(args.root, token=token), args.host, args.port, on_ready)
+    except KeyboardInterrupt:
+        # uvicorn s'arrête proprement puis relance l'interruption reçue (Ctrl+C) :
+        # on la considère comme un arrêt normal, sans trace d'erreur.
+        pass
+    print("Éditeur arrêté.", flush=True)
 
 
 if __name__ == "__main__":

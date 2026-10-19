@@ -1,7 +1,11 @@
 """Tests de l'API de l'éditeur web (FastAPI), sur la sauvegarde de référence."""
 import io
 import json
+import os
 import shutil
+import signal
+import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -283,6 +287,24 @@ class ModeBureau(unittest.TestCase):
 
 
 class Lancement(unittest.TestCase):
+    def test_arret_propre_par_ctrl_c(self):
+        """Ctrl+C (SIGINT) arrête l'éditeur sans trace d'erreur, avec le code 0."""
+        project = Path(__file__).resolve().parent.parent
+        env = {k: v for k, v in os.environ.items() if k != "STRIKE_TOKEN"}
+        p = subprocess.Popen([sys.executable, "-m", "editor", "--port", "0", "--no-browser",
+                              "--root", str(REF.parent)],
+                             cwd=project, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            self.assertIn("Éditeur disponible", p.stdout.readline())
+            p.send_signal(signal.SIGINT)
+            out, err = p.communicate(timeout=15)
+        finally:
+            if p.poll() is None:
+                p.kill()
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(p.returncode, 0, err)
+        self.assertIn("arrêté", out)
+
     def test_port_libre_annonce_quand_pret(self):
         from editor.__main__ import ready_line, run
 
