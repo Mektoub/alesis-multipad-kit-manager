@@ -4,9 +4,10 @@
 # Au besoin, crée l'environnement virtuel Python (.venv), installe ou met à jour
 # les dépendances de requirements.txt et (re)construit l'interface Svelte.
 # Les arguments sont transmis à `python -m editor` (--root, --port, --host,
-# --no-browser) ; sans --root, le dossier Strike/ du projet est utilisé s'il existe.
+# --no-browser) ; sans --root, le dossier Backups/ du projet est utilisé s'il
+# existe (sinon Strike/, puis le dossier courant).
 #
-#   ./editeur.sh                      # racine : Strike/ (ou le dossier courant)
+#   ./editeur.sh                      # racine : Backups/
 #   ./editeur.sh --root ~/Strike      # autre dossier de sauvegardes
 #   ./editeur.sh --port 9000 --no-browser
 #
@@ -62,8 +63,13 @@ has_root=0
 for a in "${args[@]}"; do
     [[ "$a" == --root || "$a" == --root=* ]] && has_root=1
 done
-if [[ $has_root == 0 && -d "$PROJECT/Strike" ]]; then
-    args=(--root "$PROJECT/Strike" "${args[@]}")
+if [[ $has_root == 0 ]]; then
+    for dir in Backups Strike; do
+        if [[ -d "$PROJECT/$dir" ]]; then
+            args=(--root "$PROJECT/$dir" "${args[@]}")
+            break
+        fi
+    done
 fi
 
 cd "$PROJECT"

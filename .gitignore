@@ -4,3 +4,5 @@ Strike
 __pycache__
 editor/web/node_modules
 editor/web/dist
+Backups/*.bkf
+Backups/*.fac
