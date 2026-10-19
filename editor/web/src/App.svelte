@@ -4,6 +4,7 @@
   import KitEditor from "./lib/KitEditor.svelte";
   import CopyDialog from "./lib/CopyDialog.svelte";
   import KitTransferDialog from "./lib/KitTransferDialog.svelte";
+  import BulkEditDialog from "./lib/BulkEditDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
 
   let meta = $state(null);
@@ -19,6 +20,7 @@
   let picking = $state(null); // "wave_a" | "wave_b" | null
   let copyFrom = $state(null); // emplacement source de la recopie
   let transferring = $state(false); // fenêtre « Déplacer / copier le kit »
+  let bulkFrom = $state(null); // emplacement d'où part la modification groupée
   let savePath = $state("");
   let saving = $state(false);
   let syncing = $state(false);
@@ -79,6 +81,20 @@
     if (skipped.length) {
       const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
       notice += ` Champs illisibles dans ce kit, non copiés : ${list}.`;
+    }
+  }
+
+  async function bulkSet({ targets, field, value, title }) {
+    await flush();
+    const { kit: updated, skipped } = await api.setSlots(currentNum, { targets, field, value });
+    lastSynced = JSON.stringify(updated);
+    kit = updated;
+    session.dirty = true;
+    bulkFrom = null;
+    const dest = targets.map((n) => updated.slots[n - 1]._label).join(", ");
+    notice = `${title} = ${value} appliqué à ${dest}.`;
+    if (skipped.length) {
+      notice += ` Champ absent, non modifié : ${skipped.map((s) => updated.slots[s.slot - 1]._label).join(", ")}.`;
     }
   }
 
@@ -225,7 +241,7 @@
     </aside>
     <section class="content">
       {#if kit}
-        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} />
+        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} onbulk={(n) => (bulkFrom = n)} />
       {/if}
     </section>
   </main>
@@ -238,6 +254,10 @@
 
 {#if copyFrom && kit}
   <CopyDialog {kit} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
+{/if}
+
+{#if bulkFrom && kit}
+  <BulkEditDialog {kit} {meta} source={bulkFrom} onapply={bulkSet} onclose={() => (bulkFrom = null)} />
 {/if}
 
 {#if transferring && kit}

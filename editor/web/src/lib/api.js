@@ -31,6 +31,7 @@ export const api = {
   kit: (num) => request("GET", `/api/kits/${num}`),
   saveKit: (num, kit) => request("PUT", `/api/kits/${num}`, kit),
   copySlot: (num, body) => request("POST", `/api/kits/${num}/copy`, body),
+  setSlots: (num, body) => request("POST", `/api/kits/${num}/set`, body),
   transferKit: (num, body) => request("POST", `/api/kits/${num}/transfer`, body),
   samples: () => request("GET", "/api/samples"),
   addSample: (file) => {

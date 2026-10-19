@@ -125,6 +125,18 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.post("/api/kits/032/transfer",
                                           json={"target": "040", "mode": "move"}).status_code, 422)
 
+    def test_modification_groupee(self):
+        r = self.client.post("/api/kits/033/set", json={"targets": [1, 2, 9], "field": "params.sensitivity", "value": 20})
+        self.assertEqual(r.status_code, 200, r.text)
+        kit = r.json()["kit"]
+        self.assertEqual([kit["slots"][i]["params"]["sensitivity"] for i in (0, 1, 2, 8)], [20, 20, 16, 20])
+        self.assertEqual(r.json()["skipped"], [])
+        self.assertTrue(self.client.get("/api/state").json()["dirty"])
+        bad = {"targets": [1], "field": "params.sensitivity", "value": 99}
+        self.assertEqual(self.client.post("/api/kits/033/set", json=bad).status_code, 400)
+        bad = {"targets": [1], "field": "params.inconnu", "value": 1}
+        self.assertEqual(self.client.post("/api/kits/033/set", json=bad).status_code, 400)
+
     def test_recopie_pad(self):
         r = self.client.post("/api/kits/032/copy", json={"source": 5, "targets": [1, 2], "parts": ["wave_a"]})
         self.assertEqual(r.status_code, 200, r.text)

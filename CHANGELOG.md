@@ -9,6 +9,7 @@
 - Fonction `copy_slot_settings` et route `POST /api/kits/{num}/copy`.
 - Éditeur web : déplacer, échanger ou dupliquer un kit vers un autre numéro (`Backup.copy_kit`, `Backup.swap_kits`, route `POST /api/kits/{num}/transfer`).
 - Éditeur web : les flèches du champ tempo avancent de 1 BPM (au lieu de 0,1) ; une valeur décimale reste saisissable.
+- Éditeur web : « Modifier plusieurs pads… » donne une même valeur à un réglage sur une sélection de pads (`set_slots_value`, `Backup.set_slots`, route `POST /api/kits/{num}/set`).
 - Tests : une seule sauvegarde de référence, `tests/ressources/Backup001.bkf` (5 Mo, construite par `tests/construire_reference.py`), indépendante des sauvegardes de travail de `Strike/` ; tests déplacés dans `tests/`, `.fac` construit en mémoire. `Bkf.remove_last_sample` (inverse de `add_sample`, réservé aux tests).
 - Éditeur web : infobulle décrivant chaque réglage (paramètres de pad et de wave, kit, éclairage, sample, vélocité), d'après le manuel ; `/api/meta` expose `description` et `help`.
 - Script `editeur.sh` : lance l'éditeur en créant ou mettant à jour le venv, les dépendances et l'interface au besoin.

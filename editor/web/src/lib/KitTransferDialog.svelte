@@ -1,11 +1,14 @@
 <script>
   // Copie d'un kit vers un autre numéro, ou échange de deux kits (déplacement
   // quand la cible est vide), comme le menu Copy de l'appareil.
+  import { untrack } from "svelte";
+
   let { kits, source, ontransfer, onclose } = $props();
 
   let sourceKit = $derived(kits.find((k) => k.num === source));
   let candidates = $derived(kits.filter((k) => k.num !== source));
-  let target = $state(kits.find((k) => k.num !== source && k.name === "Empty")?.num ?? "");
+  // cible proposée à l'ouverture : premier kit vide
+  let target = $state(untrack(() => kits.find((k) => k.num !== source && k.name === "Empty")?.num ?? ""));
   let mode = $state("swap");
   let busy = $state(false);
   let error = $state("");
