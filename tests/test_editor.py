@@ -1,8 +1,13 @@
-"""Tests de l'API de l'éditeur web (FastAPI), sur la sauvegarde de référence."""
+"""Tests de l'API de l'éditeur (FastAPI), sur la sauvegarde de référence.
+
+Un seul mode : chaque requête /api/* porte le jeton, les fichiers sont désignés
+par chemin absolu (application Electron comme lancement local par editeur.sh).
+"""
 
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -10,6 +15,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import urllib.error
 import urllib.request
 import wave
 from pathlib import Path
@@ -19,6 +25,15 @@ from fastapi.testclient import TestClient
 import strike_kits as sk
 from editor.server import create_app
 from tests.outils import REF
+
+TOKEN = "secret-de-test"
+
+
+def client_for(open_file=None, token=TOKEN):
+    """Client de test qui envoie le jeton dans chaque requête."""
+    client = TestClient(create_app(token=token, open_file=open_file))
+    client.headers["X-Strike-Token"] = token
+    return client
 
 
 def wav_bytes(frames=100):
@@ -44,14 +59,16 @@ class Api(unittest.TestCase):
         cls.tmp.cleanup()
 
     def setUp(self):
-        self.client = TestClient(create_app(self.root))
-        r = self.client.post("/api/open", json={"path": "sauvegardes/Backup001.bkf"})
+        self.file = self.root / "sauvegardes" / "Backup001.bkf"
+        self.client = client_for()
+        r = self.client.post("/api/open", json={"path": str(self.file)})
         self.assertEqual(r.status_code, 200, r.text)
         self.state = r.json()
 
-    def test_liste_des_sauvegardes(self):
-        r = self.client.get("/api/backups")
-        self.assertIn({"path": "sauvegardes/Backup001.bkf", "size": REF.stat().st_size}, r.json())
+    def test_ni_liste_des_sauvegardes_ni_dossier_de_travail(self):
+        self.assertEqual(self.client.get("/api/backups").status_code, 404)
+        self.assertEqual(self.client.post("/api/root", json={"path": str(self.root)}).status_code, 404)
+        self.assertNotIn("root", self.state)
 
     def test_etat_apres_ouverture(self):
         self.assertEqual((self.state["kind"], self.state["dirty"], len(self.state["kits"])), ("bkf", False, 70))
@@ -61,19 +78,16 @@ class Api(unittest.TestCase):
         kit = self.client.get("/api/kits/033").json()
         kit["name"] = "Pas enregistre"
         self.client.put("/api/kits/033", json=kit)
-        r = self.client.post("/api/open", json={"path": "sauvegardes/Backup001.bkf"})
+        r = self.client.post("/api/open", json={"path": str(self.file)})
         self.assertEqual(r.status_code, 409)
         self.assertIn("pas enregistrées", r.json()["detail"])
         self.assertEqual(self.client.get("/api/kits/033").json()["name"], "Pas enregistre")
-        r = self.client.post("/api/open", json={"path": "sauvegardes/Backup001.bkf", "force": True})
+        r = self.client.post("/api/open", json={"path": str(self.file), "force": True})
         self.assertEqual(r.status_code, 200, r.text)
         self.assertEqual((r.json()["dirty"], self.client.get("/api/kits/033").json()["name"]), (False, "Empty"))
 
-    def test_plus_de_dossier_de_travail_modifiable(self):
-        self.assertEqual(self.client.post("/api/root", json={"path": str(self.root)}).status_code, 404)
-
-    def test_ouverture_hors_racine_refusee(self):
-        for path in ("../x.bkf", "/etc/passwd", "inexistant.bkf"):
+    def test_ouverture_refusee(self):
+        for path in ("sauvegardes/Backup001.bkf", "../x.bkf", "/etc/passwd", str(self.root / "inexistant.bkf")):
             r = self.client.post("/api/open", json={"path": path})
             self.assertEqual(r.status_code, 400, path)
 
@@ -116,21 +130,23 @@ class Api(unittest.TestCase):
         kit = self.client.get("/api/kits/034").json()
         kit["name"] = "Enregistre"
         self.client.put("/api/kits/034", json=kit)
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Backup002.bkf"})
+        target = self.root / "sauvegardes" / "Backup002.bkf"
+        r = self.client.post("/api/save", json={"path": str(target)})
         self.assertEqual(r.status_code, 200, r.text)
-        saved = sk.Backup.open(self.root / "sauvegardes" / "Backup002.bkf")
-        self.assertEqual(saved.decode("034")["name"], "Enregistre")
+        self.assertEqual(sk.Backup.open(target).decode("034")["name"], "Enregistre")
         state = self.client.get("/api/state").json()
-        self.assertEqual((state["path"], state["dirty"]), ("sauvegardes/Backup002.bkf", False))
+        self.assertEqual((state["path"], state["dirty"]), (str(target), False))
         # autre fichier existant : confirmation requise
-        shutil.copy(REF, self.root / "sauvegardes" / "Autre.bkf")
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Autre.bkf"})
+        other = self.root / "sauvegardes" / "Autre.bkf"
+        shutil.copy(REF, other)
+        r = self.client.post("/api/save", json={"path": str(other)})
         self.assertEqual(r.status_code, 409)
-        r = self.client.post("/api/save", json={"path": "sauvegardes/Autre.bkf", "overwrite": True})
+        r = self.client.post("/api/save", json={"path": str(other), "overwrite": True})
         self.assertEqual(r.status_code, 200)
 
     def test_enregistrement_refuse(self):
-        for path in ("../hors.bkf", "/tmp/hors-du-dossier.bkf", "sauvegardes/x.fac", "sauvegardes/x.txt"):
+        folder = self.root / "sauvegardes"
+        for path in ("relatif.bkf", "../hors.bkf", str(folder / "x.fac"), str(folder / "x.txt")):
             r = self.client.post("/api/save", json={"path": path, "overwrite": True})
             self.assertEqual(r.status_code, 400, path)
 
@@ -196,14 +212,12 @@ class Api(unittest.TestCase):
 
 class SansSauvegarde(unittest.TestCase):
     def test_etat_vide(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            client = TestClient(create_app(Path(tmp)))
-            self.assertEqual(client.get("/api/state").json()["path"], None)
-            self.assertEqual(client.get("/api/kits/031").status_code, 409)
+        client = client_for()
+        self.assertEqual(client.get("/api/state").json()["path"], None)
+        self.assertEqual(client.get("/api/kits/031").status_code, 409)
 
     def test_descriptions_des_parametres(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            meta = TestClient(create_app(Path(tmp))).get("/api/meta").json()
+        meta = client_for().get("/api/meta").json()
         pad = {p["name"]: p for p in meta["pad_params"]}
         wave = {p["name"]: p for p in meta["wave_params"]}
         self.assertIn("seuil", pad["threshold"]["description"].lower())
@@ -225,8 +239,7 @@ class SansSauvegarde(unittest.TestCase):
             self.assertTrue(meta["help"][key], key)
 
     def test_valeurs_par_defaut(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            meta = TestClient(create_app(Path(tmp))).get("/api/meta").json()
+        meta = client_for().get("/api/meta").json()
         d = meta["defaults"]
         self.assertEqual((d["kit"]["level"], d["kit"]["tempo"]), (100, 120.0))
         self.assertEqual([s["params"]["sensitivity"] for s in d["slots"][:9]], [16] * 6 + [24] * 3)
@@ -235,8 +248,7 @@ class SansSauvegarde(unittest.TestCase):
 
     def test_valeurs_par_defaut_conformes_au_kit_vide(self):
         """La table correspond exactement à un kit vide écrit par l'appareil."""
-        with tempfile.TemporaryDirectory() as tmp:
-            defaults = TestClient(create_app(Path(tmp))).get("/api/meta").json()["defaults"]
+        defaults = client_for().get("/api/meta").json()["defaults"]
         empty = sk.Backup.open(REF).decode("041")
         self.assertEqual(empty["name"], "Empty")
         self.assertEqual(defaults["kit"], {"level": empty["level"], "tempo": empty["tempo"]})
@@ -257,11 +269,11 @@ class Enregistrement(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.file = self.root / "Backup001.bkf"
         shutil.copy(REF, self.file)
-        self.client = TestClient(create_app(self.root))
+        self.client = client_for()
         self.open()
 
     def open(self, force=False):
-        r = self.client.post("/api/open", json={"path": "Backup001.bkf", "force": force})
+        r = self.client.post("/api/open", json={"path": str(self.file), "force": force})
         self.assertEqual(r.status_code, 200, r.text)
 
     def rename(self, name):
@@ -274,7 +286,7 @@ class Enregistrement(unittest.TestCase):
         self.rename("Premier")
         r = self.client.post("/api/save", json={})
         self.assertEqual(r.status_code, 200, r.text)
-        self.assertEqual((r.json()["path"], r.json()["dirty"]), ("Backup001.bkf", False))
+        self.assertEqual((r.json()["path"], r.json()["dirty"]), (str(self.file), False))
         self.assertEqual(sk.Backup.open(self.file).decode("033")["name"], "Premier")
         self.assertEqual((self.root / "Backup001.bkf.1.bak").read_bytes(), original)
         # deuxième enregistrement de la même session : pas de nouvelle copie
@@ -291,14 +303,15 @@ class Enregistrement(unittest.TestCase):
 
     def test_enregistrer_sous_le_meme_nom_equivaut_a_enregistrer(self):
         self.rename("Meme nom")
-        r = self.client.post("/api/save", json={"path": "Backup001.bkf"})
+        r = self.client.post("/api/save", json={"path": str(self.file)})
         self.assertEqual(r.status_code, 200, r.text)
         self.assertTrue((self.root / "Backup001.bkf.1.bak").exists())
 
     def test_enregistrer_sous_puis_enregistrer(self):
         self.rename("Copie")
-        r = self.client.post("/api/save", json={"path": "Backup002.bkf"})
-        self.assertEqual((r.status_code, r.json()["path"]), (200, "Backup002.bkf"))
+        copy = self.root / "Backup002.bkf"
+        r = self.client.post("/api/save", json={"path": str(copy)})
+        self.assertEqual((r.status_code, r.json()["path"]), (200, str(copy)))
         self.assertEqual(list(self.root.glob("*.bak")), [])
         # « Enregistrer » écrit désormais dans la copie ; elle vient de l'éditeur,
         # ce n'est pas un fichier d'origine : pas de .bak
@@ -309,15 +322,14 @@ class Enregistrement(unittest.TestCase):
         self.assertEqual(list(self.root.glob("*.bak")), [])
 
     def test_enregistrer_sans_sauvegarde_ouverte(self):
-        client = TestClient(create_app(self.root))
-        self.assertEqual(client.post("/api/save", json={}).status_code, 409)
+        self.assertEqual(client_for().post("/api/save", json={}).status_code, 409)
 
 
-class ModeBureau(unittest.TestCase):
-    """Avec un jeton (application Electron) : API réservée au porteur du jeton,
-    fichiers ouverts et enregistrés par chemin absolu, n'importe où."""
+class JetonEtChemins(unittest.TestCase):
+    """API réservée au porteur du jeton ; fichiers ouverts et enregistrés par
+    chemin absolu, n'importe où."""
 
-    TOKEN = "secret-de-test"
+    TOKEN = TOKEN
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -328,8 +340,7 @@ class ModeBureau(unittest.TestCase):
         self.b.mkdir()
         self.file = self.b / "Ma sauvegarde.bkf"
         shutil.copy(REF, self.file)
-        self.client = TestClient(create_app(token=self.TOKEN))
-        self.client.headers["X-Strike-Token"] = self.TOKEN
+        self.client = client_for()
 
     def open(self, path, **kw):
         return self.client.post("/api/open", json=dict(path=str(path), **kw))
@@ -348,9 +359,17 @@ class ModeBureau(unittest.TestCase):
         for path in ("Ma sauvegarde.bkf", self.b / "inexistant.bkf", self.b):
             self.assertEqual(self.open(path).status_code, 400, path)
 
-    def test_pas_de_liste_ni_de_dossier_de_travail(self):
-        self.assertEqual(self.client.get("/api/backups").status_code, 404)
-        self.assertEqual(self.client.post("/api/root", json={"path": str(self.a)}).status_code, 404)
+    def test_jeton_obligatoire_a_la_creation(self):
+        for token in (None, ""):
+            with self.assertRaises(ValueError):
+                create_app(token=token)
+
+    def test_fichier_ouvert_au_demarrage(self):
+        r = client_for(open_file=self.file).get("/api/state")
+        self.assertEqual((r.json()["path"], r.json()["dirty"], len(r.json()["kits"])), (str(self.file), False, 70))
+        for bad in (self.b / "inexistant.bkf", self.b, Path("relatif.bkf")):
+            with self.assertRaises(sk.StrikeError, msg=bad):
+                create_app(token=TOKEN, open_file=bad)
 
     def test_enregistrer_et_enregistrer_sous(self):
         self.open(self.file)
@@ -401,7 +420,7 @@ class Lancement(unittest.TestCase):
 
         out, err = io.StringIO(), io.StringIO()
         fake_run = lambda app, host, port, on_ready: on_ready(None, 4321)  # noqa: E731
-        argv = ["editor", "--port", "0", "--no-browser", "--root", str(REF.parent)]
+        argv = ["editor", "--port", "0", "--no-browser", "--open", str(REF)]
         with (
             mock.patch.object(launcher, "WEB_DIST", Path(REF.parent) / "absent"),
             mock.patch.object(launcher, "run", fake_run),
@@ -413,21 +432,53 @@ class Lancement(unittest.TestCase):
             os.environ.pop("STRIKE_TOKEN", None)
             launcher.main()
         self.assertIn("Interface non construite", err.getvalue())
-        self.assertTrue(out.getvalue().startswith("Éditeur disponible sur http://127.0.0.1:4321/"), out.getvalue())
+        self.assertTrue(
+            out.getvalue().startswith("Éditeur disponible sur http://127.0.0.1:4321/#token="), out.getvalue()
+        )
         self.assertNotIn("Interface non construite", out.getvalue())
 
-    def test_arret_propre_par_ctrl_c(self):
-        """Ctrl+C (SIGINT) arrête l'éditeur sans trace d'erreur, avec le code 0."""
+    def start_local(self, *args):
+        """Lancement local (sans STRIKE_TOKEN), comme editeur.sh."""
         project = Path(__file__).resolve().parent.parent
         env = {k: v for k, v in os.environ.items() if k != "STRIKE_TOKEN"}
-        p = subprocess.Popen(
-            [sys.executable, "-m", "editor", "--port", "0", "--no-browser", "--root", str(REF.parent)],
+        return subprocess.Popen(
+            [sys.executable, "-m", "editor", "--port", "0", "--no-browser", *args],
             cwd=project,
             env=env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
+    def test_mode_local_jeton_dans_l_adresse(self):
+        """En local, un jeton est créé et donné dans l'adresse ; le fichier est déjà ouvert."""
+        p = self.start_local("--open", str(REF))
+        try:
+            line = p.stdout.readline()
+            # jeton de secrets.token_urlsafe : lettres, chiffres, « - » et « _ »
+            m = re.match(r"Éditeur disponible sur (http://127\.0\.0\.1:\d+/)#token=([\w-]+)$", line)
+            self.assertTrue(m, line)
+            base, token = m.groups()
+            req = urllib.request.Request(base + "api/state", headers={"X-Strike-Token": token})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                self.assertEqual(json.load(resp)["path"], str(REF))
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(base + "api/state", timeout=5)
+            self.assertEqual(ctx.exception.code, 403)
+        finally:
+            p.terminate()
+            p.communicate(timeout=15)
+
+    def test_fichier_introuvable_au_lancement(self):
+        p = self.start_local("--open", str(REF.parent / "inexistant.bkf"))
+        out, err = p.communicate(timeout=15)
+        self.assertEqual(p.returncode, 2, err)
+        self.assertIn("inexistant.bkf", err)
+        self.assertNotIn("Traceback", err)
+
+    def test_arret_propre_par_ctrl_c(self):
+        """Ctrl+C (SIGINT) arrête l'éditeur sans trace d'erreur, avec le code 0."""
+        p = self.start_local("--open", str(REF))
         try:
             self.assertIn("Éditeur disponible", p.stdout.readline())
             p.send_signal(signal.SIGINT)
@@ -442,30 +493,29 @@ class Lancement(unittest.TestCase):
     def test_port_libre_annonce_quand_pret(self):
         from editor.__main__ import ready_line, run
 
-        with tempfile.TemporaryDirectory() as tmp:
-            app = create_app(Path(tmp), token="t")
-            ready, servers = threading.Event(), []
-            announced = {}
+        app = create_app(token="t")
+        ready, servers = threading.Event(), []
+        announced = {}
 
-            def on_ready(server, port):
-                servers.append(server)
-                announced.update(json.loads(ready_line(port)))
-                ready.set()
+        def on_ready(server, port):
+            servers.append(server)
+            announced.update(json.loads(ready_line(port)))
+            ready.set()
 
-            thread = threading.Thread(target=run, args=(app, "127.0.0.1", 0, on_ready), daemon=True)
-            thread.start()
-            self.assertTrue(ready.wait(10), "serveur non prêt")
-            try:
-                self.assertTrue(announced["ready"])
-                self.assertGreater(announced["port"], 0)
-                req = urllib.request.Request(
-                    "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-Strike-Token": "t"}
-                )
-                with urllib.request.urlopen(req, timeout=5) as resp:
-                    self.assertEqual(json.load(resp)["path"], None)
-            finally:
-                servers[0].should_exit = True
-                thread.join(10)
+        thread = threading.Thread(target=run, args=(app, "127.0.0.1", 0, on_ready), daemon=True)
+        thread.start()
+        self.assertTrue(ready.wait(10), "serveur non prêt")
+        try:
+            self.assertTrue(announced["ready"])
+            self.assertGreater(announced["port"], 0)
+            req = urllib.request.Request(
+                "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-Strike-Token": "t"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                self.assertEqual(json.load(resp)["path"], None)
+        finally:
+            servers[0].should_exit = True
+            thread.join(10)
 
 
 if __name__ == "__main__":

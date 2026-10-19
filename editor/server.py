@@ -1,11 +1,9 @@
 """API de l'éditeur : une sauvegarde ouverte à la fois, éditée en mémoire.
 
-Deux modes :
-  - mode bureau (application Electron, avec un jeton) : chaque requête /api/*
-    doit porter l'en-tête X-Strike-Token ; les fichiers sont ouverts et
-    enregistrés par chemin absolu, comme dans tout éditeur ;
-  - mode développement (navigateur, sans jeton) : les chemins sont relatifs à un
-    dossier (--root) et rien n'est lu ni écrit en dehors.
+Un seul mode, pour l'application Electron comme pour le lancement local
+(editeur.sh) : chaque requête /api/* doit porter l'en-tête X-Strike-Token avec
+le jeton donné au lancement, et les fichiers sont ouverts et enregistrés par
+chemin absolu, comme dans tout éditeur.
 « Enregistrer » écrit dans le fichier ouvert ; au premier enregistrement d'une
 session sur un fichier d'origine, son état précédent est copié dans <fichier>.N.bak.
 """
@@ -71,28 +69,19 @@ def next_backup_path(path):
 
 
 class Session:
-    def __init__(self, root=None, desktop=False):
-        self.desktop = desktop
-        self.root = None if desktop else Path(root or ".").resolve()
+    def __init__(self):
         self.backup = None
         self.file = None  # fichier ouvert (chemin absolu)
         self.original = False  # le fichier ouvert n'a pas été écrit par l'éditeur
         self.backed_up = False  # copie .bak déjà faite pour cette session
         self.lock = threading.Lock()
 
-    def resolve(self, path):
-        if self.desktop:
-            p = Path(path)
-            if not p.is_absolute():
-                raise HTTPException(400, "chemin absolu attendu : %s" % path)
-            return p.resolve()
-        p = (self.root / path).resolve()
-        if p != self.root and self.root not in p.parents:
-            raise HTTPException(400, "chemin hors du dossier de travail : %s" % path)
-        return p
-
-    def display(self, path):
-        return str(path) if self.desktop else path.relative_to(self.root).as_posix()
+    @staticmethod
+    def resolve(path):
+        p = Path(path)
+        if not p.is_absolute():
+            raise HTTPException(400, "chemin absolu attendu : %s" % path)
+        return p.resolve()
 
     def check_unsaved(self, force):
         """409 si des modifications seraient perdues, sauf confirmation (`force`)."""
@@ -104,23 +93,34 @@ class Session:
             raise HTTPException(409, "aucune sauvegarde ouverte")
         return self.backup
 
+    def set_opened(self, backup, path):
+        self.backup, self.file, self.original, self.backed_up = backup, path, True, False
+
     def state(self):
-        root = None if self.desktop else str(self.root)
         if self.backup is None:
-            return {"path": None, "root": root}
+            return {"path": None}
         b = self.backup
         kits = []
         for num in b.kit_numbers():
             raw = b.get_raw(num)
             kits.append({"num": num, "format": sk.kit_format(raw), "name": sk.decode_kit(raw)["name"]})
         return {
-            "path": self.display(self.file),
-            "root": root,
+            "path": str(self.file),
             "kind": b.kind,
             "dirty": b.dirty,
             "kits": kits,
             "user_samples": len(b.user_sample_ids()),
         }
+
+
+def load_backup(path):
+    """Sauvegarde .bkf/.fac du chemin absolu `path` ; StrikeError sinon."""
+    path = Path(path)
+    if not path.is_absolute():
+        raise sk.StrikeError("chemin absolu attendu : %s" % path)
+    if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
+        raise sk.StrikeError("sauvegarde introuvable : %s" % path)
+    return sk.Backup.open(path)
 
 
 def strike_errors(fn):
@@ -130,47 +130,33 @@ def strike_errors(fn):
         raise HTTPException(400, str(exc)) from exc
 
 
-def create_app(root=None, token=None):
-    """`token` : mode bureau (chemins absolus) ; sinon mode développement limité à `root`."""
-    s = Session(root, desktop=bool(token))
+def create_app(token, open_file=None):
+    """`token` : jeton exigé sur /api/* ; `open_file` : sauvegarde ouverte au démarrage."""
+    if not token:
+        raise ValueError("un jeton est obligatoire")
+    s = Session()
+    if open_file is not None:
+        path = Path(open_file)
+        s.set_opened(load_backup(path), path.resolve())
     app = FastAPI(title="Éditeur Strike MultiPad")
 
-    if token:
-
-        @app.middleware("http")
-        async def require_token(request: Request, call_next):
-            if request.url.path.startswith("/api/") and not secrets.compare_digest(
-                request.headers.get(TOKEN_HEADER, ""), token
-            ):
-                return JSONResponse({"detail": "jeton absent ou invalide"}, status_code=403)
-            return await call_next(request)
-
-    else:
-
-        @app.get("/api/backups")
-        def backups():
-            """Mode développement : sauvegardes du dossier de travail."""
-            found = sorted(
-                p
-                for p in s.root.rglob("*")
-                if p.suffix.lower() in EXTENSIONS
-                and p.is_file()
-                and ".venv" not in p.parts
-                and "node_modules" not in p.parts
-            )
-            return [{"path": s.display(p), "size": p.stat().st_size} for p in found]
+    @app.middleware("http")
+    async def require_token(request: Request, call_next):
+        if request.url.path.startswith("/api/") and not secrets.compare_digest(
+            request.headers.get(TOKEN_HEADER, ""), token
+        ):
+            return JSONResponse({"detail": "jeton absent ou invalide"}, status_code=403)
+        return await call_next(request)
 
     @app.post("/api/open")
     def open_backup(req: OpenRequest):
         path = s.resolve(req.path)
-        if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
-            raise HTTPException(400, "sauvegarde introuvable : %s" % req.path)
         with s.lock:
             s.check_unsaved(req.force)
-        backup = strike_errors(lambda: sk.Backup.open(path))
+        backup = strike_errors(lambda: load_backup(path))
         with s.lock:
             s.check_unsaved(req.force)  # une modification a pu arriver pendant la lecture
-            s.backup, s.file, s.original, s.backed_up = backup, path, True, False
+            s.set_opened(backup, path)
             return s.state()
 
     @app.get("/api/state")
@@ -268,7 +254,7 @@ def create_app(root=None, token=None):
                 raise HTTPException(400, "l'extension doit être .%s" % b.kind)
             same = path == s.file
             if not same and path.exists() and not req.overwrite:
-                raise HTTPException(409, "le fichier existe déjà : %s" % s.display(path))
+                raise HTTPException(409, "le fichier existe déjà : %s" % path)
             data = b.serialize()
             strike_errors(lambda: sk.parse_container(data))
             if same and s.original and not s.backed_up and path.exists():

@@ -8,8 +8,13 @@ de JSON.
 Prérequis : Python 3 et Node.js (testé avec Python 3.14 et Node.js 25).
 
 ```bash
-./editeur.sh
+./editeur.sh Backups/Backup001.bkf
 ```
+
+`editeur.sh` est le **lancement local rapide**, pour tester sans construire
+l'application Electron : il fonctionne dans le même mode qu'elle (jeton, fichiers
+désignés par chemin absolu). Il prend la sauvegarde `.bkf` ou `.fac` à ouvrir en
+paramètre ; sans paramètre, il affiche son usage.
 
 Le script prépare tout ce qui manque, puis lance le serveur :
 
@@ -19,41 +24,38 @@ Le script prépare tout ce qui manque, puis lance le serveur :
 3. installe les paquets de l'interface (`npm ci`) et la construit dans
    `editor/web/dist`, puis la reconstruit chaque fois qu'une source de
    `editor/web/` est modifiée ;
-4. lance `python -m editor` avec les arguments reçus.
+4. lance `python -m editor --open FICHIER` avec les options reçues.
 
-Sans `--root`, le dossier `Backups/` du projet est utilisé s'il existe (sinon
-`Strike/`, puis le dossier courant). Les `.bkf` et `.fac` de `Backups/` sont
-ignorés par Git. Variables
-utiles : `PYTHON=python3.12` choisit l'interpréteur qui crée le venv, et
-`REBUILD=1` force la reconstruction de l'interface.
+Variables utiles : `PYTHON=python3.12` choisit l'interpréteur qui crée le venv, et
+`REBUILD=1` force la reconstruction de l'interface. Les `.bkf` et `.fac` du
+dossier `Backups/` du projet sont ignorés par Git.
 
 | Option | Rôle | Défaut |
 |---|---|---|
-| `--root DOSSIER` | dossier où chercher les sauvegardes et où enregistrer | `Backups/` du projet, sinon `Strike/`, sinon le dossier courant |
 | `--port N` | port HTTP (`0` : un port libre est choisi) | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
 
-Le navigateur s'ouvre sur http://127.0.0.1:8765/. Le serveur n'écoute que sur la
-machine locale, et ne lit ni n'écrit en dehors du dossier `--root`. `Ctrl+C`
-l'arrête.
+Le navigateur s'ouvre sur l'adresse affichée, de la forme
+`http://127.0.0.1:8765/#token=…`. Le serveur n'écoute que sur la machine locale et
+`Ctrl+C` l'arrête.
 
-### Mode bureau (application Electron)
+### Jeton
 
-Quand la variable d'environnement `STRIKE_TOKEN` est définie, le serveur passe en
-mode bureau, prévu pour être piloté par l'application Electron :
+Chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec le jeton du
+lancement, sinon elle reçoit une erreur 403 : un autre programme de la machine ne
+peut donc pas piloter l'éditeur, qui peut lire et écrire n'importe quel fichier.
 
-- chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec ce jeton,
-  sinon elle reçoit une erreur 403 ; un autre programme de la machine ne peut donc
-  pas piloter l'éditeur ;
-- les fichiers sont ouverts et enregistrés par **chemin absolu**, n'importe où,
-  comme dans tout éditeur (fenêtres « Ouvrir » et « Enregistrer sous » du
-  système) ; il n'y a ni dossier de travail ni liste des sauvegardes ;
-- une fois à l'écoute, le serveur écrit sur sa sortie standard une ligne
-  `{"ready": true, "port": N}`, utile avec `--port 0`.
+- **Lancement local** : un jeton est créé à chaque lancement et transmis au
+  navigateur dans l'adresse (`#token=…`). L'interface le garde pour l'onglet, ce
+  qui permet de recharger la page, et le retire de l'adresse affichée. Une page
+  ouverte sans lui affiche « Accès refusé ».
+- **Application Electron** : le jeton est donné par la variable d'environnement
+  `STRIKE_TOKEN`. Une fois à l'écoute, le serveur écrit alors sur sa sortie
+  standard une ligne `{"ready": true, "port": N}`, utile avec `--port 0`.
 
 ```bash
-STRIKE_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --no-browser
+STRIKE_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --open "$PWD/Backups/Backup001.bkf"
 ```
 
 Sans le script, l'installation manuelle est la suivante :
@@ -61,13 +63,17 @@ Sans le script, l'installation manuelle est la suivante :
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 cd editor/web && npm ci && npm run build && cd ../..
-.venv/bin/python -m editor --root Strike   # par défaut, la racine est le dossier courant
+.venv/bin/python -m editor --open Backups/Backup001.bkf
 ```
+
+**Limitation temporaire** : l'écoute des samples (bouton ▶) ne fonctionne pas,
+car la balise audio du navigateur ne peut pas envoyer le jeton. Elle sera
+rétablie lors d'une prochaine étape.
 
 ## Utilisation
 
-1. **Ouvrir** : choisir une sauvegarde `.bkf` ou `.fac` trouvée dans le dossier
-   racine, puis cliquer sur *Ouvrir*.
+1. **Ouvrir** : la sauvegarde passée à `editeur.sh` est déjà ouverte. Pour en
+   ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
 2. **Choisir un kit** dans la colonne de gauche (*masquer les vides* allège la liste).
 3. **Régler le kit** : nom, volume, tempo.
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
@@ -109,7 +115,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    quels, samples et réglages compris.
 9. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
-   perso. La zone du bas ajoute un WAV par glisser-déposer
+   perso (indisponible pour l'instant, voir la limitation ci-dessus). La zone du bas ajoute un WAV par glisser-déposer
    (voir [Ajouter un sample](ajouter-un-sample.md)).
 10. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
    chaque session sur un fichier d'origine, son état précédent est copié dans
@@ -128,12 +134,12 @@ Charger ensuite le fichier produit sur l'appareil comme décrit dans
 
 ## API
 
-Le serveur expose une API JSON, utilisable aussi depuis un script :
+Le serveur expose une API JSON, utilisable aussi depuis un script ; chaque requête
+porte l'en-tête `X-Strike-Token`, et les chemins de fichiers sont absolus :
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| GET | `/api/backups` | mode développement uniquement : sauvegardes trouvées dans le dossier `--root` |
-| POST | `/api/open` | ouvrir une sauvegarde (`{"path": …, "force": false}` ; chemin absolu en mode bureau, relatif à `--root` en mode développement) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
+| POST | `/api/open` | ouvrir une sauvegarde (`{"path": "/chemin/absolu", "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
@@ -146,15 +152,17 @@ Le serveur expose une API JSON, utilisable aussi depuis un script :
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
 | POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (409 si un autre fichier existe, sauf `overwrite`) |
 
-La documentation interactive est disponible sur http://127.0.0.1:8765/docs.
+La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses
+appels de test demandent d'ajouter l'en-tête du jeton.
 
 ## Développement de l'interface
 
 Pour profiter du rechargement à chaud :
 
 ```bash
-.venv/bin/python -m editor --no-browser --root Strike   # serveur API
-cd editor/web && npm run dev                            # http://localhost:5173
+./editeur.sh Backups/Backup001.bkf --no-browser   # serveur API ; noter le jeton affiché
+cd editor/web && npm run dev                      # puis ouvrir http://localhost:5173/#token=…
 ```
 
-Vite relaie `/api` vers le serveur. Voir aussi [Développement](developpement.md).
+Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur est
+à ajouter à l'adresse de Vite. Voir aussi [Développement](developpement.md).

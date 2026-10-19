@@ -15,7 +15,7 @@ copie de la sauvegarde d'origine** avant de charger un fichier produit par ces o
 |---|---|
 | `python3 strike_kits.py export SAUVEGARDE DOSSIER [--no-wav]` | exporte les kits en JSON et les samples utilisateur en WAV |
 | `python3 strike_kits.py import SAUVEGARDE DOSSIER -o NOUVELLE` | applique les JSON et les nouveaux WAV, écrit une nouvelle sauvegarde |
-| `./editeur.sh [--root DOSSIER]` | lance l'éditeur web local sur http://127.0.0.1:8765/ |
+| `./editeur.sh SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement local rapide) |
 
 `strike_kits.py` n'a besoin que de Python 3. `editeur.sh` demande en plus
 Node.js : au premier lancement, il crée l'environnement virtuel `.venv`, installe

@@ -1,7 +1,30 @@
 // Accès à l'API FastAPI. Les erreurs remontent avec le message `detail` du serveur.
+//
+// Chaque requête porte le jeton exigé par le serveur (en-tête X-Strike-Token) :
+// fourni par l'application Electron (window.strikeDesktop), ou, en lancement
+// local, lu dans l'adresse (#token=…). Il est alors conservé pour l'onglet
+// (sessionStorage), afin qu'un rechargement de la page fonctionne, et retiré
+// de l'adresse affichée.
+
+function readToken() {
+  if (window.strikeDesktop?.token) return window.strikeDesktop.token;
+  const fromHash = new URLSearchParams(location.hash.slice(1)).get("token");
+  try {
+    if (fromHash) {
+      sessionStorage.setItem("strike-token", fromHash);
+      history.replaceState(null, "", location.pathname + location.search);
+      return fromHash;
+    }
+    return sessionStorage.getItem("strike-token") ?? "";
+  } catch {
+    return fromHash ?? "";
+  }
+}
+
+const TOKEN = readToken();
 
 async function request(method, url, body) {
-  const options = { method, headers: {} };
+  const options = { method, headers: { "X-Strike-Token": TOKEN } };
   if (body instanceof FormData) {
     options.body = body;
   } else if (body !== undefined) {
@@ -24,7 +47,6 @@ async function request(method, url, body) {
 }
 
 export const api = {
-  backups: () => request("GET", "/api/backups"),
   state: () => request("GET", "/api/state"),
   meta: () => request("GET", "/api/meta"),
   open: (path, force = false) => request("POST", "/api/open", { path, force }),
