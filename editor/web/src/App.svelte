@@ -8,7 +8,6 @@
   import SamplePicker from "./lib/SamplePicker.svelte";
 
   let meta = $state(null);
-  let backups = $state([]);
   let session = $state(null); // état renvoyé par /api/state
   let samples = $state([]);
   let currentNum = $state(null);
@@ -24,7 +23,7 @@
   let savePath = $state("");
   let saving = $state(false);
   let syncing = $state(false);
-  let chosenBackup = $state("");
+  let openPath = $state(""); // chemin absolu de la sauvegarde à ouvrir
 
   let sampleIndex = $derived(new Map(samples.map((s) => [s.id, s])));
   let visibleKits = $derived(
@@ -118,17 +117,12 @@
     if (resetSlot) selected = 0;
   }
 
+  // Nom proposé pour « Enregistrer sous » : numéro suivant (Backup002.bkf après
+  // Backup001.bkf). Si le fichier existe, le serveur demande confirmation.
   function nextName(path) {
-    const existing = new Set(backups.map((b) => b.path));
     const m = path.match(/^(.*?)(\d+)(\.\w+)$/);
     if (!m) return path.replace(/(\.\w+)$/, "_modifie$1");
-    let n = Number(m[2]);
-    let candidate;
-    do {
-      n += 1;
-      candidate = `${m[1]}${String(n).padStart(m[2].length, "0")}${m[3]}`;
-    } while (existing.has(candidate));
-    return candidate;
+    return `${m[1]}${String(Number(m[2]) + 1).padStart(m[2].length, "0")}${m[3]}`;
   }
 
   async function openBackup(path, force = false) {
@@ -136,6 +130,7 @@
     try {
       if (!force) await flush(); // la dernière modification compte pour le serveur
       session = await api.open(path, force);
+      openPath = session.path;
       samples = await api.samples();
       savePath = nextName(session.path);
       const first = session.kits.find((k) => k.name !== "Empty") ?? session.kits[0];
@@ -157,8 +152,8 @@
     try {
       await flush(); // la dernière modification compte
       session = await api.save(path, overwrite);
+      openPath = session.path; // « Enregistrer sous » : le nouveau fichier devient le fichier ouvert
       notice = `Enregistré dans ${session.path}`;
-      backups = await api.backups();
       savePath = nextName(session.path);
     } catch (err) {
       if (err.status === 409 && confirm(`${err.message}\nL'écraser ?`)) return save(path, true);
@@ -187,16 +182,18 @@
 
   onMount(async () => {
     try {
-      [meta, backups, session] = await Promise.all([api.meta(), api.backups(), api.state()]);
-      chosenBackup = backups[0]?.path ?? "";
+      [meta, session] = await Promise.all([api.meta(), api.state()]);
       if (session.path) {
+        openPath = session.path;
         samples = await api.samples();
         savePath = nextName(session.path);
         const first = session.kits.find((k) => k.name !== "Empty") ?? session.kits[0];
         await loadKit(first.num);
       }
     } catch (err) {
-      error = `Serveur injoignable : ${err.message}`;
+      error = err.status === 403
+        ? "Accès refusé : ouvrir l'éditeur par l'adresse affichée au lancement (avec #token=…)."
+        : `Serveur injoignable : ${err.message}`;
     }
   });
 </script>
@@ -206,11 +203,8 @@
 <header class="top">
   <h1>Strike Kit Editor</h1>
   <div class="open">
-    <select bind:value={chosenBackup} aria-label="Sauvegarde à ouvrir">
-      {#each backups as b (b.path)}<option value={b.path}>{b.path}</option>{/each}
-      {#if !backups.length}<option value="">Aucune sauvegarde .bkf/.fac trouvée</option>{/if}
-    </select>
-    <button onclick={() => openBackup(chosenBackup)} disabled={!chosenBackup}>Ouvrir</button>
+    <input type="text" bind:value={openPath} placeholder="/chemin/vers/Backup001.bkf" aria-label="Sauvegarde à ouvrir (chemin absolu)" />
+    <button onclick={() => openBackup(openPath.trim())} disabled={!openPath.trim()}>Ouvrir</button>
   </div>
   {#if session?.path}
     <div class="save">
@@ -254,8 +248,7 @@
   </main>
 {:else if meta}
   <main class="welcome">
-    <p>Choisissez une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code> puis cliquez sur <strong>Ouvrir</strong>.</p>
-    <p class="muted">Les sauvegardes sont recherchées dans le dossier de travail : {session?.root}</p>
+    <p>Indiquez le chemin complet d'une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code>, puis cliquez sur <strong>Ouvrir</strong>.</p>
   </main>
 {/if}
 
@@ -302,8 +295,9 @@
     align-items: center;
     min-width: 0;
   }
-  .open select {
-    max-width: 380px;
+  .open input {
+    width: 380px;
+    max-width: 40vw;
   }
   .save {
     margin-left: auto;

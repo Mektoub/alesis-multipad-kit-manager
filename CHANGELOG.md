@@ -2,6 +2,10 @@
 
 ## 0.3.0 — en cours
 
+- Un seul mode de fonctionnement, celui de l'application Electron : jeton exigé sur `/api/*`, fichiers désignés par chemin absolu. Le mode « développement » (dossier `--root`, liste `GET /api/backups`) est retiré.
+- `editeur.sh FICHIER` : lancement local rapide sur une sauvegarde (usage affiché sans paramètre) ; `python -m editor --open FICHIER`. En local, un jeton est créé et transmis au navigateur dans l'adresse (`#token=…`), puis conservé pour l'onglet.
+- Interface : ouverture par chemin complet, champ « Ouvrir » mis à jour après « Enregistrer sous ».
+- Limitation temporaire : l'écoute des samples (▶) ne fonctionne pas, la balise audio ne pouvant pas envoyer le jeton.
 - Intégration continue GitHub Actions (`.github/workflows/ci.yml`) : sur chaque push sur `main` et chaque pull request, `ruff check`, `ruff format --check` et tests sous Python 3.14 ; ESLint et build de l'interface sous Node 24.
 - Analyse du code : ruff (`pyproject.toml`, `requirements-dev.txt`) avec les règles E, F, W, I, B et formatage automatique ; ESLint avec les règles recommandées JavaScript et Svelte (`editor/web/eslint.config.js`, `npm run lint`).
 - `dev.sh` : `lint [--fix]`, `test [TESTS…]`, `build`, `all` (bilan final) ; installe au besoin les dépendances de développement.

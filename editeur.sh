@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
-# Lance l'éditeur web des kits du Strike MultiPad.
+# Lance l'éditeur dans le navigateur sur une sauvegarde : lancement local rapide,
+# dans le même mode que l'application Electron (jeton, chemins absolus).
+#
+# Usage : ./editeur.sh FICHIER [--port N] [--host ADRESSE] [--no-browser]
+#
+#   ./editeur.sh Backups/Backup001.bkf
+#   ./editeur.sh ~/Strike/STRIKE_BACKUP_KIT.fac --port 9000 --no-browser
 #
 # Au besoin, crée l'environnement virtuel Python (.venv), installe ou met à jour
 # les dépendances de requirements.txt et (re)construit l'interface Svelte.
-# Les arguments sont transmis à `python -m editor` (--root, --port, --host,
-# --no-browser) ; sans --root, le dossier Backups/ du projet est utilisé s'il
-# existe (sinon Strike/, puis le dossier courant).
-#
-#   ./editeur.sh                      # racine : Backups/
-#   ./editeur.sh --root ~/Strike      # autre dossier de sauvegardes
-#   ./editeur.sh --port 9000 --no-browser
-#
 # Variables : PYTHON (interpréteur pour créer le venv, défaut python3),
 # REBUILD=1 (forcer la reconstruction de l'interface).
 set -euo pipefail
+
+usage() { sed -n '5,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+
+# Arguments vérifiés avant les étapes de préparation, plus lentes.
+case "${1:-}" in
+    -h | --help) usage; exit 0 ;;
+    "" | -*) usage >&2; exit 2 ;;
+esac
+[[ -f "$1" ]] || { printf 'Erreur : fichier introuvable : %s\n' "$1" >&2; exit 2; }
+FILE="$(realpath -- "$1")"
+shift
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$PROJECT/.venv"
@@ -58,19 +67,5 @@ if needs_build; then
 fi
 
 # --- Lancement ------------------------------------------------------------------
-args=("$@")
-has_root=0
-for a in "${args[@]}"; do
-    [[ "$a" == --root || "$a" == --root=* ]] && has_root=1
-done
-if [[ $has_root == 0 ]]; then
-    for dir in Backups Strike; do
-        if [[ -d "$PROJECT/$dir" ]]; then
-            args=(--root "$PROJECT/$dir" "${args[@]}")
-            break
-        fi
-    done
-fi
-
 cd "$PROJECT"
-exec "$VENV/bin/python" -m editor "${args[@]}"
+exec "$VENV/bin/python" -m editor --open "$FILE" "$@"
