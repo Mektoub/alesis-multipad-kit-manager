@@ -27,7 +27,7 @@ export const api = {
   backups: () => request("GET", "/api/backups"),
   state: () => request("GET", "/api/state"),
   meta: () => request("GET", "/api/meta"),
-  open: (path) => request("POST", "/api/open", { path }),
+  open: (path, force = false) => request("POST", "/api/open", { path, force }),
   kit: (num) => request("GET", `/api/kits/${num}`),
   saveKit: (num, kit) => request("PUT", `/api/kits/${num}`, kit),
   copySlot: (num, body) => request("POST", `/api/kits/${num}/copy`, body),
@@ -40,6 +40,7 @@ export const api = {
     form.append("file", file);
     return request("POST", "/api/samples", form);
   },
-  save: (path, overwrite = false) => request("POST", "/api/save", { path, overwrite }),
+  // sans chemin : « Enregistrer » dans le fichier ouvert ; avec : « Enregistrer sous »
+  save: (path = null, overwrite = false) => request("POST", "/api/save", path == null ? {} : { path, overwrite }),
   wavUrl: (id) => `/api/samples/${id}/wav`,
 };
