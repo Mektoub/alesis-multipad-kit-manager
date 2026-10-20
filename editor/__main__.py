@@ -6,7 +6,9 @@ L'API exige toujours un jeton (en-tête X-Strike-Token) :
     `{"ready": true, "port": N}` est écrite sur la sortie standard ;
   - lancement local (editeur.sh) : sans STRIKE_TOKEN, un jeton est créé et
     transmis au navigateur dans l'adresse (http://…/#token=…).
-Avec --port 0, un port libre est choisi.
+Avec --port 0, un port libre est choisi. Avec --watch-stdin, le serveur s'arrête
+quand son entrée standard se ferme : l'application qui l'a lancé s'est arrêtée,
+même brutalement.
 """
 
 import argparse
@@ -42,6 +44,17 @@ class _Server(uvicorn.Server):
             self._on_ready(self, self._port)
 
 
+def watch_stdin(server):
+    """Arrête `server` quand l'entrée standard se ferme (fin de fichier)."""
+
+    def wait_eof():
+        while sys.stdin.buffer.read(4096):
+            pass
+        server.should_exit = True
+
+    threading.Thread(target=wait_eof, name="watch-stdin", daemon=True).start()
+
+
 def run(app, host, port, on_ready=None):
     """Sert `app` sur host:port (port 0 : port libre) jusqu'à l'arrêt du serveur."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -57,6 +70,9 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8765, help="port d'écoute (0 : port libre)")
     ap.add_argument("--no-browser", action="store_true", help="ne pas ouvrir le navigateur")
+    ap.add_argument(
+        "--watch-stdin", action="store_true", help="s'arrêter quand l'entrée standard se ferme (application arrêtée)"
+    )
     args = ap.parse_args()
     desktop_token = os.environ.get("STRIKE_TOKEN") or None
     token = desktop_token or secrets.token_urlsafe(24)
@@ -71,7 +87,9 @@ def main():
             file=sys.stderr,  # avertissement : la sortie standard reste réservée aux lignes utiles
         )
 
-    def on_ready(_server, port):
+    def on_ready(server, port):
+        if args.watch_stdin:
+            watch_stdin(server)
         if desktop_token:
             print(ready_line(port), flush=True)
             return

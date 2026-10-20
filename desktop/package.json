@@ -1,0 +1,19 @@
+{
+  "name": "strike-kit-editor-desktop",
+  "private": true,
+  "version": "0.3.0",
+  "description": "Application de bureau de l'éditeur de kits du Strike MultiPad",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "../scripts/preparer.sh && electron .",
+    "lint": "eslint .",
+    "test": "node --test --test-timeout=20000 test/*.test.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "electron": "44.5.1",
+    "eslint": "10.12.0",
+    "globals": "17.12.0"
+  }
+}

@@ -18,6 +18,8 @@ paramètre ; sans paramètre, il affiche son usage.
 
 Le script prépare tout ce qui manque, puis lance le serveur :
 
+Cette préparation (`scripts/preparer.sh`) est partagée avec l'application de bureau.
+
 1. crée l'environnement virtuel `.venv` s'il n'existe pas ;
 2. installe les dépendances de `requirements.txt`, puis les réinstalle chaque fois
    que ce fichier change ;
@@ -35,6 +37,7 @@ dossier `Backups/` du projet sont ignorés par Git.
 | `--port N` | port HTTP (`0` : un port libre est choisi) | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
+| `--watch-stdin` | s'arrêter quand l'entrée standard se ferme (utilisé par l'application de bureau) | — |
 
 Le navigateur s'ouvre sur l'adresse affichée, de la forme
 `http://127.0.0.1:8765/#token=…`. Le serveur n'écoute que sur la machine locale et
@@ -176,6 +179,7 @@ L'interface passe en mode bureau quand l'application Electron expose l'objet
 | `openFile()` | boîte native « Ouvrir » ; renvoie une promesse du chemin absolu choisi, ou `null` |
 | `saveFile(defaultPath)` | boîte native « Enregistrer sous », ouverte sur le nom suivant ; renvoie le chemin ou `null`. La boîte confirme elle-même l'écrasement d'un fichier existant |
 | `setDirty(dirty)` | appelé à chaque changement de l'état « modifications non enregistrées », pour que l'application confirme la fermeture de la fenêtre |
+| `onCommand(handler)` | reçoit les commandes de l'application, `{ command, path? }` ; la valeur renvoyée par `handler` est la réponse : `open`, `save`, `save-as` (menu Fichier), `open-file` (fichier passé au lancement), `prepare-close` (→ `{ dirty }`, après envoi des modifications en attente), `save-before-close` (→ `{ saved }`) |
 
 En mode bureau, l'interface ne bloque pas la fermeture de la page
 (`beforeunload`) : c'est l'application qui la confirme.
@@ -183,5 +187,6 @@ En mode bureau, l'interface ne bloque pas la fermeture de la page
 Pour essayer ce mode dans le navigateur, sans Electron, un bouchon remplace les
 boîtes natives par des `prompt()` : avec `npm run dev`, ajouter `&desktop=fake`
 à l'adresse (`http://localhost:5173/#token=…&desktop=fake`). Il reste actif pour
-l'onglet, journalise `setDirty` dans la console et marque le titre de la page
-d'un « ● ». Il n'existe qu'en développement et n'est pas inclus dans le build.
+l'onglet, journalise `setDirty` dans la console, marque le titre de la page
+d'un « ● », et les commandes s'envoient depuis la console
+(`await strikeFakeCommand("prepare-close")`). Il n'existe qu'en développement et n'est pas inclus dans le build.
