@@ -116,13 +116,13 @@ Python ni du `.venv` : l'exécutable, ses bibliothèques et l'interface construi
 C'est lui que le [paquet .deb](#paquet-deb) embarque.
 
 ```bash
-./dev.sh freeze                  # → desktop/build/strike-server/ (ignoré par Git)
+./dev.sh freeze                  # → desktop/build/alesis-kit-manager-server/ (ignoré par Git)
 ./dev.sh start --frozen Backups/Backup001.bkf
 ```
 
 `./dev.sh start --frozen` reconstruit d'abord le serveur figé s'il manque ou si
 une de ses sources a changé (sans relancer le test de fumée), puis lance
-l'application avec `STRIKE_SERVER=desktop/build/strike-server/strike-server`.
+l'application avec `STRIKE_SERVER=desktop/build/alesis-kit-manager-server/alesis-kit-manager-server`.
 
 `./dev.sh freeze` construit l'interface et le serveur figé, puis lance son test
 de fumée : depuis un dossier temporaire, avec un environnement minimal,
@@ -130,7 +130,7 @@ l'exécutable doit ouvrir la sauvegarde de référence, servir un kit, un WAV et
 l'interface, et refuser l'accès sans jeton. La CI fait de même (job « Serveur
 figé »).
 
-- Recette : `desktop/strike-server.spec`, point d'entrée `desktop/strike_server.py`
+- Recette : `desktop/server.spec`, point d'entrée `desktop/server_entry.py`
   (mêmes options que `python -m editor`).
 - Les symboles de débogage sont retirés (`strip`) : avec un Python compilé
   localement (asdf, pyenv), le dossier passe de 73 à 33 Mo.
@@ -138,7 +138,7 @@ figé »).
   le construit.
 
 L'application lance le serveur désigné par `STRIKE_SERVER` s'il est défini, puis,
-une fois empaquetée, celui de ses ressources (`strike-server/`), et sinon le
+une fois empaquetée, celui de ses ressources (`alesis-kit-manager-server/`), et sinon le
 Python du `.venv`.
 
 ## Paquet .deb
@@ -157,7 +157,7 @@ Le numéro de version est celui de `desktop/package.json`.
 Le paquet (environ 110 Mo) installe :
 
 - l'application dans `/opt/alesis-kit-manager/`, avec le serveur figé dans
-  `resources/strike-server/` ; la commande `alesis-kit-manager` ;
+  `resources/alesis-kit-manager-server/` ; la commande `alesis-kit-manager` ;
 - une entrée « Alesis Kit Manager » dans le menu des applications, avec son icône ;
 - les types de fichier `.bkf` et `.fac` : un double-clic sur une sauvegarde dans
   le gestionnaire de fichiers l'ouvre dans l'application (dans la fenêtre déjà
@@ -178,13 +178,13 @@ Tous les noms viennent de `app-names.json`, à la racine du dépôt :
 |---|---|---|
 | `long` | Alesis Strike Multipad Kit Manager | affichage : titre de la fenêtre et de la page, en-tête de l'interface, boîtes de dialogue, description du paquet |
 | `short` | Alesis Kit Manager | affichage court : entrée du menu des applications |
-| `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor |
+| `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor, serveur figé `<id>-server` |
 | `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` |
 
 Ils sont lus par Vite (`editor/web/vite.config.js` : `<title>` et `__APP_NAMES__`),
-electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui
+PyInstaller (`desktop/server.spec`), electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui
 les retrouve dans le `package.json` de l'application empaquetée), le serveur
-(titre de sa documentation `/docs`) et les scripts `desktop/apparmor.sh` et
+(titre de sa documentation `/docs`) et les scripts `dev.sh`, `desktop/apparmor.sh` et
 `desktop/test-deb/verifier.sh`. L'identifiant ne doit pas contenir d'espaces :
 `chrome-sandbox` ne supporte pas un chemin d'installation qui en contient.
 
@@ -263,7 +263,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 | `desktop/test-deb/` | test d'installation du paquet dans un conteneur (`./dev.sh test-deb`) |
 | `desktop/apparmor.sh` | profil AppArmor de l'Electron de développement, et vérification avant `npm start` |
 | `desktop/server.js` | choix et lancement du serveur, sans dépendance à Electron |
-| `desktop/strike-server.spec`, `desktop/strike_server.py` | recette PyInstaller du serveur figé et son point d'entrée |
+| `desktop/server.spec`, `desktop/server_entry.py` | recette PyInstaller du serveur figé et son point d'entrée |
 | `desktop/test/` | tests `node:test` (`npm test`) ; un faux serveur simule les cas d'erreur |
 
 `npm test` vérifie la lecture de la ligne « prêt », les arguments, les échecs

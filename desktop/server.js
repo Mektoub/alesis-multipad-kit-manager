@@ -20,12 +20,20 @@ export function pythonCommand(projectDir, platform = process.platform) {
 
 // Serveur à lancer : { command, args, cwd }.
 //   - STRIKE_SERVER : exécutable figé désigné explicitement (essai en développement) ;
-//   - application empaquetée : serveur figé de ses ressources (strike-server/) ;
+//   - application empaquetée : serveur figé de ses ressources (<serverName>/) ;
 //   - sinon : Python du .venv du dépôt (python -m editor).
-export function serverCommand({ projectDir, packaged, resourcesPath, env = process.env, platform = process.platform }) {
-  const exe = platform === "win32" ? "strike-server.exe" : "strike-server";
+// `serverName` : nom du serveur figé, <id>-server (voir app-names.json).
+export function serverCommand({
+  projectDir,
+  packaged,
+  resourcesPath,
+  serverName,
+  env = process.env,
+  platform = process.platform,
+}) {
+  const exe = platform === "win32" ? `${serverName}.exe` : serverName;
   if (env.STRIKE_SERVER) return { command: path.resolve(env.STRIKE_SERVER), args: [], cwd: undefined };
-  if (packaged) return { command: path.join(resourcesPath, "strike-server", exe), args: [], cwd: undefined };
+  if (packaged) return { command: path.join(resourcesPath, serverName, exe), args: [], cwd: undefined };
   return { command: pythonCommand(projectDir, platform), args: ["-m", "editor"], cwd: projectDir };
 }
 

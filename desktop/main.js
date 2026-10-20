@@ -271,7 +271,12 @@ function run() {
 
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(buildMenu());
-    const launch = serverCommand({ projectDir: PROJECT, packaged: app.isPackaged, resourcesPath: process.resourcesPath });
+    const launch = serverCommand({
+      projectDir: PROJECT,
+      packaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      serverName: `${NAMES.id}-server`,
+    });
     const problem = serverProblem(launch);
     if (problem) {
       dialog.showErrorBox(TITLE, problem);
