@@ -8,25 +8,25 @@ de JSON.
 Prérequis : Python 3 et Node.js (testé avec Python 3.14 et Node.js 25).
 
 ```bash
-./editeur.sh Backups/Backup001.bkf
+./dev.sh serve Backups/Backup001.bkf
 ```
 
-`editeur.sh` est le **lancement local rapide**, pour tester sans construire
-l'application Electron : il fonctionne dans le même mode qu'elle (jeton, fichiers
-désignés par chemin absolu). Il prend la sauvegarde `.bkf` ou `.fac` à ouvrir en
-paramètre ; sans paramètre, il affiche son usage.
+`./dev.sh serve` est le **lancement rapide dans le navigateur**, sans Electron :
+l'éditeur y fonctionne dans le même mode que l'application de bureau (jeton,
+fichiers désignés par chemin absolu). La sauvegarde `.bkf` ou `.fac` à ouvrir
+est obligatoire ; son chemin est relatif au dossier courant.
 
-Le script prépare tout ce qui manque, puis lance le serveur :
-
-Cette préparation (`scripts/preparer.sh`) est partagée avec l'application de bureau.
+La commande prépare tout ce qui manque, puis lance le serveur :
 
 1. crée l'environnement virtuel `.venv` s'il n'existe pas ;
-2. installe les dépendances de `requirements.txt`, puis les réinstalle chaque fois
-   que ce fichier change ;
+2. installe les dépendances de `requirements-dev.txt` (éditeur, tests, outils),
+   puis les réinstalle chaque fois que ce fichier ou `requirements.txt` change ;
 3. installe les paquets de l'interface (`npm ci`) et la construit dans
    `editor/web/dist`, puis la reconstruit chaque fois qu'une source de
    `editor/web/` est modifiée ;
 4. lance `python -m editor --open FICHIER` avec les options reçues.
+
+`./dev.sh start` fait la même préparation pour l'application de bureau.
 
 Variables utiles : `PYTHON=python3.12` choisit l'interpréteur qui crée le venv, et
 `REBUILD=1` force la reconstruction de l'interface. Les `.bkf` et `.fac` du
@@ -61,7 +61,7 @@ peut donc pas piloter l'éditeur, qui peut lire et écrire n'importe quel fichie
 STRIKE_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --open "$PWD/Backups/Backup001.bkf"
 ```
 
-Sans le script, l'installation manuelle est la suivante :
+Sans `dev.sh`, l'installation manuelle est la suivante :
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
@@ -71,7 +71,7 @@ cd editor/web && npm ci && npm run build && cd ../..
 
 ## Utilisation
 
-1. **Ouvrir** : la sauvegarde passée à `editeur.sh` est déjà ouverte. Pour en
+1. **Ouvrir** : la sauvegarde passée au lancement est déjà ouverte. Pour en
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
    Dans l'application de bureau, *Ouvrir…* et *Enregistrer sous…* utilisent les
    boîtes de dialogue du système, et seul le nom du fichier ouvert est affiché.
@@ -161,8 +161,8 @@ appels de test demandent d'ajouter l'en-tête du jeton.
 Pour profiter du rechargement à chaud :
 
 ```bash
-./editeur.sh Backups/Backup001.bkf --no-browser   # serveur API ; noter le jeton affiché
-cd editor/web && npm run dev                      # puis ouvrir http://localhost:5173/#token=…
+./dev.sh serve Backups/Backup001.bkf --no-browser   # serveur API ; noter le jeton affiché
+cd editor/web && npm run dev                        # puis ouvrir http://localhost:5173/#token=…
 ```
 
 Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur est

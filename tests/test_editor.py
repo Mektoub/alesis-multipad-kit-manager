@@ -1,7 +1,7 @@
 """Tests de l'API de l'éditeur (FastAPI), sur la sauvegarde de référence.
 
 Un seul mode : chaque requête /api/* porte le jeton, les fichiers sont désignés
-par chemin absolu (application Electron comme lancement local par editeur.sh).
+par chemin absolu (application Electron comme lancement local par ./dev.sh serve).
 """
 
 import io
@@ -438,7 +438,7 @@ class Lancement(unittest.TestCase):
         self.assertNotIn("Interface non construite", out.getvalue())
 
     def start_local(self, *args):
-        """Lancement local (sans STRIKE_TOKEN), comme editeur.sh."""
+        """Lancement local (sans STRIKE_TOKEN), comme ./dev.sh serve."""
         project = Path(__file__).resolve().parent.parent
         env = {k: v for k, v in os.environ.items() if k != "STRIKE_TOKEN"}
         return subprocess.Popen(

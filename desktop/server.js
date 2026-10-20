@@ -7,6 +7,7 @@
 // il ne survit donc pas à l'application, même si elle plante.
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 // Interpréteur du venv du dépôt, en développement.
@@ -25,6 +26,20 @@ export function serverCommand({ projectDir, packaged, resourcesPath, env = proce
   if (env.STRIKE_SERVER) return { command: path.resolve(env.STRIKE_SERVER), args: [], cwd: undefined };
   if (packaged) return { command: path.join(resourcesPath, "strike-server", exe), args: [], cwd: undefined };
   return { command: pythonCommand(projectDir, platform), args: ["-m", "editor"], cwd: projectDir };
+}
+
+// Ce qui empêche de lancer le serveur, en message lisible, ou null. En
+// développement (Python du .venv), `npm start` ne prépare rien : ./dev.sh start
+// crée le venv et construit l'interface.
+export function serverProblem({ command, cwd, exists = existsSync }) {
+  const hint = "lancer ./dev.sh start depuis la racine du dépôt";
+  if (!exists(command)) {
+    return cwd ? `Python du .venv introuvable (${command}) : ${hint}.` : `Serveur introuvable : ${command}.`;
+  }
+  if (cwd && !exists(path.join(cwd, "editor", "web", "dist", "index.html"))) {
+    return `Interface non construite : ${hint}.`;
+  }
+  return null;
 }
 
 // Port annoncé par une ligne de la sortie du serveur, ou null.

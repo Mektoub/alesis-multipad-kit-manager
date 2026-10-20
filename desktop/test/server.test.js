@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { fileArgument, pythonCommand, readyPort, serverCommand, startServer } from "../server.js";
+import { fileArgument, pythonCommand, readyPort, serverCommand, serverProblem, startServer } from "../server.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const project = path.resolve(here, "..", "..");
@@ -69,6 +69,24 @@ describe("serveur à lancer", () => {
       const { command, args } = serverCommand({ ...base, packaged, env: { STRIKE_SERVER: "/b/strike-server" } });
       assert.deepEqual([command, args], ["/b/strike-server", []]);
     }
+  });
+});
+
+describe("serveur impossible à lancer", () => {
+  const dev = { command: "/p/.venv/bin/python", cwd: "/p" };
+  const only = (...paths) => (p) => paths.includes(p);
+  it("développement prêt", () => {
+    assert.equal(serverProblem({ ...dev, exists: only(dev.command, "/p/editor/web/dist/index.html") }), null);
+  });
+  it("venv absent", () => {
+    assert.match(serverProblem({ ...dev, exists: only() }), /Python du \.venv introuvable.*\.\/dev\.sh start/);
+  });
+  it("interface non construite", () => {
+    assert.match(serverProblem({ ...dev, exists: only(dev.command) }), /Interface non construite.*\.\/dev\.sh start/);
+  });
+  it("serveur figé absent", () => {
+    assert.equal(serverProblem({ command: "/b/strike-server", exists: only() }), "Serveur introuvable : /b/strike-server.");
+    assert.equal(serverProblem({ command: "/b/strike-server", exists: only("/b/strike-server") }), null);
   });
 });
 

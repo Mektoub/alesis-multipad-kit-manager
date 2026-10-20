@@ -3,8 +3,9 @@
 // les boîtes de dialogue natives et le menu, confirme la fermeture quand des
 // modifications ne sont pas enregistrées, et arrête le serveur en quittant.
 //
-// En développement : npm start [-- FICHIER] (Python du .venv du dépôt, ou le
-// serveur figé désigné par STRIKE_SERVER).
+// En développement : ./dev.sh start [--frozen] [FICHIER], ou npm start [-- FICHIER]
+// une fois le venv et l'interface prêts (Python du .venv du dépôt, ou le serveur
+// figé désigné par STRIKE_SERVER).
 
 import { randomBytes } from "node:crypto";
 import path from "node:path";
@@ -12,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 
-import { fileArgument, serverCommand, startServer } from "./server.js";
+import { fileArgument, serverCommand, serverProblem, startServer } from "./server.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(here, "..");
@@ -266,11 +267,15 @@ function run() {
 
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(buildMenu());
+    const launch = serverCommand({ projectDir: PROJECT, packaged: app.isPackaged, resourcesPath: process.resourcesPath });
+    const problem = serverProblem(launch);
+    if (problem) {
+      dialog.showErrorBox(TITLE, problem);
+      app.quit();
+      return;
+    }
     try {
-      server = await startServer({
-        ...serverCommand({ projectDir: PROJECT, packaged: app.isPackaged, resourcesPath: process.resourcesPath }),
-        token,
-      });
+      server = await startServer({ ...launch, token });
     } catch (err) {
       dialog.showErrorBox(TITLE, `Le serveur de l'éditeur n'a pas pu démarrer : ${err.message}`);
       app.quit();

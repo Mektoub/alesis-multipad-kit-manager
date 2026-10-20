@@ -11,17 +11,18 @@ Prérequis : Python 3 et Node.js, comme pour [l'éditeur web](editeur-web.md).
 
 ```bash
 ./dev.sh start Backups/Backup001.bkf     # depuis la racine du dépôt
-cd desktop && npm start                  # ou directement : écran d'accueil, puis Fichier > Ouvrir…
-npm start -- ../Backups/Backup001.bkf
+./dev.sh start                           # écran d'accueil, puis Fichier > Ouvrir…
 ```
 
-`./dev.sh start` installe au besoin les paquets de `desktop/` (`npm ci`), puis
-lance `npm start`.
-
 Le chemin passé en argument est relatif au dossier d'où la commande est tapée.
-`npm start` prépare d'abord ce qui manque, comme `editeur.sh`
-(`scripts/preparer.sh` : venv, dépendances, build de l'interface). Au premier
-lancement, Electron télécharge son exécutable.
+`./dev.sh start` prépare d'abord ce qui manque, comme `./dev.sh serve` (venv,
+dépendances, build de l'interface si une source a changé, paquets de `desktop/`),
+puis lance `npm start` dans `desktop/`. Au premier lancement, Electron télécharge
+son exécutable.
+
+`npm start` (`npm start -- FICHIER`) lance directement Electron, sans rien
+préparer : si le venv ou l'interface construite manquent, l'application le
+signale et invite à lancer `./dev.sh start`.
 
 ### Ubuntu 24.04 et suivants : profil AppArmor
 

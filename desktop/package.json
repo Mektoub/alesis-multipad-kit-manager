@@ -6,7 +6,7 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "start": "../scripts/preparer.sh && ./apparmor.sh --check && electron .",
+    "start": "./apparmor.sh --check && electron .",
     "lint": "eslint .",
     "test": "node --test --test-timeout=20000 test/*.test.js"
   },
