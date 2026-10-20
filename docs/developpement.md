@@ -42,6 +42,8 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh test` | tous les tests, Python et interface |
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
+| `./dev.sh start [--frozen] [FICHIER]` | lance l'application de bureau ; `--frozen` : avec le serveur figé, reconstruit si une source a changé |
+| `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/strike-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
 
 Les sections suivantes détaillent les commandes appelées.
@@ -72,13 +74,14 @@ activée.
 ## Intégration continue
 
 `.github/workflows/ci.yml` (GitHub Actions) se déclenche à chaque push sur `main`
-et sur chaque pull request. Trois jobs, sous Ubuntu :
+et sur chaque pull request. Quatre jobs, sous Ubuntu :
 
 | Job | Étapes |
 |---|---|
 | Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
 | Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (Vitest), `npm run build` |
 | Application de bureau (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (node:test ; sans `.venv`, le test du serveur réel est ignoré) |
+| Serveur figé (Python 3.14, Node 24) | `./dev.sh freeze` : build de l'interface, PyInstaller, test de fumée |
 
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).
