@@ -7,6 +7,7 @@
 - Interface : ouverture par chemin complet, champ « Ouvrir » mis à jour après « Enregistrer sous ».
 - Interface en mode bureau (étape 2 du passage à Electron) : si l'application expose `window.strikeDesktop` (jeton, boîtes natives `openFile` / `saveFile`, `setDirty`), *Ouvrir…* et *Enregistrer sous…* passent par les boîtes de dialogue du système, et l'état « non enregistré » lui est signalé. Bouchon de développement (`#…&desktop=fake`, absent du build) pour tester ce mode dans le navigateur.
 - Application de bureau Electron (`desktop/`, étape 3) : `npm start [-- FICHIER]` lance le serveur Python avec un jeton aléatoire et ouvre l'éditeur dans une fenêtre ; menu Fichier (Ouvrir, Enregistrer, Enregistrer sous, Quitter) avec raccourcis, boîtes de dialogue natives, une seule instance, confirmation de fermeture (Enregistrer / Quitter sans enregistrer / Annuler), arrêt du serveur en quittant ou en cas de plantage. Tests `node:test`, ESLint ; dans `dev.sh` et la CI (job « desktop »).
+- Application de bureau : barre de menus masquée par défaut, affichée avec la touche Alt.
 - `desktop/apparmor.sh` : profil AppArmor pour l'Electron de développement (Ubuntu 24.04 et suivants bloquent sa sandbox) ; `npm start` prévient tant qu'il manque.
 - `python -m editor --watch-stdin` : le serveur s'arrête quand son entrée standard se ferme.
 - Interface : commandes de l'application de bureau (`strikeDesktop.onCommand`).
