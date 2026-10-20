@@ -2,9 +2,10 @@
 # Commandes de développement : lancement de l'éditeur, analyse, tests et build
 # comme la CI.
 #
-#   ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]
+#   ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--allow DOSSIER]… [--no-browser]
 #                                éditeur dans le navigateur sur cette sauvegarde
-#                                (lancement rapide, sans Electron)
+#                                (lancement rapide, sans Electron) ; --allow :
+#                                dossier autorisé en plus du dossier personnel
 #   ./dev.sh start [--frozen] [FICHIER]
 #                                application de bureau, sur ce fichier ;
 #                                --frozen : avec le serveur figé, reconstruit si
@@ -37,7 +38,7 @@ PYTHON="${PYTHON:-python3}"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -267,7 +268,7 @@ case "$COMMAND" in
     serve)
         while (($#)); do
             case "$1" in
-                --port | --host)
+                --port | --host | --allow)
                     (($# >= 2)) || die "valeur attendue après $1"
                     SERVE_ARGS+=("$1" "$2")
                     shift
@@ -282,7 +283,7 @@ case "$COMMAND" in
             esac
             shift
         done
-        [[ -n "$FILE" ]] || { printf 'Fichier attendu : ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]\n' >&2; exit 2; }
+        [[ -n "$FILE" ]] || { printf 'Fichier attendu : ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--allow DOSSIER]… [--no-browser]\n' >&2; exit 2; }
         ;;
     start)
         for a in "$@"; do

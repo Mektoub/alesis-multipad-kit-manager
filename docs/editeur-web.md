@@ -37,17 +37,34 @@ dossier `Backups/` du projet sont ignorés par Git.
 | `--port N` | port HTTP (`0` : un port libre est choisi) | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
+| `--allow DOSSIER` | dossier autorisé en plus de la [zone par défaut](#dossiers-autorisés) (répétable) | — |
 | `--watch-stdin` | s'arrêter quand l'entrée standard se ferme (utilisé par l'application de bureau) | — |
 
 Le navigateur s'ouvre sur l'adresse affichée, de la forme
 `http://127.0.0.1:8765/#token=…`. Le serveur n'écoute que sur la machine locale et
 `Ctrl+C` l'arrête.
 
+### Dossiers autorisés
+
+Le serveur n'ouvre et n'enregistre de sauvegarde que dans :
+
+- le dossier personnel de l'utilisateur ;
+- ses supports amovibles, `/media/<utilisateur>` et `/run/media/<utilisateur>`
+  (clé USB, Strike branché en USB) ;
+- les dossiers ajoutés par `--allow DOSSIER` (`./dev.sh serve FICHIER --allow DOSSIER`).
+
+Les chemins sont résolus avant la vérification : un lien symbolique placé dans le
+dossier personnel ne permet pas d'atteindre un fichier extérieur. Un chemin hors
+de ces dossiers est refusé (erreur 403, « hors des dossiers autorisés ») ; la
+sauvegarde passée au lancement aussi, et le serveur s'arrête alors avec le code 2.
+La copie `.bak` étant écrite à côté du fichier ouvert, elle reste dans la zone.
+L'application de bureau utilise la zone par défaut.
+
 ### Jeton
 
 Chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec le jeton du
 lancement, sinon elle reçoit une erreur 403 : un autre programme de la machine ne
-peut donc pas piloter l'éditeur, qui peut lire et écrire n'importe quel fichier.
+peut donc pas piloter l'éditeur, qui lit et écrit des fichiers.
 
 - **Lancement local** : un jeton est créé à chaque lancement et transmis au
   navigateur dans l'adresse (`#token=…`). L'interface le garde pour l'onglet, ce
@@ -140,7 +157,7 @@ porte l'en-tête `X-Strike-Token`, et les chemins de fichiers sont absolus :
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| POST | `/api/open` | ouvrir une sauvegarde (`{"path": "/chemin/absolu", "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
+| POST | `/api/open` | ouvrir une sauvegarde (`{"path": "/chemin/absolu", "force": false}`) ; 403 hors des [dossiers autorisés](#dossiers-autorisés) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
@@ -151,7 +168,7 @@ porte l'en-tête `X-Strike-Token`, et les chemins de fichiers sont absolus :
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
-| POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (409 si un autre fichier existe, sauf `overwrite`) |
+| POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (403 hors des dossiers autorisés ; 409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses
 appels de test demandent d'ajouter l'en-tête du jeton.

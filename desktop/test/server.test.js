@@ -133,7 +133,9 @@ describe("lancement du serveur", () => {
 // l'interface ; l'accès sans jeton est refusé.
 async function smoke(options) {
   const ref = path.join(project, "tests", "ressources", "Backup001.bkf");
-  const server = await startServer({ ...options, args: [...(options.args ?? []), "--open", ref], token: "t" });
+  // --allow : la sauvegarde de référence peut être hors du dossier personnel (HOME du test)
+  const args = [...(options.args ?? []), "--open", ref, "--allow", path.dirname(ref)];
+  const server = await startServer({ ...options, args, token: "t" });
   try {
     const base = `http://127.0.0.1:${server.port}`;
     const get = (url) => fetch(base + url, { headers: { "X-Strike-Token": "t" } });
