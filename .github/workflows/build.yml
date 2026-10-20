@@ -1,10 +1,10 @@
-# Paquets de l'application de bureau, sur chaque système (PyInstaller ne fait
+# Packages de l'application de bureau, sur chaque système (PyInstaller ne fait
 # pas de compilation croisée) : .deb sous Linux, installateur NSIS et zip sous
 # Windows, dmg et zip sous macOS (Apple Silicon). Lancé sur un tag v* ou à la
 # main (onglet Actions) ; les paquets sont des artefacts de l'exécution.
 # Appelé aussi par ci.yml (workflow_call), sous Linux et sans paquet : serveur
 # figé et test de fumée seulement.
-name: Paquets
+name: Package
 
 on:
   push:
