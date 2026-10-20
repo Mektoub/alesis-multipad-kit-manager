@@ -94,13 +94,13 @@ logo et les effets (FX1–3).
 4. Exporter les deux et comparer :
 
 ```bash
-python3 strike_kits.py export --no-wav Backup_avant.bkf avant
-python3 strike_kits.py export --no-wav Backup_apres.bkf apres
+python3 -m strike_kits export --no-wav Backup_avant.bkf avant
+python3 -m strike_kits export --no-wav Backup_apres.bkf apres
 diff -r avant/kits apres/kits
 ```
 
 C'est ainsi qu'ont été identifiés `control`, `audio_output` et le comportement de
 l'ajout de samples. Une fois le paramètre identifié, il suffit de le nommer dans
-`PAD_PARAMS` ou `WAVE_PARAMS` (`strike_kits.py`), avec un test qui s'appuie sur
+`PAD_PARAMS` ou `WAVE_PARAMS` (`strike_kits/__init__.py`), avec un test qui s'appuie sur
 la sauvegarde de référence. Pour l'éditeur web, on peut aussi lui donner des
 libellés dans `editor/meta.py`.

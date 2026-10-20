@@ -329,4 +329,4 @@ Pour identifier un paramètre inconnu :
 1. faire une sauvegarde ;
 2. modifier un seul réglage sur l'appareil ;
 3. refaire une sauvegarde ;
-4. exporter les deux avec `strike_kits.py export` et comparer avec `diff -r`.
+4. exporter les deux avec `python3 -m strike_kits export` et comparer avec `diff -r`.
