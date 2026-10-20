@@ -21,6 +21,8 @@
 #                                desktop/build/strike-server/, puis test de fumée
 #   ./dev.sh package             paquet .deb de l'application dans desktop/dist/
 #                                (interface, serveur figé testé, electron-builder)
+#   ./dev.sh test-deb            installe et teste le .deb dans un conteneur Docker
+#                                Ubuntu 24.04 (reconstruit le paquet s'il est périmé)
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
@@ -38,7 +40,7 @@ PYTHON="${PYTHON:-python3}"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -178,6 +180,29 @@ step_package() {
     info "Paquet : ${deb#"$PROJECT"/} ($(du -h "$deb" | cut -f1))"
 }
 
+# Le paquet manque, ou une de ses sources (application, serveur figé) est plus récente.
+deb_outdated() {
+    local deb
+    deb="$(ls "$DESKTOP"/dist/*.deb 2>/dev/null | head -1)"
+    [[ -z "$deb" ]] && return 0
+    frozen_outdated && return 0
+    [[ -n "$(find "$DESKTOP/main.js" "$DESKTOP/preload.cjs" "$DESKTOP/server.js" "$DESKTOP/package.json" \
+               "$DESKTOP/build-resources" "$DESKTOP/build/strike-server/strike-server" -newer "$deb" -print -quit)" ]]
+}
+
+step_test_deb() {
+    command -v docker >/dev/null || { echo "docker introuvable" >&2; return 1; }
+    local image=strike-kit-editor-test:24.04
+    info "Image de test ($image)"
+    docker build --quiet -t "$image" "$DESKTOP/test-deb" >/dev/null || return 1
+    info "Installation et test du paquet dans le conteneur"
+    docker run --rm --security-opt seccomp=unconfined \
+        -v "$DESKTOP/dist:/paquet:ro" \
+        -v "$PROJECT/tests/ressources:/ref:ro" \
+        -v "$DESKTOP/test-deb/verifier.sh:/verifier.sh:ro" \
+        "$image" bash /verifier.sh
+}
+
 # Le serveur figé manque, ou une de ses sources est plus récente que lui.
 frozen_outdated() {
     local exe="$DESKTOP/build/strike-server/strike-server"
@@ -246,6 +271,7 @@ declare -A LABELS=(
     [test_desktop]="tests de l'application de bureau"
     [build]="build de l'interface"
     [package]="paquet de l'application"
+    [test_deb]="test d'installation du paquet"
 )
 
 # --- Arguments ----------------------------------------------------------------
@@ -298,7 +324,7 @@ case "$COMMAND" in
             esac
         done
         ;;
-    build | freeze | package) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
+    build | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     -h | --help | help) usage 0 ;;
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
 esac
@@ -309,6 +335,12 @@ case "$COMMAND" in
     build) run_steps build ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
     package) step_build && step_freeze && step_test_frozen && run_steps package ;;
+    test-deb)
+        if deb_outdated; then
+            step_build && step_freeze && step_test_frozen && step_package || die "construction du paquet impossible"
+        fi
+        run_steps test_deb
+        ;;
     serve) serve ;;
     start) start_app ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;

@@ -17,9 +17,9 @@ import { fileArgument, serverCommand, serverProblem, startServer } from "./serve
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(here, "..");
+// nom affiché (fenêtres, boîtes de dialogue) ; le nom de l'application, celui de
+// son dossier de configuration (~/.config/…), est le productName de package.json
 const TITLE = "Alesis Strike Multipad Kit Manager";
-
-app.setName(TITLE);
 
 // Sauvegarde passée en argument ; `npm start` lance Electron depuis desktop/,
 // le chemin est donc relatif au dossier d'où la commande a été tapée (INIT_CWD).
