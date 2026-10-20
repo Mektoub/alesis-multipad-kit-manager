@@ -2,6 +2,7 @@
 
 ## 0.3.0 — en cours
 
+- `strike_kits.py` devient le paquet `strike_kits/` (code dans `__init__.py`, imports inchangés) ; ligne de commande : `python3 -m strike_kits export|import …` au lieu de `python3 strike_kits.py …`.
 - Un seul mode de fonctionnement, celui de l'application Electron : jeton exigé sur `/api/*`, fichiers désignés par chemin absolu. Le mode « développement » (dossier `--root`, liste `GET /api/backups`) est retiré.
 - `editeur.sh FICHIER` : lancement local rapide sur une sauvegarde (usage affiché sans paramètre) ; `python -m editor --open FICHIER`. En local, un jeton est créé et transmis au navigateur dans l'adresse (`#token=…`), puis conservé pour l'onglet.
 - Interface : ouverture par chemin complet, champ « Ouvrir » mis à jour après « Enregistrer sous ».

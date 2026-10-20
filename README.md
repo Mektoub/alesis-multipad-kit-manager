@@ -13,13 +13,13 @@ copie de la sauvegarde d'origine** avant de charger un fichier produit par ces o
 
 | Commande | Rôle |
 |---|---|
-| `python3 strike_kits.py export SAUVEGARDE DOSSIER [--no-wav]` | exporte les kits en JSON et les samples utilisateur en WAV |
-| `python3 strike_kits.py import SAUVEGARDE DOSSIER -o NOUVELLE` | applique les JSON et les nouveaux WAV, écrit une nouvelle sauvegarde |
+| `python3 -m strike_kits export SAUVEGARDE DOSSIER [--no-wav]` | exporte les kits en JSON et les samples utilisateur en WAV |
+| `python3 -m strike_kits import SAUVEGARDE DOSSIER -o NOUVELLE` | applique les JSON et les nouveaux WAV, écrit une nouvelle sauvegarde |
 | `./dev.sh serve SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement rapide) |
 | `./dev.sh start [--frozen] [SAUVEGARDE]` | lance l'application de bureau (Electron), en développement |
 | `./dev.sh package` | construit le paquet .deb de l'application de bureau (`sudo apt install ./desktop/dist/alesis-kit-manager_*.deb`) |
 
-`strike_kits.py` n'a besoin que de Python 3. `./dev.sh serve` et `./dev.sh start`
+`strike_kits` n'a besoin que de Python 3. `./dev.sh serve` et `./dev.sh start`
 demandent en plus Node.js : au premier lancement, ils créent l'environnement
 virtuel `.venv`, installent les dépendances et construisent l'interface ;
 ensuite, ils ne refont que ce qui a changé.
@@ -27,9 +27,9 @@ ensuite, ils ne refont que ce qui a changé.
 ## Exemple
 
 ```bash
-python3 strike_kits.py export Backup001.bkf mes_kits
+python3 -m strike_kits export Backup001.bkf mes_kits
 # modifier mes_kits/kits/032_Empty.json, déposer des WAV dans mes_kits/wav/
-python3 strike_kits.py import Backup001.bkf mes_kits -o Backup002.bkf
+python3 -m strike_kits import Backup001.bkf mes_kits -o Backup002.bkf
 ```
 
 ## Documentation

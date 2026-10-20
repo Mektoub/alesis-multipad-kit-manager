@@ -1,4 +1,4 @@
-# Éditeur web (python -m editor). L'outil en ligne de commande strike_kits.py n'a besoin d'aucune dépendance.
+# Éditeur web (python -m editor). L'outil en ligne de commande (python3 -m strike_kits) n'a besoin d'aucune dépendance.
 fastapi==0.143.3
 uvicorn==0.54.0
 python-multipart==0.0.32

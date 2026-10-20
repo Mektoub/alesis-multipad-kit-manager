@@ -14,7 +14,7 @@ Copier ce dossier sur l'ordinateur et **garder une copie de la sauvegarde d'orig
 ## 2. Exporter
 
 ```bash
-python3 strike_kits.py export "Strike/All User Kit And Sample Backup/Backup001.bkf" mes_kits
+python3 -m strike_kits export "Strike/All User Kit And Sample Backup/Backup001.bkf" mes_kits
 ```
 
 Le dossier `mes_kits/` contient un JSON par kit, le catalogue des samples et les
@@ -56,7 +56,7 @@ Un sample se désigne par son id ou par son nom exact (voir `samples.json`) ;
 ## 4. Produire une nouvelle sauvegarde
 
 ```bash
-python3 strike_kits.py import "Strike/All User Kit And Sample Backup/Backup001.bkf" mes_kits \
+python3 -m strike_kits import "Strike/All User Kit And Sample Backup/Backup001.bkf" mes_kits \
     -o "Strike/All User Kit And Sample Backup/Backup002.bkf"
 ```
 
