@@ -76,7 +76,7 @@ desktop_deps() { node_deps "$DESKTOP"; }
 web_ready() {
     local index="$WEB/dist/index.html"
     if [[ "${REBUILD:-0}" == 1 || ! -f "$index" || -n "$(find "$WEB/src" "$WEB/index.html" \
-            "$WEB/package.json" "$WEB/vite.config.js" -newer "$index" -print -quit)" ]]; then
+            "$WEB/package.json" "$WEB/vite.config.js" "$PROJECT/app-names.json" -newer "$index" -print -quit)" ]]; then
         step_build || die "build de l'interface impossible"
     fi
 }
@@ -187,12 +187,13 @@ deb_outdated() {
     [[ -z "$deb" ]] && return 0
     frozen_outdated && return 0
     [[ -n "$(find "$DESKTOP/main.js" "$DESKTOP/preload.cjs" "$DESKTOP/server.js" "$DESKTOP/package.json" \
+               "$DESKTOP/electron-builder.config.mjs" "$PROJECT/app-names.json" \
                "$DESKTOP/build-resources" "$DESKTOP/build/strike-server/strike-server" -newer "$deb" -print -quit)" ]]
 }
 
 step_test_deb() {
     command -v docker >/dev/null || { echo "docker introuvable" >&2; return 1; }
-    local image=strike-kit-editor-test:24.04
+    local image=alesis-kit-manager-test:24.04
     info "Image de test ($image)"
     docker build --quiet -t "$image" "$DESKTOP/test-deb" >/dev/null || return 1
     info "Installation et test du paquet dans le conteneur"
@@ -200,6 +201,7 @@ step_test_deb() {
         -v "$DESKTOP/dist:/paquet:ro" \
         -v "$PROJECT/tests/ressources:/ref:ro" \
         -v "$DESKTOP/test-deb/verifier.sh:/verifier.sh:ro" \
+        -v "$PROJECT/app-names.json:/app-names.json:ro" \
         "$image" bash /verifier.sh
 }
 
@@ -207,7 +209,7 @@ step_test_deb() {
 frozen_outdated() {
     local exe="$DESKTOP/build/strike-server/strike-server"
     [[ ! -x "$exe" ]] && return 0
-    [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/editor" \
+    [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/app-names.json" "$PROJECT/editor" \
                "$DESKTOP/strike-server.spec" "$DESKTOP/strike_server.py" \
                \( -name node_modules -o -name dist -o -name __pycache__ \) -prune -o \
                -newer "$exe" -print -quit)" ]]

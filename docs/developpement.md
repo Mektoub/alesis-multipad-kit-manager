@@ -8,6 +8,7 @@
 | `editor/server.py` | API FastAPI de l'éditeur |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
+| `app-names.json` | noms de l'application : long, court, identifiant des chemins, dossier de configuration (voir [Application de bureau](application-bureau.md#noms-de-lapplication)) |
 | `dev.sh` | lancement de l'éditeur (navigateur ou application de bureau), avec préparation automatique du venv et de l'interface ; analyse, tests et build en local, comme la CI |
 | `desktop/` | application de bureau Electron (voir [Application de bureau](application-bureau.md)) |
 | `editor/web/` | interface Svelte (Vite) |

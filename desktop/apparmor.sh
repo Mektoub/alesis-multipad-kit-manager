@@ -11,13 +11,16 @@
 #   ./apparmor.sh --check    prévient si Electron ne pourra pas démarrer (npm start)
 #
 # Installation (une fois ; le chemin de l'exécutable ne change pas avec npm ci) :
-#   ./apparmor.sh | sudo tee /etc/apparmor.d/strike-kit-editor-dev
-#   sudo apparmor_parser -r /etc/apparmor.d/strike-kit-editor-dev
+#   ./apparmor.sh | sudo tee /etc/apparmor.d/alesis-kit-manager-dev
+#   sudo apparmor_parser -r /etc/apparmor.d/alesis-kit-manager-dev
+# (nom du profil : <id>-dev, l'identifiant de ../app-names.json)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ELECTRON="$HERE/node_modules/electron/dist/electron"
-PROFILE=/etc/apparmor.d/strike-kit-editor-dev
+ID="$(sed -n 's/.*"id": *"\([^"]*\)".*/\1/p' "$HERE/../app-names.json")"
+NAME="$(sed -n 's/.*"long": *"\([^"]*\)".*/\1/p' "$HERE/../app-names.json")"
+PROFILE="/etc/apparmor.d/$ID-dev"
 
 if [[ "${1:-}" == --check ]]; then
     restricted="$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)"
@@ -37,17 +40,17 @@ MSG
 fi
 
 cat <<PROFILE
-# Electron de développement de Alesis Strike Multipad Kit Manager ($HERE).
+# Electron de développement de $NAME ($HERE).
 # Comme les profils de Chrome ou VS Code : aucune restriction (unconfined) ;
 # le profil sert à autoriser les user namespaces de la sandbox de Chromium.
 
 abi <abi/5.0>,
 include <tunables/global>
 
-profile strike-kit-editor-dev "$ELECTRON" flags=(unconfined) {
+profile $ID-dev "$ELECTRON" flags=(unconfined) {
   userns,
   @{exec_path} mr,
 
-  include if exists <local/strike-kit-editor-dev>
+  include if exists <local/$ID-dev>
 }
 PROFILE

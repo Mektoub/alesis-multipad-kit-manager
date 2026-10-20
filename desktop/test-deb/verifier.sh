@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Vérifie, dans un conteneur Ubuntu propre (voir Dockerfile), l'installation du
-# paquet .deb monté dans /paquet, avec la sauvegarde de référence dans /ref :
+# paquet .deb monté dans /paquet, avec la sauvegarde de référence dans /ref et
+# les noms de l'application dans /app-names.json :
 # installation, fichiers, types de fichier, serveur intégré, lancement de
 # l'application (Xvfb), désinstallation. Lancé par ./dev.sh test-deb.
 set -uo pipefail
 
+ID="$(sed -n 's/.*"id": *"\([^"]*\)".*/\1/p' /app-names.json)"  # paquet, exécutable, /opt/<id>
+export ID  # utilisé dans les bash -c '…'
 FAILED=0
 ok() { printf '  \033[32m✔\033[0m %s\n' "$*"; }
 ko() { printf '  \033[31m✖\033[0m %s\n' "$*"; FAILED=1; }
@@ -22,19 +25,19 @@ fi
 grep -i "apparmor" /tmp/apt.log | sed 's/^/    /'
 
 step "Fichiers installés"
-APP="$(dirname "$(readlink -f /usr/bin/strike-kit-editor)")"  # /opt/<nom du produit>
-check "commande strike-kit-editor → $APP/strike-kit-editor" test -x "$APP/strike-kit-editor"
+APP="/opt/$ID"
+check "commande $ID → $APP/$ID" test "$(readlink -f "/usr/bin/$ID")" -ef "$APP/$ID"
 check "serveur intégré resources/strike-server" test -x "$APP/resources/strike-server/strike-server"
 check "interface intégrée" test -f "$APP/resources/strike-server/_internal/editor/web/dist/index.html"
-check "icône 512 px" test -f /usr/share/icons/hicolor/512x512/apps/strike-kit-editor.png
-check "entrée de menu valide (desktop-file-validate)" desktop-file-validate /usr/share/applications/strike-kit-editor.desktop
+check "icône 512 px" test -f /usr/share/icons/hicolor/512x512/apps/$ID.png
+check "entrée de menu valide (desktop-file-validate)" desktop-file-validate /usr/share/applications/$ID.desktop
 check "aucun Python sur le système" bash -c '! command -v python3'
 
 step "Types de fichier"
 # base des types MIME (xdg-mime query filetype demande un environnement de bureau)
 check "*.bkf → application/x-strike-bkf" grep -q "application/x-strike-bkf:\*\.bkf" /usr/share/mime/globs2
 check "*.fac → application/x-strike-fac" grep -q "application/x-strike-fac:\*\.fac" /usr/share/mime/globs2
-check "application associée aux .bkf et .fac" bash -c 'grep -q "application/x-strike-bkf=.*strike-kit-editor.desktop" /usr/share/applications/mimeinfo.cache && grep -q "application/x-strike-fac=.*strike-kit-editor.desktop" /usr/share/applications/mimeinfo.cache'
+check "application associée aux .bkf et .fac" bash -c 'grep -q "application/x-strike-bkf=.*$ID.desktop" /usr/share/applications/mimeinfo.cache && grep -q "application/x-strike-fac=.*$ID.desktop" /usr/share/applications/mimeinfo.cache'
 
 step "Serveur intégré (test de fumée)"
 cp /ref/Backup001.bkf /home/testeur/ && chown testeur: /home/testeur/Backup001.bkf
@@ -57,7 +60,7 @@ fi
 pkill -f "strike-server --port 0 --open" ; sleep 0.5
 
 step "Application (Electron sous Xvfb, utilisateur non root)"
-su testeur -c "cd ~ && xvfb-run -a strike-kit-editor --remote-debugging-port=9222 Backup001.bkf" > /tmp/app.log 2>&1 &
+su testeur -c "cd ~ && xvfb-run -a $ID --remote-debugging-port=9222 Backup001.bkf" > /tmp/app.log 2>&1 &
 pages=""
 for _ in $(seq 60); do
     pages="$(curl -fsS http://127.0.0.1:9222/json/list 2>/dev/null)" && grep -q '"url": "http://127.0.0.1:' <<<"$pages" && break
@@ -66,21 +69,26 @@ done
 if grep -q '"url": "http://127.0.0.1:' <<<"$pages"; then
     ok "fenêtre ouverte sur le serveur local"
     title="$(grep -o '<title>[^<]*' "$APP/resources/strike-server/_internal/editor/web/dist/index.html" | cut -c8-)"
+    for _ in $(seq 20); do  # le titre n'apparaît qu'une fois la page chargée
+        grep -qF "\"title\": \"$title\"" <<<"$pages" && break
+        sleep 0.5
+        pages="$(curl -fsS http://127.0.0.1:9222/json/list 2>/dev/null)"
+    done
     check "page de l'éditeur chargée ($title)" grep -qF "\"title\": \"$title\"" <<<"$pages"
     check "serveur lancé par l'application (--watch-stdin)" pgrep -f "resources/strike-server/strike-server --port 0 --watch-stdin"
 else
     ko "l'application n'a pas ouvert sa fenêtre"; grep -v -i "dbus\|vulkan\|gpu" /tmp/app.log | tail -15 | sed 's/^/    /'
 fi
-# processus principal (lancé par /usr/bin/strike-kit-editor, d'où le motif)
-pkill -TERM -f "strike-kit-editor --remote-debugging-port" ; sleep 3
+# processus principal (lancé par /usr/bin/<id>, d'où le motif)
+pkill -TERM -f "$ID --remote-debugging-port" ; sleep 3
 # [s] : le motif ne correspond pas à la ligne de commande de ce bash -c lui-même
 check "serveur arrêté avec l'application" bash -c '! pgrep -f "[s]trike-server --port 0 --watch-stdin"'
 
 step "Désinstallation"
-apt-get remove -y strike-kit-editor > /tmp/remove.log 2>&1 && ok "apt remove" || ko "apt remove"
-check "$APP supprimé" test ! -e "$APP/strike-kit-editor"
-check "commande strike-kit-editor supprimée" bash -c '! command -v strike-kit-editor'
-check "entrée de menu supprimée" test ! -e /usr/share/applications/strike-kit-editor.desktop
+apt-get remove -y $ID > /tmp/remove.log 2>&1 && ok "apt remove" || ko "apt remove"
+check "$APP supprimé" test ! -e "$APP/$ID"
+check "commande $ID supprimée" bash -c '! command -v $ID'
+check "entrée de menu supprimée" test ! -e /usr/share/applications/$ID.desktop
 
 echo
 if ((FAILED)); then printf '\033[31mÉchec\033[0m\n'; exit 1; fi
