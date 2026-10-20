@@ -215,7 +215,7 @@ step_test_deb() {
 frozen_outdated() {
     local exe="$FROZEN_EXE"
     [[ ! -x "$exe" ]] && return 0
-    [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/app-names.json" "$PROJECT/editor" \
+    [[ -n "$(find "$PROJECT/strike_kits" "$PROJECT/requirements.txt" "$PROJECT/app-names.json" "$PROJECT/editor" \
                "$DESKTOP/server.spec" "$DESKTOP/server_entry.py" \
                \( -name node_modules -o -name dist -o -name __pycache__ \) -prune -o \
                -newer "$exe" -print -quit)" ]]
