@@ -10,10 +10,13 @@ le [serveur figé](#serveur-figé).
 Prérequis : Python 3 et Node.js, comme pour [l'éditeur web](editeur-web.md).
 
 ```bash
-cd desktop && npm ci             # la première fois
-npm start                        # écran d'accueil, puis Fichier > Ouvrir…
+./dev.sh start Backups/Backup001.bkf     # depuis la racine du dépôt
+cd desktop && npm start                  # ou directement : écran d'accueil, puis Fichier > Ouvrir…
 npm start -- ../Backups/Backup001.bkf
 ```
+
+`./dev.sh start` installe au besoin les paquets de `desktop/` (`npm ci`), puis
+lance `npm start`.
 
 Le chemin passé en argument est relatif au dossier d'où la commande est tapée.
 `npm start` prépare d'abord ce qui manque, comme `editeur.sh`
@@ -58,8 +61,12 @@ C'est lui que l'application empaquetée embarquera (étape suivante).
 
 ```bash
 ./dev.sh freeze                  # → desktop/build/strike-server/ (ignoré par Git)
-STRIKE_SERVER=build/strike-server/strike-server npm start -- ../Backups/Backup001.bkf
+./dev.sh start --frozen Backups/Backup001.bkf
 ```
+
+`./dev.sh start --frozen` reconstruit d'abord le serveur figé s'il manque ou si
+une de ses sources a changé (sans relancer le test de fumée), puis lance
+l'application avec `STRIKE_SERVER=desktop/build/strike-server/strike-server`.
 
 `./dev.sh freeze` construit l'interface et le serveur figé, puis lance son test
 de fumée : depuis un dossier temporaire, avec un environnement minimal,
