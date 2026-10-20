@@ -74,6 +74,8 @@ rétablie lors d'une prochaine étape.
 
 1. **Ouvrir** : la sauvegarde passée à `editeur.sh` est déjà ouverte. Pour en
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
+   Dans l'application de bureau, *Ouvrir…* et *Enregistrer sous…* utilisent les
+   boîtes de dialogue du système, et seul le nom du fichier ouvert est affiché.
 2. **Choisir un kit** dans la colonne de gauche (*masquer les vides* allège la liste).
 3. **Régler le kit** : nom, volume, tempo.
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
@@ -166,3 +168,24 @@ cd editor/web && npm run dev                      # puis ouvrir http://localhost
 
 Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur est
 à ajouter à l'adresse de Vite. Voir aussi [Développement](developpement.md).
+
+### Mode bureau
+
+L'interface passe en mode bureau quand l'application Electron expose l'objet
+`window.strikeDesktop` (preload) ; le même code sert aux deux modes.
+
+| Membre | Rôle |
+|---|---|
+| `token` | jeton du serveur, envoyé dans l'en-tête `X-Strike-Token` |
+| `openFile()` | boîte native « Ouvrir » ; renvoie une promesse du chemin absolu choisi, ou `null` |
+| `saveFile(defaultPath)` | boîte native « Enregistrer sous », ouverte sur le nom suivant ; renvoie le chemin ou `null`. La boîte confirme elle-même l'écrasement d'un fichier existant |
+| `setDirty(dirty)` | appelé à chaque changement de l'état « modifications non enregistrées », pour que l'application confirme la fermeture de la fenêtre |
+
+En mode bureau, l'interface ne bloque pas la fermeture de la page
+(`beforeunload`) : c'est l'application qui la confirme.
+
+Pour essayer ce mode dans le navigateur, sans Electron, un bouchon remplace les
+boîtes natives par des `prompt()` : avec `npm run dev`, ajouter `&desktop=fake`
+à l'adresse (`http://localhost:5173/#token=…&desktop=fake`). Il reste actif pour
+l'onglet, journalise `setDirty` dans la console et marque le titre de la page
+d'un « ● ». Il n'existe qu'en développement et n'est pas inclus dans le build.

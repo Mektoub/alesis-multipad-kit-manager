@@ -6,8 +6,10 @@
 // (sessionStorage), afin qu'un rechargement de la page fonctionne, et retiré
 // de l'adresse affichée.
 
+import { desktop } from "./desktop.js";
+
 function readToken() {
-  if (window.strikeDesktop?.token) return window.strikeDesktop.token;
+  if (desktop?.token) return desktop.token;
   const fromHash = new URLSearchParams(location.hash.slice(1)).get("token");
   try {
     if (fromHash) {

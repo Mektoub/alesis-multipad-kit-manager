@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { api } from "./lib/api.js";
+  import { desktop } from "./lib/desktop.js";
   import KitEditor from "./lib/KitEditor.svelte";
   import CopyDialog from "./lib/CopyDialog.svelte";
   import KitTransferDialog from "./lib/KitTransferDialog.svelte";
@@ -25,10 +26,17 @@
   let syncing = $state(false);
   let openPath = $state(""); // chemin absolu de la sauvegarde à ouvrir
 
+  let fileName = $derived(session?.path?.split(/[\\/]/).pop() ?? "");
   let sampleIndex = $derived(new Map(samples.map((s) => [s.id, s])));
   let visibleKits = $derived(
     (session?.kits ?? []).filter((k) => !hideEmpty || k.name !== "Empty" || k.num === currentNum),
   );
+
+  // Mode bureau : l'application est tenue informée des modifications non
+  // enregistrées, pour confirmer la fermeture de la fenêtre.
+  $effect(() => {
+    desktop?.setDirty(Boolean(session?.dirty));
+  });
 
   // Synchronisation : chaque modification du kit est envoyée au serveur après
   // un court délai ; la réponse (kit relu) remplace la copie locale.
@@ -163,6 +171,17 @@
     }
   }
 
+  // Mode bureau : boîtes de dialogue natives.
+  async function openDialog() {
+    const path = await desktop.openFile();
+    if (path) await openBackup(path);
+  }
+
+  async function saveAsDialog() {
+    const path = await desktop.saveFile(nextName(session.path));
+    if (path) await save(path, true); // la boîte native a déjà confirmé l'écrasement
+  }
+
   async function uploadSample(file) {
     const added = await api.addSample(file);
     samples = await api.samples();
@@ -176,8 +195,10 @@
     picking = null;
   }
 
+  // Dans le navigateur seulement : en mode bureau, l'application confirme
+  // elle-même la fermeture (setDirty), et preventDefault la bloquerait.
   function beforeunload(e) {
-    if (session?.dirty) e.preventDefault();
+    if (!desktop && session?.dirty) e.preventDefault();
   }
 
   onMount(async () => {
@@ -192,7 +213,9 @@
       }
     } catch (err) {
       error = err.status === 403
-        ? "Accès refusé : ouvrir l'éditeur par l'adresse affichée au lancement (avec #token=…)."
+        ? desktop
+          ? "Accès refusé : jeton de l'application refusé par le serveur."
+          : "Accès refusé : ouvrir l'éditeur par l'adresse affichée au lancement (avec #token=…)."
         : `Serveur injoignable : ${err.message}`;
     }
   });
@@ -203,17 +226,26 @@
 <header class="top">
   <h1>Strike Kit Editor</h1>
   <div class="open">
-    <input type="text" bind:value={openPath} placeholder="/chemin/vers/Backup001.bkf" aria-label="Sauvegarde à ouvrir (chemin absolu)" />
-    <button onclick={() => openBackup(openPath.trim())} disabled={!openPath.trim()}>Ouvrir</button>
+    {#if desktop}
+      <button onclick={openDialog}>Ouvrir…</button>
+      {#if session?.path}<span class="file" title={session.path}>{fileName}</span>{/if}
+    {:else}
+      <input type="text" bind:value={openPath} placeholder="/chemin/vers/Backup001.bkf" aria-label="Sauvegarde à ouvrir (chemin absolu)" />
+      <button onclick={() => openBackup(openPath.trim())} disabled={!openPath.trim()}>Ouvrir</button>
+    {/if}
   </div>
   {#if session?.path}
     <div class="save">
       <span class="status" class:dirty={session.dirty}>
         {syncing ? "Synchronisation…" : session.dirty ? "Modifications non enregistrées" : "À jour"}
       </span>
-      <input type="text" bind:value={savePath} aria-label="Fichier de destination" />
+      {#if !desktop}<input type="text" bind:value={savePath} aria-label="Fichier de destination" />{/if}
       <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
-      <button onclick={() => save(savePath)} disabled={saving}>Enregistrer sous</button>
+      {#if desktop}
+        <button onclick={saveAsDialog} disabled={saving}>Enregistrer sous…</button>
+      {:else}
+        <button onclick={() => save(savePath)} disabled={saving}>Enregistrer sous</button>
+      {/if}
     </div>
   {/if}
 </header>
@@ -248,7 +280,11 @@
   </main>
 {:else if meta}
   <main class="welcome">
-    <p>Indiquez le chemin complet d'une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code>, puis cliquez sur <strong>Ouvrir</strong>.</p>
+    {#if desktop}
+      <p>Ouvrez une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code> avec <strong>Ouvrir…</strong>.</p>
+    {:else}
+      <p>Indiquez le chemin complet d'une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code>, puis cliquez sur <strong>Ouvrir</strong>.</p>
+    {/if}
   </main>
 {/if}
 
@@ -301,6 +337,12 @@
   }
   .save {
     margin-left: auto;
+  }
+  .file {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .save input {
     width: 300px;
