@@ -9,6 +9,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Interpréteur du venv du dépôt, en développement.
 export function pythonCommand(projectDir, platform = process.platform) {
@@ -54,11 +55,14 @@ export function readyPort(line) {
 
 // Sauvegarde passée en argument (`electron . FICHIER`, ou `app FICHIER` une fois
 // empaquetée) : le dernier argument qui n'est pas une option, en chemin absolu.
+// Le gestionnaire de fichiers peut le donner sous forme d'URL file:// (%U).
 // `skip` : arguments à ignorer en tête (exécutable, et dossier de l'application
 // en développement).
 export function fileArgument(argv, cwd, skip) {
   const args = argv.slice(skip).filter((a) => !a.startsWith("-"));
-  return args.length ? path.resolve(cwd, args.at(-1)) : null;
+  if (!args.length) return null;
+  const arg = args.at(-1);
+  return arg.startsWith("file://") ? fileURLToPath(arg) : path.resolve(cwd, arg);
 }
 
 // Démarre le serveur et attend qu'il soit prêt. Renvoie { port, child, stop,

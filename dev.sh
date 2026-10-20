@@ -18,6 +18,8 @@
 #   ./dev.sh build               build de l'interface (editor/web/dist)
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
 #                                desktop/build/strike-server/, puis test de fumée
+#   ./dev.sh package             paquet .deb de l'application dans desktop/dist/
+#                                (interface, serveur figé testé, electron-builder)
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
@@ -35,7 +37,7 @@ PYTHON="${PYTHON:-python3}"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -157,6 +159,24 @@ step_test_frozen() {
         node --test --test-name-pattern "serveur figé" test/server.test.js)
 }
 
+step_package() {
+    desktop_deps
+    info "Paquet de l'application (electron-builder)"
+    rm -rf "$DESKTOP/dist"
+    (cd "$DESKTOP" && npm run --silent package) || return 1
+    local deb
+    deb="$(ls "$DESKTOP"/dist/*.deb 2>/dev/null | head -1)"
+    [[ -n "$deb" ]] || { echo "aucun .deb produit" >&2; return 1; }
+    # le serveur figé et l'interface doivent être dans le paquet
+    local content
+    content="$(dpkg-deb -c "$deb")"
+    for f in resources/strike-server/strike-server resources/strike-server/_internal/editor/web/dist/index.html \
+             resources/app.asar; do
+        grep -q "$f" <<<"$content" || { echo "absent du paquet : $f" >&2; return 1; }
+    done
+    info "Paquet : ${deb#"$PROJECT"/} ($(du -h "$deb" | cut -f1))"
+}
+
 # Le serveur figé manque, ou une de ses sources est plus récente que lui.
 frozen_outdated() {
     local exe="$DESKTOP/build/strike-server/strike-server"
@@ -224,6 +244,7 @@ declare -A LABELS=(
     [lint_desktop]="analyse de l'application de bureau"
     [test_desktop]="tests de l'application de bureau"
     [build]="build de l'interface"
+    [package]="paquet de l'application"
 )
 
 # --- Arguments ----------------------------------------------------------------
@@ -276,7 +297,7 @@ case "$COMMAND" in
             esac
         done
         ;;
-    build | freeze) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
+    build | freeze | package) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     -h | --help | help) usage 0 ;;
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
 esac
@@ -286,6 +307,7 @@ case "$COMMAND" in
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
+    package) step_build && step_freeze && step_test_frozen && run_steps package ;;
     serve) serve ;;
     start) start_app ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;

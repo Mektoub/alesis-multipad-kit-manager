@@ -8,3 +8,4 @@ Backups/*.bkf
 Backups/*.fac
 desktop/node_modules
 desktop/build
+desktop/dist

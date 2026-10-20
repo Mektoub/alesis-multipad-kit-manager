@@ -1,9 +1,9 @@
 # Application de bureau
 
 Application Electron autour de l'éditeur : la même interface, dans sa propre
-fenêtre, avec les boîtes de dialogue du système. Elle n'est pas encore
-empaquetée : elle se lance depuis le dépôt et utilise le Python du `.venv`, ou
-le [serveur figé](#serveur-figé).
+fenêtre, avec les boîtes de dialogue du système. Elle s'installe par un
+[paquet .deb](#paquet-deb), ou se lance depuis le dépôt en développement, avec le
+Python du `.venv` ou le [serveur figé](#serveur-figé).
 
 ## Lancement (développement)
 
@@ -58,7 +58,7 @@ Autre solution, à refaire après chaque réinstallation d'Electron : donner
 
 PyInstaller fige le serveur Python dans un dossier autonome, sans besoin de
 Python ni du `.venv` : l'exécutable, ses bibliothèques et l'interface construite.
-C'est lui que l'application empaquetée embarquera (étape suivante).
+C'est lui que le [paquet .deb](#paquet-deb) embarque.
 
 ```bash
 ./dev.sh freeze                  # → desktop/build/strike-server/ (ignoré par Git)
@@ -85,6 +85,34 @@ figé »).
 L'application lance le serveur désigné par `STRIKE_SERVER` s'il est défini, puis,
 une fois empaquetée, celui de ses ressources (`strike-server/`), et sinon le
 Python du `.venv`.
+
+## Paquet .deb
+
+```bash
+./dev.sh package                                              # → desktop/dist/strike-kit-editor_0.3.0_amd64.deb
+sudo apt install ./desktop/dist/strike-kit-editor_0.3.0_amd64.deb
+sudo apt remove strike-kit-editor                             # désinstallation
+```
+
+`./dev.sh package` enchaîne le build de l'interface, le serveur figé et son test
+de fumée, puis electron-builder (`npm run package` dans `desktop/`). Il vérifie
+enfin que le paquet contient le serveur figé, l'interface et l'application.
+Le numéro de version est celui de `desktop/package.json`.
+
+Le paquet (environ 110 Mo) installe :
+
+- l'application dans `/opt/Strike Kit Editor/`, avec le serveur figé dans
+  `resources/strike-server/` ; la commande `strike-kit-editor` ;
+- une entrée dans le menu des applications, avec son icône ;
+- les types de fichier `.bkf` et `.fac` : un double-clic sur une sauvegarde dans
+  le gestionnaire de fichiers l'ouvre dans l'application (dans la fenêtre déjà
+  ouverte s'il y en a une) ;
+- sur Ubuntu 24.04 et suivants, un profil AppArmor
+  (`/etc/apparmor.d/strike-kit-editor`) qui permet la sandbox de Chromium : rien
+  à faire à la main, contrairement au [développement](#ubuntu-2404-et-suivants--profil-apparmor).
+
+L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
+512 px, refait avec `desktop/build-resources/render-icon.cjs` (voir son en-tête).
 
 ## Fonctionnement
 
@@ -120,6 +148,8 @@ Python du `.venv`.
 |---|---|
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
 | `desktop/preload.cjs` | pont `window.strikeDesktop` |
+| `desktop/package.json` (`build`) | configuration d'electron-builder : paquet .deb, types de fichier, icône |
+| `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |
 | `desktop/apparmor.sh` | profil AppArmor de l'Electron de développement, et vérification avant `npm start` |
 | `desktop/server.js` | choix et lancement du serveur, sans dépendance à Electron |
 | `desktop/strike-server.spec`, `desktop/strike_server.py` | recette PyInstaller du serveur figé et son point d'entrée |

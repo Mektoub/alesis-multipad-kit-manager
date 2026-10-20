@@ -38,6 +38,9 @@ describe("fichier passé en argument", () => {
   it("empaquetée : app FICHIER, options ignorées", () => {
     assert.equal(fileArgument(["/opt/app", "--no-sandbox", "/d/B.fac"], "/ailleurs", 1), "/d/B.fac");
   });
+  it("double-clic dans le gestionnaire de fichiers : URL file:// (%U)", () => {
+    assert.equal(fileArgument(["/opt/app", "file:///home/moi/Strike%20Backup/B.bkf"], "/", 1), "/home/moi/Strike Backup/B.bkf");
+  });
   it("sans fichier", () => {
     assert.equal(fileArgument(["/x/electron", "."], "/projet", 2), null);
     assert.equal(fileArgument(["/opt/app", "--enable-logging"], "/projet", 1), null);
