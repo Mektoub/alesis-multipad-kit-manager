@@ -16,6 +16,7 @@ copie de la sauvegarde d'origine** avant de charger un fichier produit par ces o
 | `python3 strike_kits.py export SAUVEGARDE DOSSIER [--no-wav]` | exporte les kits en JSON et les samples utilisateur en WAV |
 | `python3 strike_kits.py import SAUVEGARDE DOSSIER -o NOUVELLE` | applique les JSON et les nouveaux WAV, écrit une nouvelle sauvegarde |
 | `./editeur.sh SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement local rapide) |
+| `cd desktop && npm start [-- SAUVEGARDE]` | lance l'application de bureau (Electron), en développement |
 
 `strike_kits.py` n'a besoin que de Python 3. `editeur.sh` demande en plus
 Node.js : au premier lancement, il crée l'environnement virtuel `.venv`, installe
@@ -36,6 +37,7 @@ python3 strike_kits.py import Backup001.bkf mes_kits -o Backup002.bkf
 | [Modifier un kit](docs/modifier-un-kit.md) | de la sauvegarde sur l'appareil au rechargement, en passant par les JSON |
 | [Ajouter un sample](docs/ajouter-un-sample.md) | format requis, dossier `wav/`, règles et limites |
 | [Éditeur web](docs/editeur-web.md) | installation, lancement, utilisation, API |
+| [Application de bureau](docs/application-bureau.md) | lancement, fonctionnement, dépannage |
 | [Contenu de l'export](docs/contenu-export.md) | `kits/*.json`, `samples.json`, `wav/` |
 | [Paramètres](docs/parametres.md) | sens et plage de chaque champ, et méthode pour en identifier d'autres |
 | [Limites connues](docs/limites.md) | ce qui n'est pas encore couvert ou vérifié |
