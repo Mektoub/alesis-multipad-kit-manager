@@ -66,10 +66,6 @@ cd editor/web && npm ci && npm run build && cd ../..
 .venv/bin/python -m editor --open Backups/Backup001.bkf
 ```
 
-**Limitation temporaire** : l'écoute des samples (bouton ▶) ne fonctionne pas,
-car la balise audio du navigateur ne peut pas envoyer le jeton. Elle sera
-rétablie lors d'une prochaine étape.
-
 ## Utilisation
 
 1. **Ouvrir** : la sauvegarde passée à `editeur.sh` est déjà ouverte. Pour en
