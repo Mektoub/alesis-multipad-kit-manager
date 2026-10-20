@@ -42,6 +42,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh test` | tous les tests, Python et interface |
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
+| `./dev.sh start [--frozen] [FICHIER]` | lance l'application de bureau ; `--frozen` : avec le serveur figé, reconstruit si une source a changé |
 | `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/strike-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
 

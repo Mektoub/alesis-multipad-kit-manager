@@ -11,6 +11,10 @@
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
 #                                desktop/build/strike-server/, puis test de fumée
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
+#   ./dev.sh start [--frozen] [FICHIER]
+#                                lance l'application de bureau, sur ce fichier ;
+#                                --frozen : avec le serveur figé, reconstruit si
+#                                une source a changé
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
 # et les paquets de editor/web et desktop (npm ci). Variable : PYTHON
@@ -25,7 +29,7 @@ PYTHON="${PYTHON:-python3}"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -138,6 +142,32 @@ step_test_frozen() {
         node --test --test-name-pattern "serveur figé" test/server.test.js)
 }
 
+# Le serveur figé manque, ou une de ses sources est plus récente que lui.
+frozen_outdated() {
+    local exe="$DESKTOP/build/strike-server/strike-server"
+    [[ ! -x "$exe" ]] && return 0
+    [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/editor" \
+               "$DESKTOP/strike-server.spec" "$DESKTOP/strike_server.py" \
+               \( -name node_modules -o -name dist -o -name __pycache__ \) -prune -o \
+               -newer "$exe" -print -quit)" ]]
+}
+
+# Lance l'application (npm start) ; remplace ce script, pour que Ctrl+C l'arrête.
+start_app() {
+    desktop_deps
+    if [[ $FROZEN == 1 ]]; then
+        if frozen_outdated; then
+            step_build && step_freeze || die "construction du serveur figé impossible"
+        fi
+        export STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server"
+        info "Application de bureau (serveur figé)"
+    else
+        info "Application de bureau"
+    fi
+    cd "$DESKTOP" || die "dossier desktop introuvable"
+    exec npm start --silent -- ${FILE:+"$FILE"}
+}
+
 # Lance les étapes données, puis affiche un bilan si plusieurs ont tourné.
 run_steps() {
     local failed=() step
@@ -176,6 +206,8 @@ COMMAND="$1"
 shift
 FIX=0
 TESTS=""
+FROZEN=0
+FILE=""
 case "$COMMAND" in
     lint | all)
         for a in "$@"; do
@@ -183,6 +215,19 @@ case "$COMMAND" in
         done
         ;;
     test) TESTS="$*" ;;
+    start)
+        for a in "$@"; do
+            case "$a" in
+                --frozen) FROZEN=1 ;;
+                -*) die "option inconnue pour start : $a" ;;
+                *)
+                    [[ -z "$FILE" ]] || die "un seul fichier à la fois"
+                    [[ -f "$a" ]] || die "fichier introuvable : $a"
+                    FILE="$(realpath -- "$a")"
+                    ;;
+            esac
+        done
+        ;;
     build | freeze) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     -h | --help | help) usage 0 ;;
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
@@ -193,5 +238,6 @@ case "$COMMAND" in
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
+    start) start_app ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;
 esac
