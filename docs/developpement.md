@@ -4,7 +4,7 @@
 
 | Chemin | Rôle |
 |---|---|
-| `strike_kits.py` | lecture et écriture des formats, commandes `export` / `import` (bibliothèque standard uniquement) |
+| `strike_kits/` | lecture et écriture des formats (`__init__.py`), commandes `export` / `import` (`python3 -m strike_kits`, `__main__.py`) ; bibliothèque standard uniquement |
 | `editor/server.py` | API FastAPI de l'éditeur |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
@@ -20,7 +20,7 @@
 | `tests/construire_reference.py` | script qui a construit cette sauvegarde |
 | `docs/format-*.md` | ce que l'on sait des formats binaires |
 
-Dans `strike_kits.py` :
+Dans `strike_kits/__init__.py` :
 
 - `decode_kit` / `encode_kit` : kit binaire ↔ JSON ;
 - `Bkf` : conteneur `.bkf` décomposé en enregistrements, reconstructible à

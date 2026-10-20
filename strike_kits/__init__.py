@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Édition des kits de l'Alesis Strike MultiPad via JSON.
 
 Formats pris en charge (rétro-ingénierie, non officiels) :
@@ -10,6 +9,8 @@ sauvegarde d'origine, réécrit les kits avec les valeurs du JSON, ajoute les WA
 du dossier `wav/` (.bkf uniquement) et recalcule les sommes de contrôle. Les
 octets non décodés sont conservés tels quels, si bien qu'un dossier non modifié
 redonne un fichier identique octet pour octet.
+
+Ligne de commande : python3 -m strike_kits export|import … (strike_kits/__main__.py).
 """
 
 import argparse
@@ -989,7 +990,9 @@ def cmd_import(backup, indir, output):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        prog="python3 -m strike_kits", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     ex = sub.add_parser("export", help="sauvegarde -> dossier de JSON")
     ex.add_argument("backup")
@@ -1009,7 +1012,3 @@ def main(argv=None):
         print("Erreur : %s" % exc, file=sys.stderr)
         return 1
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

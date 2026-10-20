@@ -1,6 +1,6 @@
 # Contenu de l'export
 
-`python3 strike_kits.py export SAUVEGARDE DOSSIER` produit :
+`python3 -m strike_kits export SAUVEGARDE DOSSIER` produit :
 
 ```
 DOSSIER/

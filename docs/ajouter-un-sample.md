@@ -29,7 +29,7 @@ puis choisi pour la wave en cours. Voir [Éditeur web](editeur-web.md).
 4. Lancer l'import : le sample est ajouté, puis les kits sont appliqués.
 
 ```bash
-python3 strike_kits.py import Backup001.bkf mes_kits -o Backup002.bkf
+python3 -m strike_kits import Backup001.bkf mes_kits -o Backup002.bkf
 # sample 'Mon Snare' ajouté (id 8073)
 ```
 
