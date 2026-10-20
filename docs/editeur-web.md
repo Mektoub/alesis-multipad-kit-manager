@@ -37,28 +37,45 @@ dossier `Backups/` du projet sont ignorés par Git.
 | `--port N` | port HTTP (`0` : un port libre est choisi) | 8765 |
 | `--host ADRESSE` | adresse d'écoute | 127.0.0.1 |
 | `--no-browser` | ne pas ouvrir le navigateur | — |
+| `--allow DOSSIER` | dossier autorisé en plus de la [zone par défaut](#dossiers-autorisés) (répétable) | — |
 | `--watch-stdin` | s'arrêter quand l'entrée standard se ferme (utilisé par l'application de bureau) | — |
 
 Le navigateur s'ouvre sur l'adresse affichée, de la forme
 `http://127.0.0.1:8765/#token=…`. Le serveur n'écoute que sur la machine locale et
 `Ctrl+C` l'arrête.
 
+### Dossiers autorisés
+
+Le serveur n'ouvre et n'enregistre de sauvegarde que dans :
+
+- le dossier personnel de l'utilisateur ;
+- ses supports amovibles, `/media/<utilisateur>` et `/run/media/<utilisateur>`
+  (clé USB, Strike branché en USB) ;
+- les dossiers ajoutés par `--allow DOSSIER` (`./dev.sh serve FICHIER --allow DOSSIER`).
+
+Les chemins sont résolus avant la vérification : un lien symbolique placé dans le
+dossier personnel ne permet pas d'atteindre un fichier extérieur. Un chemin hors
+de ces dossiers est refusé (erreur 403, « hors des dossiers autorisés ») ; la
+sauvegarde passée au lancement aussi, et le serveur s'arrête alors avec le code 2.
+La copie `.bak` étant écrite à côté du fichier ouvert, elle reste dans la zone.
+L'application de bureau utilise la zone par défaut.
+
 ### Jeton
 
-Chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec le jeton du
+Chaque requête `/api/*` doit porter l'en-tête `X-KitManager-Token` avec le jeton du
 lancement, sinon elle reçoit une erreur 403 : un autre programme de la machine ne
-peut donc pas piloter l'éditeur, qui peut lire et écrire n'importe quel fichier.
+peut donc pas piloter l'éditeur, qui lit et écrit des fichiers.
 
 - **Lancement local** : un jeton est créé à chaque lancement et transmis au
   navigateur dans l'adresse (`#token=…`). L'interface le garde pour l'onglet, ce
   qui permet de recharger la page, et le retire de l'adresse affichée. Une page
   ouverte sans lui affiche « Accès refusé ».
 - **Application Electron** : le jeton est donné par la variable d'environnement
-  `STRIKE_TOKEN`. Une fois à l'écoute, le serveur écrit alors sur sa sortie
+  `KITMANAGER_TOKEN`. Une fois à l'écoute, le serveur écrit alors sur sa sortie
   standard une ligne `{"ready": true, "port": N}`, utile avec `--port 0`.
 
 ```bash
-STRIKE_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --open "$PWD/Backups/Backup001.bkf"
+KITMANAGER_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --open "$PWD/Backups/Backup001.bkf"
 ```
 
 Sans `dev.sh`, l'installation manuelle est la suivante :
@@ -136,11 +153,11 @@ Charger ensuite le fichier produit sur l'appareil comme décrit dans
 ## API
 
 Le serveur expose une API JSON, utilisable aussi depuis un script ; chaque requête
-porte l'en-tête `X-Strike-Token`, et les chemins de fichiers sont absolus :
+porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| POST | `/api/open` | ouvrir une sauvegarde (`{"path": "/chemin/absolu", "force": false}`) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
+| POST | `/api/open` | ouvrir une sauvegarde (`{"path": "/chemin/absolu", "force": false}`) ; 403 hors des [dossiers autorisés](#dossiers-autorisés) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
 | GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
@@ -151,7 +168,7 @@ porte l'en-tête `X-Strike-Token`, et les chemins de fichiers sont absolus :
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
-| POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (409 si un autre fichier existe, sauf `overwrite`) |
+| POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (403 hors des dossiers autorisés ; 409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses
 appels de test demandent d'ajouter l'en-tête du jeton.
@@ -171,11 +188,11 @@ Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur e
 ### Mode bureau
 
 L'interface passe en mode bureau quand l'application Electron expose l'objet
-`window.strikeDesktop` (preload) ; le même code sert aux deux modes.
+`window.kitManagerDesktop` (preload) ; le même code sert aux deux modes.
 
 | Membre | Rôle |
 |---|---|
-| `token` | jeton du serveur, envoyé dans l'en-tête `X-Strike-Token` |
+| `token` | jeton du serveur, envoyé dans l'en-tête `X-KitManager-Token` |
 | `openFile()` | boîte native « Ouvrir » ; renvoie une promesse du chemin absolu choisi, ou `null` |
 | `saveFile(defaultPath)` | boîte native « Enregistrer sous », ouverte sur le nom suivant ; renvoie le chemin ou `null`. La boîte confirme elle-même l'écrasement d'un fichier existant |
 | `setDirty(dirty)` | appelé à chaque changement de l'état « modifications non enregistrées », pour que l'application confirme la fermeture de la fenêtre |
@@ -189,4 +206,4 @@ boîtes natives par des `prompt()` : avec `npm run dev`, ajouter `&desktop=fake`
 à l'adresse (`http://localhost:5173/#token=…&desktop=fake`). Il reste actif pour
 l'onglet, journalise `setDirty` dans la console, marque le titre de la page
 d'un « ● », et les commandes s'envoient depuis la console
-(`await strikeFakeCommand("prepare-close")`). Il n'existe qu'en développement et n'est pas inclus dans le build.
+(`await kitManagerFakeCommand("prepare-close")`). Il n'existe qu'en développement et n'est pas inclus dans le build.

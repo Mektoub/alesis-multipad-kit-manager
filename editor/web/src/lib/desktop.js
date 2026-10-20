@@ -1,8 +1,8 @@
-// Pont vers l'application de bureau : objet window.strikeDesktop exposé par le
+// Pont vers l'application de bureau : objet window.kitManagerDesktop exposé par le
 // preload d'Electron. Absent dans le navigateur, où l'interface garde ses
 // champs de chemin.
 //
-//   token                  jeton du serveur (en-tête X-Strike-Token)
+//   token                  jeton du serveur (en-tête X-KitManager-Token)
 //   openFile()             boîte native « Ouvrir » → Promise<chemin absolu | null>
 //   saveFile(defaultPath)  boîte native « Enregistrer sous » → Promise<chemin | null> ;
 //                          la boîte confirme elle-même l'écrasement d'un fichier
@@ -15,4 +15,4 @@
 //                            prepare-close         → { dirty } après envoi des modifications en attente
 //                            save-before-close     → { saved } (« Enregistrer » à la fermeture)
 
-export const desktop = window.strikeDesktop ?? null;
+export const desktop = window.kitManagerDesktop ?? null;

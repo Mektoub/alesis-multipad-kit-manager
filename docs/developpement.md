@@ -8,6 +8,7 @@
 | `editor/server.py` | API FastAPI de l'éditeur |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
+| `app-names.json` | noms de l'application : long, court, identifiant des chemins, dossier de configuration (voir [Application de bureau](application-bureau.md#noms-de-lapplication)) |
 | `dev.sh` | lancement de l'éditeur (navigateur ou application de bureau), avec préparation automatique du venv et de l'interface ; analyse, tests et build en local, comme la CI |
 | `desktop/` | application de bureau Electron (voir [Application de bureau](application-bureau.md)) |
 | `editor/web/` | interface Svelte (Vite) |
@@ -41,8 +42,10 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]` | éditeur dans le navigateur sur cette sauvegarde |
+| `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](application-bureau.md#paquet-deb)) |
+| `./dev.sh test-deb` | installe et teste le .deb dans un conteneur Docker Ubuntu 24.04 (voir [Application de bureau](application-bureau.md#tester-linstallation-dans-un-conteneur)) |
 | `./dev.sh start [--frozen] [FICHIER]` | lance l'application de bureau ; `--frozen` : avec le serveur figé, reconstruit si une source a changé |
-| `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/strike-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
+| `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/alesis-kit-manager-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
 
 Les sections suivantes détaillent les commandes appelées.

@@ -23,16 +23,20 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 import strike_kits as sk
-from editor.server import create_app
+from editor.server import create_app, default_roots
 from tests.outils import REF
 
 TOKEN = "secret-de-test"
 
 
-def client_for(open_file=None, token=TOKEN):
+# les dossiers temporaires des tests sont hors de la zone par défaut (dossier personnel)
+TMP_ALLOWED = (tempfile.gettempdir(),)
+
+
+def client_for(open_file=None, token=TOKEN, allow=TMP_ALLOWED):
     """Client de test qui envoie le jeton dans chaque requête."""
-    client = TestClient(create_app(token=token, open_file=open_file))
-    client.headers["X-Strike-Token"] = token
+    client = TestClient(create_app(token=token, open_file=open_file, allow=allow))
+    client.headers["X-KitManager-Token"] = token
     return client
 
 
@@ -87,9 +91,10 @@ class Api(unittest.TestCase):
         self.assertEqual((r.json()["dirty"], self.client.get("/api/kits/033").json()["name"]), (False, "Empty"))
 
     def test_ouverture_refusee(self):
-        for path in ("sauvegardes/Backup001.bkf", "../x.bkf", "/etc/passwd", str(self.root / "inexistant.bkf")):
+        for path in ("sauvegardes/Backup001.bkf", "../x.bkf", str(self.root / "inexistant.bkf")):
             r = self.client.post("/api/open", json={"path": path})
             self.assertEqual(r.status_code, 400, path)
+        self.assertEqual(self.client.post("/api/open", json={"path": "/etc/passwd"}).status_code, 403)  # hors zone
 
     def test_lecture_et_modification_kit(self):
         kit = self.client.get("/api/kits/033").json()
@@ -347,7 +352,7 @@ class JetonEtChemins(unittest.TestCase):
 
     def test_jeton_exige(self):
         anonymous = TestClient(create_app(token=self.TOKEN))
-        for headers in ({}, {"X-Strike-Token": "faux"}):
+        for headers in ({}, {"X-KitManager-Token": "faux"}):
             r = anonymous.get("/api/state", headers=headers)
             self.assertEqual(r.status_code, 403, headers)
         self.assertEqual(self.client.get("/api/state").status_code, 200)
@@ -369,7 +374,7 @@ class JetonEtChemins(unittest.TestCase):
         self.assertEqual((r.json()["path"], r.json()["dirty"], len(r.json()["kits"])), (str(self.file), False, 70))
         for bad in (self.b / "inexistant.bkf", self.b, Path("relatif.bkf")):
             with self.assertRaises(sk.StrikeError, msg=bad):
-                create_app(token=TOKEN, open_file=bad)
+                create_app(token=TOKEN, open_file=bad, allow=TMP_ALLOWED)
 
     def test_enregistrer_et_enregistrer_sous(self):
         self.open(self.file)
@@ -409,6 +414,70 @@ class JetonEtChemins(unittest.TestCase):
         self.assertEqual(self.open(self.file, force=True).status_code, 200)
 
 
+class DossiersAutorises(unittest.TestCase):
+    """Le serveur n'ouvre et n'écrit que dans le dossier personnel, les supports
+    amovibles de l'utilisateur (/media/<utilisateur>, /run/media/<utilisateur>) et
+    les dossiers ajoutés (--allow), chemins résolus (liens symboliques compris)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        base = Path(self.tmp.name).resolve()
+        self.inside, self.outside = base / "autorise", base / "interdit"
+        self.inside.mkdir()
+        self.outside.mkdir()
+        self.file = self.inside / "B.bkf"
+        shutil.copy(REF, self.file)
+        shutil.copy(REF, self.outside / "B.bkf")
+        self.client = client_for(allow=(self.inside,))
+
+    def post(self, url, path, **kw):
+        return self.client.post(url, json=dict(path=str(path), **kw))
+
+    def test_zone_par_defaut(self):
+        import getpass
+
+        user = getpass.getuser()
+        self.assertEqual(default_roots(), [Path.home(), Path("/media") / user, Path("/run/media") / user])
+
+    def test_ouvrir_hors_zone_refuse(self):
+        r = self.post("/api/open", self.outside / "B.bkf")
+        self.assertEqual(r.status_code, 403, r.text)
+        self.assertIn("hors des dossiers autorisés", r.json()["detail"])
+        self.assertEqual(self.post("/api/open", self.file).status_code, 200)
+
+    def test_dossier_personnel_autorise_par_defaut(self):
+        self.assertEqual(self.post("/api/open", REF).status_code, 200)  # le dépôt est dans le dossier personnel
+
+    def test_enregistrer_sous_hors_zone_refuse(self):
+        self.post("/api/open", self.file)
+        target = self.outside / "Nouveau.bkf"
+        r = self.post("/api/save", target)
+        self.assertEqual(r.status_code, 403, r.text)
+        self.assertFalse(target.exists())
+        self.assertEqual(self.post("/api/save", self.inside / "Nouveau.bkf").status_code, 200)
+
+    def test_lien_symbolique_vers_l_exterieur_refuse(self):
+        link = self.inside / "lien"
+        link.symlink_to(self.outside, target_is_directory=True)
+        self.assertEqual(self.post("/api/open", link / "B.bkf").status_code, 403)
+        self.post("/api/open", self.file)
+        self.assertEqual(self.post("/api/save", link / "Nouveau.bkf").status_code, 403)
+        self.assertFalse((self.outside / "Nouveau.bkf").exists())
+
+    def test_prefixe_proche_refuse(self):
+        """/…/autorise-bis n'est pas dans /…/autorise."""
+        twin = self.inside.with_name("autorise-bis")
+        twin.mkdir()
+        shutil.copy(REF, twin / "B.bkf")
+        self.assertEqual(self.post("/api/open", twin / "B.bkf").status_code, 403)
+
+    def test_fichier_au_demarrage_hors_zone(self):
+        with self.assertRaises(sk.StrikeError) as ctx:
+            create_app(token=TOKEN, open_file=self.outside / "B.bkf", allow=(self.inside,))
+        self.assertIn("hors des dossiers autorisés", str(ctx.exception))
+
+
 class Lancement(unittest.TestCase):
     def test_interface_absente_avertissement_sur_stderr(self):
         """Sans interface construite (cas de la CI), l'avertissement part sur la sortie
@@ -429,7 +498,7 @@ class Lancement(unittest.TestCase):
             contextlib.redirect_stdout(out),
             contextlib.redirect_stderr(err),
         ):
-            os.environ.pop("STRIKE_TOKEN", None)
+            os.environ.pop("KITMANAGER_TOKEN", None)
             launcher.main()
         self.assertIn("Interface non construite", err.getvalue())
         self.assertTrue(
@@ -438,9 +507,9 @@ class Lancement(unittest.TestCase):
         self.assertNotIn("Interface non construite", out.getvalue())
 
     def start_local(self, *args):
-        """Lancement local (sans STRIKE_TOKEN), comme ./dev.sh serve."""
+        """Lancement local (sans KITMANAGER_TOKEN), comme ./dev.sh serve."""
         project = Path(__file__).resolve().parent.parent
-        env = {k: v for k, v in os.environ.items() if k != "STRIKE_TOKEN"}
+        env = {k: v for k, v in os.environ.items() if k != "KITMANAGER_TOKEN"}
         return subprocess.Popen(
             [sys.executable, "-m", "editor", "--port", "0", "--no-browser", *args],
             cwd=project,
@@ -459,7 +528,7 @@ class Lancement(unittest.TestCase):
             m = re.match(r"Éditeur disponible sur (http://127\.0\.0\.1:\d+/)#token=([\w-]+)$", line)
             self.assertTrue(m, line)
             base, token = m.groups()
-            req = urllib.request.Request(base + "api/state", headers={"X-Strike-Token": token})
+            req = urllib.request.Request(base + "api/state", headers={"X-KitManager-Token": token})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 self.assertEqual(json.load(resp)["path"], str(REF))
             with self.assertRaises(urllib.error.HTTPError) as ctx:
@@ -475,6 +544,23 @@ class Lancement(unittest.TestCase):
         self.assertEqual(p.returncode, 2, err)
         self.assertIn("inexistant.bkf", err)
         self.assertNotIn("Traceback", err)
+
+    def test_option_allow(self):
+        """--allow DOSSIER ajoute un dossier à la zone autorisée ; sans lui, une
+        sauvegarde hors zone est refusée dès le lancement."""
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / "B.bkf"
+            shutil.copy(REF, file)
+            p = self.start_local("--open", str(file))
+            out, err = p.communicate(timeout=15)
+            self.assertEqual(p.returncode, 2, err)
+            self.assertIn("hors des dossiers autorisés", err)
+            p = self.start_local("--open", str(file), "--allow", tmp)
+            try:
+                self.assertIn("Éditeur disponible", p.stdout.readline())
+            finally:
+                p.terminate()
+                p.communicate(timeout=15)
 
     def test_arret_propre_par_ctrl_c(self):
         """Ctrl+C (SIGINT) arrête l'éditeur sans trace d'erreur, avec le code 0."""
@@ -509,7 +595,7 @@ class Lancement(unittest.TestCase):
             self.assertTrue(announced["ready"])
             self.assertGreater(announced["port"], 0)
             req = urllib.request.Request(
-                "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-Strike-Token": "t"}
+                "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-KitManager-Token": "t"}
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 self.assertEqual(json.load(resp)["path"], None)
@@ -524,7 +610,7 @@ class Lancement(unittest.TestCase):
         p = subprocess.Popen(
             [sys.executable, "-m", "editor", "--port", "0", "--watch-stdin"],
             cwd=project,
-            env={**os.environ, "STRIKE_TOKEN": "t"},
+            env={**os.environ, "KITMANAGER_TOKEN": "t"},
             text=True,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
