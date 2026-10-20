@@ -158,11 +158,19 @@ describe("serveur réel (fumée)", { skip: !existsSync(python) && "pas de .venv"
 
 // Serveur figé (./dev.sh freeze) : lancé hors du dépôt, avec un environnement
 // minimal, pour vérifier qu'il ne dépend ni du .venv ni des sources.
-const frozen = process.env.KITMANAGER_SERVER;
+// chemin relatif accepté (résolu ici : le test lance le serveur depuis un dossier temporaire)
+const frozen = process.env.KITMANAGER_SERVER && path.resolve(process.env.KITMANAGER_SERVER);
+// Windows : SystemRoot est indispensable à Python (sockets, aléa), USERPROFILE
+// donne le dossier personnel.
+function minimalEnv(home) {
+  if (process.platform !== "win32") return { PATH: "/usr/bin:/bin", HOME: home };
+  const root = process.env.SystemRoot;
+  return { SystemRoot: root, PATH: path.join(root, "System32"), USERPROFILE: home, TEMP: home, TMP: home };
+}
 describe("serveur figé (fumée)", { skip: !(frozen && existsSync(frozen)) && "KITMANAGER_SERVER absent" }, () => {
   it("exécutable autonome", () => {
     const cwd = mkdtempSync(path.join(tmpdir(), "kitmanager-fige-"));
-    return smoke({ command: frozen, cwd, env: { PATH: "/usr/bin:/bin", HOME: cwd } }).finally(() =>
+    return smoke({ command: frozen, cwd, env: minimalEnv(cwd) }).finally(() =>
       rmSync(cwd, { recursive: true, force: true }),
     );
   });

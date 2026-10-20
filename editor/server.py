@@ -12,8 +12,11 @@ session sur un fichier d'origine, son état précédent est copié dans <fichier
 
 import getpass
 import json
+import os
 import secrets
 import shutil
+import string
+import sys
 import threading
 from pathlib import Path
 from typing import Annotated, Literal
@@ -66,11 +69,18 @@ class TransferRequest(BaseModel):
     mode: Literal["copy", "swap"]
 
 
-def default_roots():
+def default_roots(platform=sys.platform, env=os.environ):
     """Zone autorisée par défaut : le dossier personnel et les supports amovibles
-    de l'utilisateur (clé USB, Strike branché en USB)."""
+    de l'utilisateur (clé USB, Strike branché en USB) ; sous Windows, tous les
+    lecteurs sauf celui du système, même branchés après le lancement."""
+    home = str(Path.home())
+    if platform == "win32":
+        system = env.get("SystemDrive", "C:").upper()
+        return [home, *("%s:\\" % c for c in string.ascii_uppercase if "%s:" % c != system)]
+    if platform == "darwin":
+        return [home, "/Volumes"]
     user = getpass.getuser()
-    return [Path.home(), Path("/media") / user, Path("/run/media") / user]
+    return [home, "/media/" + user, "/run/media/" + user]
 
 
 def outside_roots(path, roots):

@@ -177,9 +177,9 @@ Tous les noms viennent de `app-names.json`, à la racine du dépôt :
 | Clé | Valeur | Usage |
 |---|---|---|
 | `long` | Alesis Strike Multipad Kit Manager | affichage : titre de la fenêtre et de la page, en-tête de l'interface, boîtes de dialogue, description du paquet |
-| `short` | Alesis Kit Manager | affichage court : entrée du menu des applications |
+| `short` | Alesis Kit Manager | affichage court : entrée du menu des applications ; sous Windows et macOS, nom de l'application installée (`Alesis Kit Manager.app`, menu Démarrer) |
 | `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor, serveur figé `<id>-server` |
-| `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` |
+| `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` (Windows : `%APPDATA%\<config>`, macOS : `~/Library/Application Support/<config>`) |
 
 Ils sont lus par Vite (`editor/web/vite.config.js` : `<title>` et `__APP_NAMES__`),
 PyInstaller (`desktop/server.spec`), electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui
@@ -217,6 +217,43 @@ conteneur.
 
 L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 512 px, refait avec `desktop/build-resources/render-icon.cjs` (voir son en-tête).
+
+## Paquets Windows et macOS
+
+PyInstaller ne fait pas de compilation croisée : le serveur figé se construit sur
+le système visé. Les paquets des trois systèmes sont donc construits par GitHub
+Actions (`.github/workflows/build.yml`, « Paquets »), sur un runner par système :
+
+| Runner | Paquets (`desktop/dist/`) |
+|---|---|
+| `ubuntu-latest` | `.deb` |
+| `windows-latest` (x64) | installateur NSIS `.exe`, archive `.zip` |
+| `macos-latest` (Apple Silicon, arm64) | image `.dmg`, archive `.zip` |
+
+Le workflow se lance sur un tag `v*`, ou à la main depuis l'onglet Actions
+(« Run workflow »). Chaque job construit l'interface, fige le serveur, le teste
+(test de fumée), puis lance `npm run package` ; les paquets sont les artefacts
+de l'exécution (`paquet-Linux`, `paquet-Windows`, `paquet-macOS`). Les étapes
+sont écrites dans le workflow, sans `dev.sh` (Linux seulement).
+
+En local, `npm run package` construit les paquets du système courant (cibles de
+`desktop/electron-builder.config.mjs`) ; sous Linux, passer par `./dev.sh package`.
+
+- **Windows** : installation en un clic, pour l'utilisateur courant
+  (`%LOCALAPPDATA%\Programs\Alesis Kit Manager`), sans droits administrateur,
+  avec un raccourci « Alesis Kit Manager » et l'ouverture des `.bkf` / `.fac` par
+  double-clic. L'archive `.zip` s'utilise sans installation.
+- **macOS** : `Alesis Kit Manager.app`, pour les Mac Apple Silicon seulement.
+
+Les paquets ne sont pas signés (pas de certificat). Windows SmartScreen affiche
+« Windows a protégé votre ordinateur » : *Informations complémentaires*, puis
+*Exécuter quand même*. Sous macOS, l'application n'a qu'une signature ad hoc
+(indispensable sur Apple Silicon) et n'est pas notarisée : Gatekeeper la bloque
+au premier lancement ; clic droit sur l'application, *Ouvrir*, ou bien
+`xattr -dr com.apple.quarantine "/Applications/Alesis Kit Manager.app"`.
+
+Les dossiers autorisés par défaut dépendent du système (voir
+[l'éditeur web](editeur-web.md#dossiers-autorisés)).
 
 ## Fonctionnement
 
