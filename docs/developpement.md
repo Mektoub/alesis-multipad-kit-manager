@@ -88,6 +88,10 @@ et sur chaque pull request. Quatre jobs, sous Ubuntu :
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).
 
+Un second workflow, `.github/workflows/build.yml` (« Paquets »), construit les
+paquets de l'application de bureau sous Linux, Windows et macOS, sur un tag `v*`
+ou à la main (voir [l'application de bureau](application-bureau.md#paquets-windows-et-macos)).
+
 Tous les tests reposent sur **une seule sauvegarde**, `tests/ressources/Backup001.bkf`
 (5 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été
 construite par `tests/construire_reference.py` à partir d'une vraie sauvegarde de

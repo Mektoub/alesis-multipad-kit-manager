@@ -1,0 +1,74 @@
+# Paquets de l'application de bureau, sur chaque système (PyInstaller ne fait
+# pas de compilation croisée) : .deb sous Linux, installateur NSIS et zip sous
+# Windows, dmg et zip sous macOS (Apple Silicon). Lancé sur un tag v* ou à la
+# main (onglet Actions) ; les paquets sont des artefacts de l'exécution.
+name: Paquets
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Paquet ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash # Git Bash sous Windows : mêmes commandes partout
+    env:
+      # LC_ALL=C : sous Linux, PyInstaller ne comprend la sortie de ldconfig qu'en anglais
+      LC_ALL: C
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            editor/web/package-lock.json
+            desktop/package-lock.json
+      - name: Dépendances Python
+        run: pip install -r requirements-dev.txt
+      - name: Interface (build)
+        working-directory: editor/web
+        run: npm ci && npm run build
+      - name: Serveur figé (PyInstaller)
+        run: >
+          pyinstaller --noconfirm --log-level WARN
+          --distpath desktop/build --workpath desktop/build/.work desktop/server.spec
+      - name: Dépendances de l'application de bureau
+        working-directory: desktop
+        run: npm ci
+      - name: Test de fumée du serveur figé
+        working-directory: desktop
+        run: |
+          server="$(node -p 'require("../app-names.json").id')-server"
+          exe="build/$server/$server"
+          [[ "$RUNNER_OS" == Windows ]] && exe="$exe.exe"
+          [[ -f "$exe" ]] || { echo "serveur figé introuvable : $exe" >&2; exit 1; }
+          KITMANAGER_SERVER="$exe" node --test --test-name-pattern "serveur figé" test/server.test.js
+      - name: Paquet (electron-builder)
+        working-directory: desktop
+        run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquet-${{ runner.os }}
+          path: |
+            desktop/dist/*.deb
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+          if-no-files-found: error

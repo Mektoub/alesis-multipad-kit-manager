@@ -3,6 +3,9 @@
 ## 0.3.0 — en cours
 
 - `strike_kits.py` devient le paquet `strike_kits/` (code dans `__init__.py`, imports inchangés) ; ligne de commande : `python3 -m strike_kits export|import …` au lieu de `python3 strike_kits.py …`.
+- Paquets Windows (installateur NSIS en un clic, zip) et macOS Apple Silicon (dmg, zip), non signés : workflow « Paquets » (`.github/workflows/build.yml`), un runner par système, sur un tag `v*` ou à la main ; paquets en artefacts. Nom affiché « Alesis Kit Manager » sous Windows et macOS. `npm run package` construit les paquets du système courant.
+- Dossiers autorisés par défaut selon le système : `/Volumes` sous macOS, tous les lecteurs sauf celui du système sous Windows.
+- Serveur lancé sans fenêtre de console sous Windows ; test de fumée du serveur figé utilisable sous Windows et avec un chemin relatif.
 - Un seul mode de fonctionnement, celui de l'application Electron : jeton exigé sur `/api/*`, fichiers désignés par chemin absolu. Le mode « développement » (dossier `--root`, liste `GET /api/backups`) est retiré.
 - `editeur.sh FICHIER` : lancement local rapide sur une sauvegarde (usage affiché sans paramètre) ; `python -m editor --open FICHIER`. En local, un jeton est créé et transmis au navigateur dans l'adresse (`#token=…`), puis conservé pour l'onglet.
 - Interface : ouverture par chemin complet, champ « Ouvrir » mis à jour après « Enregistrer sous ».

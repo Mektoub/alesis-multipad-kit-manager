@@ -438,7 +438,19 @@ class DossiersAutorises(unittest.TestCase):
         import getpass
 
         user = getpass.getuser()
-        self.assertEqual(default_roots(), [Path.home(), Path("/media") / user, Path("/run/media") / user])
+        home = str(Path.home())
+        self.assertEqual(default_roots("linux"), [home, "/media/" + user, "/run/media/" + user])
+
+    def test_zone_par_defaut_macos(self):
+        self.assertEqual(default_roots("darwin"), [str(Path.home()), "/Volumes"])
+
+    def test_zone_par_defaut_windows(self):
+        # tous les lecteurs sauf celui du système, même branchés après le lancement
+        roots = default_roots("win32", {"SystemDrive": "c:"})
+        self.assertEqual(roots[0], str(Path.home()))
+        self.assertEqual(roots[1:4], ["A:\\", "B:\\", "D:\\"])
+        self.assertEqual(len(roots), 26)
+        self.assertNotIn("C:\\", roots)
 
     def test_ouvrir_hors_zone_refuse(self):
         r = self.post("/api/open", self.outside / "B.bkf")

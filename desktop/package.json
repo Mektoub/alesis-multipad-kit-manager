@@ -15,7 +15,7 @@
     "start": "./apparmor.sh --check && electron .",
     "lint": "eslint .",
     "test": "node --test --test-timeout=20000 test/*.test.js",
-    "package": "electron-builder --config electron-builder.config.mjs --linux deb --publish never"
+    "package": "electron-builder --config electron-builder.config.mjs --publish never"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

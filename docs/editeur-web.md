@@ -49,8 +49,10 @@ Le navigateur s'ouvre sur l'adresse affichée, de la forme
 Le serveur n'ouvre et n'enregistre de sauvegarde que dans :
 
 - le dossier personnel de l'utilisateur ;
-- ses supports amovibles, `/media/<utilisateur>` et `/run/media/<utilisateur>`
-  (clé USB, Strike branché en USB) ;
+- ses supports amovibles (clé USB, Strike branché en USB) : sous Linux
+  `/media/<utilisateur>` et `/run/media/<utilisateur>`, sous macOS `/Volumes`,
+  sous Windows tous les lecteurs sauf celui du système (`D:\`, `E:\`…, même
+  branchés après le lancement) ;
 - les dossiers ajoutés par `--allow DOSSIER` (`./dev.sh serve FICHIER --allow DOSSIER`).
 
 Les chemins sont résolus avant la vérification : un lien symbolique placé dans le
