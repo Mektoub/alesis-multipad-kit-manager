@@ -122,7 +122,7 @@ C'est lui que le [paquet .deb](#paquet-deb) embarque.
 
 `./dev.sh start --frozen` reconstruit d'abord le serveur figé s'il manque ou si
 une de ses sources a changé (sans relancer le test de fumée), puis lance
-l'application avec `STRIKE_SERVER=desktop/build/alesis-kit-manager-server/alesis-kit-manager-server`.
+l'application avec `KITMANAGER_SERVER=desktop/build/alesis-kit-manager-server/alesis-kit-manager-server`.
 
 `./dev.sh freeze` construit l'interface et le serveur figé, puis lance son test
 de fumée : depuis un dossier temporaire, avec un environnement minimal,
@@ -137,7 +137,7 @@ figé »).
 - Il est construit pour la plateforme et la version de Python de la machine qui
   le construit.
 
-L'application lance le serveur désigné par `STRIKE_SERVER` s'il est défini, puis,
+L'application lance le serveur désigné par `KITMANAGER_SERVER` s'il est défini, puis,
 une fois empaquetée, celui de ses ressources (`alesis-kit-manager-server/`), et sinon le
 Python du `.venv`.
 
@@ -222,7 +222,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 
 - **Serveur** : l'application lance le serveur (`python -m editor` ou le serveur
   figé) avec `--port 0 --watch-stdin`
-  avec un jeton aléatoire (`STRIKE_TOKEN`), attend la ligne
+  avec un jeton aléatoire (`KITMANAGER_TOKEN`), attend la ligne
   `{"ready": true, "port": N}` (30 s au plus), puis ouvre la fenêtre sur
   `http://127.0.0.1:N`. Si le serveur ne démarre pas, une boîte d'erreur affiche
   la fin de sa sortie d'erreur.
@@ -246,7 +246,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
   dialogue permettent de parcourir tout le disque, mais un fichier choisi ailleurs
   est refusé, avec un message dans la fenêtre.
 - **Sécurité** : la page n'a pas accès à Node (`contextIsolation`, `sandbox`) ;
-  le préchargement (`desktop/preload.cjs`) n'expose que `window.strikeDesktop`
+  le préchargement (`desktop/preload.cjs`) n'expose que `window.kitManagerDesktop`
   (voir [Mode bureau](editeur-web.md#mode-bureau)), à la seule page du serveur
   local. La navigation est limitée à ce serveur ; les liens externes s'ouvrent
   dans le navigateur.
@@ -256,7 +256,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 | Chemin | Rôle |
 |---|---|
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
-| `desktop/preload.cjs` | pont `window.strikeDesktop` |
+| `desktop/preload.cjs` | pont `window.kitManagerDesktop` |
 | `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |
 | `desktop/electron-builder.config.mjs` | configuration d'electron-builder : paquet .deb, types de fichier, icône |
 | `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |
@@ -269,7 +269,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 `npm test` vérifie la lecture de la ligne « prêt », les arguments, les échecs
 (serveur arrêté, muet, introuvable) et l'arrêt ; un test de fumée lance le vrai
 serveur sur la sauvegarde de référence quand `.venv` existe, et le serveur figé
-quand `STRIKE_SERVER` le désigne (`./dev.sh freeze`).
+quand `KITMANAGER_SERVER` le désigne (`./dev.sh freeze`).
 
 ## Dépannage
 

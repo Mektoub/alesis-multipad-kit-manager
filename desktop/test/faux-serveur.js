@@ -5,8 +5,8 @@
 //   silent  ne répond jamais
 //   stubborn annonce le port mais ignore la fermeture de stdin
 const mode = process.env.FAKE_MODE;
-if (mode === "ready" && process.env.STRIKE_TOKEN !== process.env.FAKE_TOKEN) {
-  console.error(`jeton inattendu : ${process.env.STRIKE_TOKEN}`);
+if (mode === "ready" && process.env.KITMANAGER_TOKEN !== process.env.FAKE_TOKEN) {
+  console.error(`jeton inattendu : ${process.env.KITMANAGER_TOKEN}`);
   process.exit(3);
 }
 if (mode === "crash") {

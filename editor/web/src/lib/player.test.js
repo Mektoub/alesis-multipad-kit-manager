@@ -33,7 +33,7 @@ describe("lecteur de samples", () => {
     const { toggle } = await loadPlayer();
     await toggle(8072);
     expect(fetch).toHaveBeenCalledWith("/api/samples/8072/wav", expect.objectContaining({
-      headers: expect.objectContaining({ "X-Strike-Token": TOKEN }),
+      headers: expect.objectContaining({ "X-KitManager-Token": TOKEN }),
     }));
     expect(played).toEqual(["blob:sample-1"]);
   });

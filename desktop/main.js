@@ -5,7 +5,7 @@
 //
 // En développement : ./dev.sh start [--frozen] [FICHIER], ou npm start [-- FICHIER]
 // une fois le venv et l'interface prêts (Python du .venv du dépôt, ou le serveur
-// figé désigné par STRIKE_SERVER).
+// figé désigné par KITMANAGER_SERVER).
 
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -62,7 +62,7 @@ function run() {
         resolve(result);
       });
       const message = { id, command: name, ...extra };
-      if (rendererReady) win.webContents.send("strike:command", message);
+      if (rendererReady) win.webContents.send("kitmanager:command", message);
       else queue.push(message);
     });
   }
@@ -70,23 +70,23 @@ function run() {
   // Seule la page servie par le serveur local peut utiliser le pont.
   const trusted = (event) => Boolean(origin) && (event.senderFrame?.url ?? "").startsWith(`${origin}/`);
 
-  ipcMain.on("strike:token", (event) => {
+  ipcMain.on("kitmanager:token", (event) => {
     event.returnValue = trusted(event) ? token : "";
   });
-  ipcMain.on("strike:ready", (event) => {
+  ipcMain.on("kitmanager:ready", (event) => {
     if (!trusted(event)) return;
     rendererReady = true;
-    for (const message of queue.splice(0)) win.webContents.send("strike:command", message);
+    for (const message of queue.splice(0)) win.webContents.send("kitmanager:command", message);
   });
-  ipcMain.on("strike:command-done", (event, id, result) => {
+  ipcMain.on("kitmanager:command-done", (event, id, result) => {
     if (!trusted(event)) return;
     waiting.get(id)?.(result);
     waiting.delete(id);
   });
-  ipcMain.on("strike:dirty", (event, value) => {
+  ipcMain.on("kitmanager:dirty", (event, value) => {
     if (trusted(event)) dirty = Boolean(value);
   });
-  ipcMain.handle("strike:open-file", async (event) => {
+  ipcMain.handle("kitmanager:open-file", async (event) => {
     if (!trusted(event)) return null;
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
       title: "Ouvrir une sauvegarde",
@@ -101,7 +101,7 @@ function run() {
     lastDir = path.dirname(filePaths[0]);
     return filePaths[0];
   });
-  ipcMain.handle("strike:save-file", async (event, defaultPath) => {
+  ipcMain.handle("kitmanager:save-file", async (event, defaultPath) => {
     if (!trusted(event)) return null;
     const ext = path.extname(defaultPath).slice(1).toLowerCase();
     const { canceled, filePath } = await dialog.showSaveDialog(win, {

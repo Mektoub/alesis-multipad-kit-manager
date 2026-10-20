@@ -16,8 +16,8 @@ export default {
   files: ["main.js", "preload.cjs", "server.js", "package.json"],
   extraResources: [{ from: `build/${server}`, to: server }],
   fileAssociations: [
-    { ext: "bkf", name: "Sauvegarde Strike (kits et samples)", mimeType: "application/x-strike-bkf" },
-    { ext: "fac", name: "Sauvegarde Strike (kits)", mimeType: "application/x-strike-fac" },
+    { ext: "bkf", name: "Sauvegarde Strike (kits et samples)", mimeType: "application/x-kitmanager-bkf" },
+    { ext: "fac", name: "Sauvegarde Strike (kits)", mimeType: "application/x-kitmanager-fac" },
   ],
   linux: {
     target: ["deb"],

@@ -1,7 +1,7 @@
 """API de l'éditeur : une sauvegarde ouverte à la fois, éditée en mémoire.
 
 Un seul mode, pour l'application Electron comme pour le lancement local
-(./dev.sh serve) : chaque requête /api/* doit porter l'en-tête X-Strike-Token avec
+(./dev.sh serve) : chaque requête /api/* doit porter l'en-tête X-KitManager-Token avec
 le jeton donné au lancement, et les fichiers sont ouverts et enregistrés par
 chemin absolu, comme dans tout éditeur, mais seulement dans les dossiers
 autorisés : le dossier personnel, les supports amovibles de l'utilisateur et les
@@ -30,7 +30,7 @@ WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
 # noms de l'application (à la racine du dépôt ; à côté du paquet editor/ une fois figé)
 APP_NAMES = json.loads((Path(__file__).resolve().parent.parent / "app-names.json").read_text(encoding="utf-8"))
 EXTENSIONS = (".bkf", ".fac")
-TOKEN_HEADER = "X-Strike-Token"
+TOKEN_HEADER = "X-KitManager-Token"
 UNSAVED = "des modifications ne sont pas enregistrées"
 
 

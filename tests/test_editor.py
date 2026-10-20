@@ -36,7 +36,7 @@ TMP_ALLOWED = (tempfile.gettempdir(),)
 def client_for(open_file=None, token=TOKEN, allow=TMP_ALLOWED):
     """Client de test qui envoie le jeton dans chaque requête."""
     client = TestClient(create_app(token=token, open_file=open_file, allow=allow))
-    client.headers["X-Strike-Token"] = token
+    client.headers["X-KitManager-Token"] = token
     return client
 
 
@@ -352,7 +352,7 @@ class JetonEtChemins(unittest.TestCase):
 
     def test_jeton_exige(self):
         anonymous = TestClient(create_app(token=self.TOKEN))
-        for headers in ({}, {"X-Strike-Token": "faux"}):
+        for headers in ({}, {"X-KitManager-Token": "faux"}):
             r = anonymous.get("/api/state", headers=headers)
             self.assertEqual(r.status_code, 403, headers)
         self.assertEqual(self.client.get("/api/state").status_code, 200)
@@ -498,7 +498,7 @@ class Lancement(unittest.TestCase):
             contextlib.redirect_stdout(out),
             contextlib.redirect_stderr(err),
         ):
-            os.environ.pop("STRIKE_TOKEN", None)
+            os.environ.pop("KITMANAGER_TOKEN", None)
             launcher.main()
         self.assertIn("Interface non construite", err.getvalue())
         self.assertTrue(
@@ -507,9 +507,9 @@ class Lancement(unittest.TestCase):
         self.assertNotIn("Interface non construite", out.getvalue())
 
     def start_local(self, *args):
-        """Lancement local (sans STRIKE_TOKEN), comme ./dev.sh serve."""
+        """Lancement local (sans KITMANAGER_TOKEN), comme ./dev.sh serve."""
         project = Path(__file__).resolve().parent.parent
-        env = {k: v for k, v in os.environ.items() if k != "STRIKE_TOKEN"}
+        env = {k: v for k, v in os.environ.items() if k != "KITMANAGER_TOKEN"}
         return subprocess.Popen(
             [sys.executable, "-m", "editor", "--port", "0", "--no-browser", *args],
             cwd=project,
@@ -528,7 +528,7 @@ class Lancement(unittest.TestCase):
             m = re.match(r"Éditeur disponible sur (http://127\.0\.0\.1:\d+/)#token=([\w-]+)$", line)
             self.assertTrue(m, line)
             base, token = m.groups()
-            req = urllib.request.Request(base + "api/state", headers={"X-Strike-Token": token})
+            req = urllib.request.Request(base + "api/state", headers={"X-KitManager-Token": token})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 self.assertEqual(json.load(resp)["path"], str(REF))
             with self.assertRaises(urllib.error.HTTPError) as ctx:
@@ -595,7 +595,7 @@ class Lancement(unittest.TestCase):
             self.assertTrue(announced["ready"])
             self.assertGreater(announced["port"], 0)
             req = urllib.request.Request(
-                "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-Strike-Token": "t"}
+                "http://127.0.0.1:%d/api/state" % announced["port"], headers={"X-KitManager-Token": "t"}
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 self.assertEqual(json.load(resp)["path"], None)
@@ -610,7 +610,7 @@ class Lancement(unittest.TestCase):
         p = subprocess.Popen(
             [sys.executable, "-m", "editor", "--port", "0", "--watch-stdin"],
             cwd=project,
-            env={**os.environ, "STRIKE_TOKEN": "t"},
+            env={**os.environ, "KITMANAGER_TOKEN": "t"},
             text=True,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

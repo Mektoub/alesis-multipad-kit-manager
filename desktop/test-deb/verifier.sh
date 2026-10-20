@@ -36,24 +36,24 @@ check "aucun Python sur le système" bash -c '! command -v python3'
 
 step "Types de fichier"
 # base des types MIME (xdg-mime query filetype demande un environnement de bureau)
-check "*.bkf → application/x-strike-bkf" grep -q "application/x-strike-bkf:\*\.bkf" /usr/share/mime/globs2
-check "*.fac → application/x-strike-fac" grep -q "application/x-strike-fac:\*\.fac" /usr/share/mime/globs2
-check "application associée aux .bkf et .fac" bash -c 'grep -q "application/x-strike-bkf=.*$ID.desktop" /usr/share/applications/mimeinfo.cache && grep -q "application/x-strike-fac=.*$ID.desktop" /usr/share/applications/mimeinfo.cache'
+check "*.bkf → application/x-kitmanager-bkf" grep -q "application/x-kitmanager-bkf:\*\.bkf" /usr/share/mime/globs2
+check "*.fac → application/x-kitmanager-fac" grep -q "application/x-kitmanager-fac:\*\.fac" /usr/share/mime/globs2
+check "application associée aux .bkf et .fac" bash -c 'grep -q "application/x-kitmanager-bkf=.*$ID.desktop" /usr/share/applications/mimeinfo.cache && grep -q "application/x-kitmanager-fac=.*$ID.desktop" /usr/share/applications/mimeinfo.cache'
 
 step "Serveur intégré (test de fumée)"
 cp /ref/Backup001.bkf /home/testeur/ && chown testeur: /home/testeur/Backup001.bkf
-su testeur -c "STRIKE_TOKEN=t '$APP/resources/$SERVER/$SERVER' --port 0 --open /home/testeur/Backup001.bkf" \
+su testeur -c "KITMANAGER_TOKEN=t '$APP/resources/$SERVER/$SERVER' --port 0 --open /home/testeur/Backup001.bkf" \
     > /tmp/serveur.out 2> /tmp/serveur.err &
 for _ in $(seq 40); do grep -q '"ready"' /tmp/serveur.out && break; sleep 0.25; done
 port="$(grep -o '"port": [0-9]*' /tmp/serveur.out | grep -o '[0-9]*$')"
 if [[ -n "$port" ]]; then
     ok "prêt sur le port $port"
     base="http://127.0.0.1:$port"
-    get() { curl -fsS -H "X-Strike-Token: t" "$base$1"; }
+    get() { curl -fsS -H "X-KitManager-Token: t" "$base$1"; }
     check "accès refusé sans jeton (403)" bash -c "[[ \$(curl -s -o /dev/null -w '%{http_code}' $base/api/state) == 403 ]]"
-    check "sauvegarde ouverte" bash -c "curl -fsS -H 'X-Strike-Token: t' $base/api/state | grep -q '\"path\":\"/home/testeur/Backup001.bkf\"'"
-    check "kit 031 lu (WhereIs)" bash -c "curl -fsS -H 'X-Strike-Token: t' $base/api/kits/031 | grep -q '\"name\":\"WhereIs\"'"
-    check "WAV servi" bash -c "curl -fsS -o /dev/null -H 'X-Strike-Token: t' -w '%{content_type}' $base/api/samples/8071/wav | grep -q audio/wav"
+    check "sauvegarde ouverte" bash -c "curl -fsS -H 'X-KitManager-Token: t' $base/api/state | grep -q '\"path\":\"/home/testeur/Backup001.bkf\"'"
+    check "kit 031 lu (WhereIs)" bash -c "curl -fsS -H 'X-KitManager-Token: t' $base/api/kits/031 | grep -q '\"name\":\"WhereIs\"'"
+    check "WAV servi" bash -c "curl -fsS -o /dev/null -H 'X-KitManager-Token: t' -w '%{content_type}' $base/api/samples/8071/wav | grep -q audio/wav"
     check "interface servie" bash -c "curl -fsS $base/ | grep -q '<div id=\"app\">'"
 else
     ko "le serveur n'a pas démarré"; sed 's/^/    /' /tmp/serveur.err | tail -10

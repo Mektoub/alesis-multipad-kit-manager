@@ -1,4 +1,4 @@
-import "./lib/fake-desktop.js"; // avant api.js, qui lit window.strikeDesktop
+import "./lib/fake-desktop.js"; // avant api.js, qui lit window.kitManagerDesktop
 import { mount } from "svelte";
 import "./app.css";
 import App from "./App.svelte";
