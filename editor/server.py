@@ -11,6 +11,7 @@ session sur un fichier d'origine, son état précédent est copié dans <fichier
 """
 
 import getpass
+import json
 import secrets
 import shutil
 import threading
@@ -26,6 +27,8 @@ import strike_kits as sk
 from editor.meta import meta
 
 WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
+# noms de l'application (à la racine du dépôt ; à côté du paquet editor/ une fois figé)
+APP_NAMES = json.loads((Path(__file__).resolve().parent.parent / "app-names.json").read_text(encoding="utf-8"))
 EXTENSIONS = (".bkf", ".fac")
 TOKEN_HEADER = "X-Strike-Token"
 UNSAVED = "des modifications ne sont pas enregistrées"
@@ -165,7 +168,7 @@ def create_app(token, open_file=None, allow=()):
     if open_file is not None:
         path = Path(open_file)
         s.set_opened(load_backup(path, s.roots), path.resolve())
-    app = FastAPI(title="Éditeur Strike MultiPad")
+    app = FastAPI(title=APP_NAMES["long"])
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):

@@ -1,6 +1,7 @@
 # Application de bureau
 
-Application Electron autour de l'éditeur : la même interface, dans sa propre
+Alesis Strike Multipad Kit Manager (nom court : Alesis Kit Manager) :
+application Electron autour de l'éditeur, la même interface, dans sa propre
 fenêtre, avec les boîtes de dialogue du système. Elle s'installe par un
 [paquet .deb](#paquet-deb), ou se lance depuis le dépôt en développement, avec le
 Python du `.venv` ou le [serveur figé](#serveur-figé).
@@ -39,8 +40,8 @@ Chrome et VS Code ont pour cela un profil AppArmor dans `/etc/apparmor.d`. Il en
 faut un pour l'Electron de `desktop/node_modules`, à installer une fois :
 
 ```bash
-desktop/apparmor.sh | sudo tee /etc/apparmor.d/strike-kit-editor-dev
-sudo apparmor_parser -r /etc/apparmor.d/strike-kit-editor-dev
+desktop/apparmor.sh | sudo tee /etc/apparmor.d/alesis-kit-manager-dev
+sudo apparmor_parser -r /etc/apparmor.d/alesis-kit-manager-dev
 ```
 
 `desktop/apparmor.sh` affiche le profil, avec le chemin de l'exécutable de ce
@@ -89,7 +90,7 @@ lui rend le comportement d'avant Ubuntu 24.04. Chrome, VS Code et le
   d'Ubuntu protège surtout contre cette étape suivante, et le profil la
   contourne pour ce chemin.
 - **Le profil du paquet .deb n'a pas ce défaut** : il vise
-  `/opt/AlesisStrikeMultipadKitManager/`, qui appartient à root ; personne d'autre ne peut y
+  `/opt/alesis-kit-manager/`, qui appartient à root ; personne d'autre ne peut y
   remplacer l'exécutable.
 - **Les autres solutions** : `chrome-sandbox` à root en 4755 ajoute un programme
   privilégié au milieu de fichiers modifiables par l'utilisateur (risque faible) ;
@@ -101,8 +102,8 @@ Pour l'usage courant, mieux vaut donc le paquet .deb, et ne garder le profil de
 développement que tant que l'on développe. Pour le retirer :
 
 ```bash
-sudo apparmor_parser -R /etc/apparmor.d/strike-kit-editor-dev
-sudo rm /etc/apparmor.d/strike-kit-editor-dev
+sudo apparmor_parser -R /etc/apparmor.d/alesis-kit-manager-dev
+sudo rm /etc/apparmor.d/alesis-kit-manager-dev
 ```
 
 Ensuite, `npm start` affiche de nouveau son avertissement, et Electron ne démarre
@@ -143,9 +144,9 @@ Python du `.venv`.
 ## Paquet .deb
 
 ```bash
-./dev.sh package                                              # → desktop/dist/strike-kit-editor_0.3.0_amd64.deb
-sudo apt install ./desktop/dist/strike-kit-editor_0.3.0_amd64.deb
-sudo apt remove strike-kit-editor                             # désinstallation
+./dev.sh package                                              # → desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
+sudo apt install ./desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
+sudo apt remove alesis-kit-manager                            # désinstallation
 ```
 
 `./dev.sh package` enchaîne le build de l'interface, le serveur figé et son test
@@ -155,23 +156,37 @@ Le numéro de version est celui de `desktop/package.json`.
 
 Le paquet (environ 110 Mo) installe :
 
-- l'application dans `/opt/AlesisStrikeMultipadKitManager/` (le `productName`
-  de `desktop/package.json`, sans espaces : `chrome-sandbox` ne supporte pas un
-  chemin qui en contient), avec le serveur figé dans `resources/strike-server/` ;
-  la commande `strike-kit-editor` ;
-- une entrée dans le menu des applications, avec son icône ;
+- l'application dans `/opt/alesis-kit-manager/`, avec le serveur figé dans
+  `resources/strike-server/` ; la commande `alesis-kit-manager` ;
+- une entrée « Alesis Kit Manager » dans le menu des applications, avec son icône ;
 - les types de fichier `.bkf` et `.fac` : un double-clic sur une sauvegarde dans
   le gestionnaire de fichiers l'ouvre dans l'application (dans la fenêtre déjà
   ouverte s'il y en a une) ;
 - sur Ubuntu 24.04 et suivants, un profil AppArmor
-  (`/etc/apparmor.d/strike-kit-editor`) qui permet la sandbox de Chromium : rien
+  (`/etc/apparmor.d/alesis-kit-manager`) qui permet la sandbox de Chromium : rien
   à faire à la main, contrairement au [développement](#ubuntu-2404-et-suivants--profil-apparmor).
 
-Ce `productName` est aussi le nom du dossier de configuration de l'application,
-`~/.config/AlesisStrikeMultipadKitManager` ; le nom affiché (menu, fenêtre, boîtes
-de dialogue) reste « Alesis Strike Multipad Kit Manager ». Aux dépendances par
+Aux dépendances par
 défaut d'electron-builder, le paquet ajoute `libasound2t64 | libasound2`, sans
 laquelle Electron ne démarre pas sur un système sans son installé.
+
+### Noms de l'application
+
+Tous les noms viennent de `app-names.json`, à la racine du dépôt :
+
+| Clé | Valeur | Usage |
+|---|---|---|
+| `long` | Alesis Strike Multipad Kit Manager | affichage : titre de la fenêtre et de la page, en-tête de l'interface, boîtes de dialogue, description du paquet |
+| `short` | Alesis Kit Manager | affichage court : entrée du menu des applications |
+| `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor |
+| `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` |
+
+Ils sont lus par Vite (`editor/web/vite.config.js` : `<title>` et `__APP_NAMES__`),
+electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui
+les retrouve dans le `package.json` de l'application empaquetée), le serveur
+(titre de sa documentation `/docs`) et les scripts `desktop/apparmor.sh` et
+`desktop/test-deb/verifier.sh`. L'identifiant ne doit pas contenir d'espaces :
+`chrome-sandbox` ne supporte pas un chemin d'installation qui en contient.
 
 ### Tester l'installation dans un conteneur
 
@@ -242,7 +257,8 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 |---|---|
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
 | `desktop/preload.cjs` | pont `window.strikeDesktop` |
-| `desktop/package.json` (`build`) | configuration d'electron-builder : paquet .deb, types de fichier, icône |
+| `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |
+| `desktop/electron-builder.config.mjs` | configuration d'electron-builder : paquet .deb, types de fichier, icône |
 | `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |
 | `desktop/test-deb/` | test d'installation du paquet dans un conteneur (`./dev.sh test-deb`) |
 | `desktop/apparmor.sh` | profil AppArmor de l'Electron de développement, et vérification avant `npm start` |

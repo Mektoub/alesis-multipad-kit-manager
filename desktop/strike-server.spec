@@ -19,8 +19,9 @@ a = Analysis(  # noqa: F821
     pathex=[str(PROJECT)],
     # uvicorn choisit ses boucles et protocoles à l'exécution (importlib)
     hiddenimports=collect_submodules("uvicorn"),
-    # l'interface est lue à côté de editor/server.py (WEB_DIST)
-    datas=[(str(DIST), "editor/web/dist")],
+    # l'interface est lue à côté de editor/server.py (WEB_DIST), les noms de
+    # l'application à côté du paquet editor/ (APP_NAMES)
+    datas=[(str(DIST), "editor/web/dist"), (str(PROJECT / "app-names.json"), ".")],
     excludes=["tkinter"],
 )
 pyz = PYZ(a.pure)  # noqa: F821

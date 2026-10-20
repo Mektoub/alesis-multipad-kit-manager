@@ -8,6 +8,7 @@
 // figé désigné par STRIKE_SERVER).
 
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,9 +18,12 @@ import { fileArgument, serverCommand, serverProblem, startServer } from "./serve
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(here, "..");
-// nom affiché (fenêtres, boîtes de dialogue) ; le nom de l'application, celui de
-// son dossier de configuration (~/.config/…), est le productName de package.json
-const TITLE = "Alesis Strike Multipad Kit Manager";
+// Noms de l'application : ajoutés au package.json une fois empaquetée
+// (electron-builder.config.mjs), lus dans ../app-names.json en développement.
+const readJson = (file) => JSON.parse(readFileSync(file, "utf8"));
+const NAMES = readJson(path.join(here, "package.json")).appNames ?? readJson(path.join(PROJECT, "app-names.json"));
+const TITLE = NAMES.long; // fenêtres et boîtes de dialogue
+app.setName(NAMES.config); // dossier de configuration : ~/.config/<config>
 
 // Sauvegarde passée en argument ; `npm start` lance Electron depuis desktop/,
 // le chemin est donc relatif au dossier d'où la commande a été tapée (INIT_CWD).
