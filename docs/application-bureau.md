@@ -89,7 +89,7 @@ lui rend le comportement d'avant Ubuntu 24.04. Chrome, VS Code et le
   d'Ubuntu protège surtout contre cette étape suivante, et le profil la
   contourne pour ce chemin.
 - **Le profil du paquet .deb n'a pas ce défaut** : il vise
-  `/opt/Strike Kit Editor/`, qui appartient à root ; personne d'autre ne peut y
+  `/opt/AlesisStrikeMultipadKitManager/`, qui appartient à root ; personne d'autre ne peut y
   remplacer l'exécutable.
 - **Les autres solutions** : `chrome-sandbox` à root en 4755 ajoute un programme
   privilégié au milieu de fichiers modifiables par l'utilisateur (risque faible) ;
@@ -155,8 +155,10 @@ Le numéro de version est celui de `desktop/package.json`.
 
 Le paquet (environ 110 Mo) installe :
 
-- l'application dans `/opt/Strike Kit Editor/`, avec le serveur figé dans
-  `resources/strike-server/` ; la commande `strike-kit-editor` ;
+- l'application dans `/opt/AlesisStrikeMultipadKitManager/` (le `productName`
+  de `desktop/package.json`, sans espaces : `chrome-sandbox` ne supporte pas un
+  chemin qui en contient), avec le serveur figé dans `resources/strike-server/` ;
+  la commande `strike-kit-editor` ;
 - une entrée dans le menu des applications, avec son icône ;
 - les types de fichier `.bkf` et `.fac` : un double-clic sur une sauvegarde dans
   le gestionnaire de fichiers l'ouvre dans l'application (dans la fenêtre déjà
@@ -164,6 +166,39 @@ Le paquet (environ 110 Mo) installe :
 - sur Ubuntu 24.04 et suivants, un profil AppArmor
   (`/etc/apparmor.d/strike-kit-editor`) qui permet la sandbox de Chromium : rien
   à faire à la main, contrairement au [développement](#ubuntu-2404-et-suivants--profil-apparmor).
+
+Ce `productName` est aussi le nom du dossier de configuration de l'application,
+`~/.config/AlesisStrikeMultipadKitManager` ; le nom affiché (menu, fenêtre, boîtes
+de dialogue) reste « Alesis Strike Multipad Kit Manager ». Aux dépendances par
+défaut d'electron-builder, le paquet ajoute `libasound2t64 | libasound2`, sans
+laquelle Electron ne démarre pas sur un système sans son installé.
+
+### Tester l'installation dans un conteneur
+
+```bash
+./dev.sh test-deb
+```
+
+Installe le paquet de `desktop/dist/` dans un conteneur Docker Ubuntu 24.04
+propre (`desktop/test-deb/Dockerfile`, sans Python ni Node), puis vérifie
+(`desktop/test-deb/verifier.sh`) :
+
+- l'installation par `apt` (dépendances, script d'installation) ;
+- les fichiers installés, l'entrée de menu (`desktop-file-validate`), l'absence
+  de Python ;
+- les types de fichier `.bkf` / `.fac` et l'application qui leur est associée ;
+- le serveur intégré : test de fumée sur la sauvegarde de référence ;
+- l'application : lancée sous Xvfb par un utilisateur non root, elle doit ouvrir
+  sa fenêtre sur le serveur local et charger l'éditeur, puis arrêter le serveur en
+  quittant ;
+- la désinstallation.
+
+Le paquet est d'abord reconstruit s'il manque ou si une de ses sources a changé.
+Le conteneur est lancé avec `--security-opt seccomp=unconfined` : le filtre
+seccomp par défaut de Docker interdit les user namespaces, et la sandbox de
+Chromium ne pourrait pas démarrer. Le profil AppArmor et l'intégration réelle au
+bureau (menu, double-clic, boîtes de dialogue) ne se vérifient pas dans un
+conteneur.
 
 L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 512 px, refait avec `desktop/build-resources/render-icon.cjs` (voir son en-tête).
@@ -209,6 +244,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 | `desktop/preload.cjs` | pont `window.strikeDesktop` |
 | `desktop/package.json` (`build`) | configuration d'electron-builder : paquet .deb, types de fichier, icône |
 | `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |
+| `desktop/test-deb/` | test d'installation du paquet dans un conteneur (`./dev.sh test-deb`) |
 | `desktop/apparmor.sh` | profil AppArmor de l'Electron de développement, et vérification avant `npm start` |
 | `desktop/server.js` | choix et lancement du serveur, sans dépendance à Electron |
 | `desktop/strike-server.spec`, `desktop/strike_server.py` | recette PyInstaller du serveur figé et son point d'entrée |

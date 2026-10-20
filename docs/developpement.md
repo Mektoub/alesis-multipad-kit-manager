@@ -42,6 +42,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]` | éditeur dans le navigateur sur cette sauvegarde |
 | `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](application-bureau.md#paquet-deb)) |
+| `./dev.sh test-deb` | installe et teste le .deb dans un conteneur Docker Ubuntu 24.04 (voir [Application de bureau](application-bureau.md#tester-linstallation-dans-un-conteneur)) |
 | `./dev.sh start [--frozen] [FICHIER]` | lance l'application de bureau ; `--frozen` : avec le serveur figé, reconstruit si une source a changé |
 | `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/strike-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |

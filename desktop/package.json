@@ -1,6 +1,6 @@
 {
   "name": "strike-kit-editor",
-  "productName": "Alesis Strike Multipad Kit Manager",
+  "productName": "AlesisStrikeMultipadKitManager",
   "desktopName": "strike-kit-editor.desktop",
   "private": true,
   "version": "0.3.0",
@@ -74,7 +74,19 @@
       "syncDesktopName": true
     },
     "deb": {
-      "packageCategory": "sound"
+      "packageCategory": "sound",
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2t64 | libasound2"
+      ]
     }
   }
 }
