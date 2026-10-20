@@ -2,23 +2,36 @@
 # pas de compilation croisée) : .deb sous Linux, installateur NSIS et zip sous
 # Windows, dmg et zip sous macOS (Apple Silicon). Lancé sur un tag v* ou à la
 # main (onglet Actions) ; les paquets sont des artefacts de l'exécution.
+# Appelé aussi par ci.yml (workflow_call), sous Linux et sans paquet : serveur
+# figé et test de fumée seulement.
 name: Paquets
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      os:
+        description: Runners, en liste JSON (par défaut les trois systèmes)
+        type: string
+        default: '["ubuntu-latest", "windows-latest", "macos-latest"]'
+      freeze-only:
+        description: Serveur figé et test de fumée seulement, sans paquet
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   package:
-    name: Paquet ${{ matrix.os }}
+    name: ${{ inputs.freeze-only && 'Serveur figé' || 'Paquet' }} ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # inputs est vide sur un tag ou à la main : les trois systèmes
+        os: ${{ fromJSON(inputs.os || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -28,20 +41,11 @@ jobs:
       LC_ALL: C
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: ./.github/actions/setup
         with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements*.txt
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: |
+          node-lockfiles: |
             editor/web/package-lock.json
             desktop/package-lock.json
-      - name: Dépendances Python
-        run: pip install -r requirements-dev.txt
       - name: Interface (build)
         working-directory: editor/web
         run: npm ci && npm run build
@@ -61,9 +65,11 @@ jobs:
           [[ -f "$exe" ]] || { echo "serveur figé introuvable : $exe" >&2; exit 1; }
           KITMANAGER_SERVER="$exe" node --test --test-name-pattern "serveur figé" test/server.test.js
       - name: Paquet (electron-builder)
+        if: ${{ !inputs.freeze-only }}
         working-directory: desktop
         run: npm run package
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.freeze-only }}
         with:
           name: paquet-${{ runner.os }}
           path: |
