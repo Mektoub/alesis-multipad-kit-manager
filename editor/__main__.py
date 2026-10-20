@@ -1,10 +1,10 @@
 """Lance l'éditeur : python -m editor [--open FICHIER] [--port 8765].
 
-L'API exige toujours un jeton (en-tête X-Strike-Token) :
+L'API exige toujours un jeton (en-tête X-KitManager-Token) :
   - application Electron : le jeton est donné par la variable d'environnement
-    STRIKE_TOKEN ; une fois le serveur prêt, une ligne JSON
+    KITMANAGER_TOKEN ; une fois le serveur prêt, une ligne JSON
     `{"ready": true, "port": N}` est écrite sur la sortie standard ;
-  - lancement local (./dev.sh serve) : sans STRIKE_TOKEN, un jeton est créé et
+  - lancement local (./dev.sh serve) : sans KITMANAGER_TOKEN, un jeton est créé et
     transmis au navigateur dans l'adresse (http://…/#token=…).
 Avec --port 0, un port libre est choisi. Avec --watch-stdin, le serveur s'arrête
 quand son entrée standard se ferme : l'application qui l'a lancé s'est arrêtée,
@@ -81,7 +81,7 @@ def main():
         "--watch-stdin", action="store_true", help="s'arrêter quand l'entrée standard se ferme (application arrêtée)"
     )
     args = ap.parse_args()
-    desktop_token = os.environ.get("STRIKE_TOKEN") or None
+    desktop_token = os.environ.get("KITMANAGER_TOKEN") or None
     token = desktop_token or secrets.token_urlsafe(24)
     try:
         app = create_app(token, open_file=Path(args.open).resolve() if args.open else None, allow=args.allow)

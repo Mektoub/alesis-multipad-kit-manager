@@ -62,7 +62,7 @@ L'application de bureau utilise la zone par défaut.
 
 ### Jeton
 
-Chaque requête `/api/*` doit porter l'en-tête `X-Strike-Token` avec le jeton du
+Chaque requête `/api/*` doit porter l'en-tête `X-KitManager-Token` avec le jeton du
 lancement, sinon elle reçoit une erreur 403 : un autre programme de la machine ne
 peut donc pas piloter l'éditeur, qui lit et écrit des fichiers.
 
@@ -71,11 +71,11 @@ peut donc pas piloter l'éditeur, qui lit et écrit des fichiers.
   qui permet de recharger la page, et le retire de l'adresse affichée. Une page
   ouverte sans lui affiche « Accès refusé ».
 - **Application Electron** : le jeton est donné par la variable d'environnement
-  `STRIKE_TOKEN`. Une fois à l'écoute, le serveur écrit alors sur sa sortie
+  `KITMANAGER_TOKEN`. Une fois à l'écoute, le serveur écrit alors sur sa sortie
   standard une ligne `{"ready": true, "port": N}`, utile avec `--port 0`.
 
 ```bash
-STRIKE_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --open "$PWD/Backups/Backup001.bkf"
+KITMANAGER_TOKEN=$(openssl rand -hex 16) .venv/bin/python -m editor --port 0 --open "$PWD/Backups/Backup001.bkf"
 ```
 
 Sans `dev.sh`, l'installation manuelle est la suivante :
@@ -153,7 +153,7 @@ Charger ensuite le fichier produit sur l'appareil comme décrit dans
 ## API
 
 Le serveur expose une API JSON, utilisable aussi depuis un script ; chaque requête
-porte l'en-tête `X-Strike-Token`, et les chemins de fichiers sont absolus :
+porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 
 | Méthode | Route | Rôle |
 |---|---|---|
@@ -188,11 +188,11 @@ Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur e
 ### Mode bureau
 
 L'interface passe en mode bureau quand l'application Electron expose l'objet
-`window.strikeDesktop` (preload) ; le même code sert aux deux modes.
+`window.kitManagerDesktop` (preload) ; le même code sert aux deux modes.
 
 | Membre | Rôle |
 |---|---|
-| `token` | jeton du serveur, envoyé dans l'en-tête `X-Strike-Token` |
+| `token` | jeton du serveur, envoyé dans l'en-tête `X-KitManager-Token` |
 | `openFile()` | boîte native « Ouvrir » ; renvoie une promesse du chemin absolu choisi, ou `null` |
 | `saveFile(defaultPath)` | boîte native « Enregistrer sous », ouverte sur le nom suivant ; renvoie le chemin ou `null`. La boîte confirme elle-même l'écrasement d'un fichier existant |
 | `setDirty(dirty)` | appelé à chaque changement de l'état « modifications non enregistrées », pour que l'application confirme la fermeture de la fenêtre |
@@ -206,4 +206,4 @@ boîtes natives par des `prompt()` : avec `npm run dev`, ajouter `&desktop=fake`
 à l'adresse (`http://localhost:5173/#token=…&desktop=fake`). Il reste actif pour
 l'onglet, journalise `setDirty` dans la console, marque le titre de la page
 d'un « ● », et les commandes s'envoient depuis la console
-(`await strikeFakeCommand("prepare-close")`). Il n'existe qu'en développement et n'est pas inclus dans le build.
+(`await kitManagerFakeCommand("prepare-close")`). Il n'existe qu'en développement et n'est pas inclus dans le build.

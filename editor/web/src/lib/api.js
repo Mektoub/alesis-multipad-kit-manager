@@ -1,7 +1,7 @@
 // Accès à l'API FastAPI. Les erreurs remontent avec le message `detail` du serveur.
 //
-// Chaque requête porte le jeton exigé par le serveur (en-tête X-Strike-Token) :
-// fourni par l'application Electron (window.strikeDesktop), ou, en lancement
+// Chaque requête porte le jeton exigé par le serveur (en-tête X-KitManager-Token) :
+// fourni par l'application Electron (window.kitManagerDesktop), ou, en lancement
 // local, lu dans l'adresse (#token=…). Il est alors conservé pour l'onglet
 // (sessionStorage), afin qu'un rechargement de la page fonctionne, et retiré
 // de l'adresse affichée.
@@ -13,11 +13,11 @@ function readToken() {
   const fromHash = new URLSearchParams(location.hash.slice(1)).get("token");
   try {
     if (fromHash) {
-      sessionStorage.setItem("strike-token", fromHash);
+      sessionStorage.setItem("kitmanager-token", fromHash);
       history.replaceState(null, "", location.pathname + location.search);
       return fromHash;
     }
-    return sessionStorage.getItem("strike-token") ?? "";
+    return sessionStorage.getItem("kitmanager-token") ?? "";
   } catch {
     return fromHash ?? "";
   }
@@ -27,7 +27,7 @@ const TOKEN = readToken();
 
 // `blob` : réponse binaire (WAV) au lieu de JSON.
 async function request(method, url, body, { blob = false } = {}) {
-  const options = { method, headers: { "X-Strike-Token": TOKEN } };
+  const options = { method, headers: { "X-KitManager-Token": TOKEN } };
   if (body instanceof FormData) {
     options.body = body;
   } else if (body !== undefined) {

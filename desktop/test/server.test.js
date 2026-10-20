@@ -67,9 +67,9 @@ describe("serveur à lancer", () => {
     const { command, args } = serverCommand({ ...base, packaged: true, env: {} });
     assert.deepEqual([command, args], ["/opt/app/resources/app-server/app-server", []]);
   });
-  it("STRIKE_SERVER désigne un serveur figé", () => {
+  it("KITMANAGER_SERVER désigne un serveur figé", () => {
     for (const packaged of [false, true]) {
-      const { command, args } = serverCommand({ ...base, packaged, env: { STRIKE_SERVER: "/b/app-server" } });
+      const { command, args } = serverCommand({ ...base, packaged, env: { KITMANAGER_SERVER: "/b/app-server" } });
       assert.deepEqual([command, args], ["/b/app-server", []]);
     }
   });
@@ -100,7 +100,7 @@ describe("lancement du serveur", () => {
     assert.equal(await server.stop(), 0);
   });
 
-  it("transmet le jeton (STRIKE_TOKEN) et les options, avec port libre et --watch-stdin", async () => {
+  it("transmet le jeton (KITMANAGER_TOKEN) et les options, avec port libre et --watch-stdin", async () => {
     const server = await startFake("ready", { args: [fake, "--open", "/d/B.bkf"] });
     assert.deepEqual(server.child.spawnargs.slice(1), [fake, "--open", "/d/B.bkf", "--port", "0", "--watch-stdin"]);
     await server.stop();
@@ -138,7 +138,7 @@ async function smoke(options) {
   const server = await startServer({ ...options, args, token: "t" });
   try {
     const base = `http://127.0.0.1:${server.port}`;
-    const get = (url) => fetch(base + url, { headers: { "X-Strike-Token": "t" } });
+    const get = (url) => fetch(base + url, { headers: { "X-KitManager-Token": "t" } });
     assert.equal((await fetch(`${base}/api/state`)).status, 403);
     assert.equal((await (await get("/api/state")).json()).path, ref);
     assert.equal((await (await get("/api/kits/031")).json()).name, "WhereIs");
@@ -158,10 +158,10 @@ describe("serveur réel (fumée)", { skip: !existsSync(python) && "pas de .venv"
 
 // Serveur figé (./dev.sh freeze) : lancé hors du dépôt, avec un environnement
 // minimal, pour vérifier qu'il ne dépend ni du .venv ni des sources.
-const frozen = process.env.STRIKE_SERVER;
-describe("serveur figé (fumée)", { skip: !(frozen && existsSync(frozen)) && "STRIKE_SERVER absent" }, () => {
+const frozen = process.env.KITMANAGER_SERVER;
+describe("serveur figé (fumée)", { skip: !(frozen && existsSync(frozen)) && "KITMANAGER_SERVER absent" }, () => {
   it("exécutable autonome", () => {
-    const cwd = mkdtempSync(path.join(tmpdir(), "strike-fige-"));
+    const cwd = mkdtempSync(path.join(tmpdir(), "kitmanager-fige-"));
     return smoke({ command: frozen, cwd, env: { PATH: "/usr/bin:/bin", HOME: cwd } }).finally(() =>
       rmSync(cwd, { recursive: true, force: true }),
     );

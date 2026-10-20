@@ -164,7 +164,7 @@ step_test_frozen() {
     info "Test de fumée du serveur figé"
     # sans exécutable, node:test ignorerait le test au lieu d'échouer
     [[ -x "$FROZEN_EXE" ]] || { echo "serveur figé introuvable : $FROZEN_EXE" >&2; return 1; }
-    (cd "$DESKTOP" && STRIKE_SERVER="$FROZEN_EXE" \
+    (cd "$DESKTOP" && KITMANAGER_SERVER="$FROZEN_EXE" \
         node --test --test-name-pattern "serveur figé" test/server.test.js)
 }
 
@@ -239,7 +239,7 @@ start_app() {
         if frozen_outdated; then
             step_build && step_freeze || die "construction du serveur figé impossible"
         fi
-        export STRIKE_SERVER="$FROZEN_EXE"
+        export KITMANAGER_SERVER="$FROZEN_EXE"
         info "Application de bureau (serveur figé)"
     else
         web_ready

@@ -1,7 +1,7 @@
 // Lancement du serveur Python de l'éditeur, sans dépendance à Electron (testé
 // avec node:test).
 //
-// Le serveur reçoit le jeton par STRIKE_TOKEN, choisit un port libre (--port 0)
+// Le serveur reçoit le jeton par KITMANAGER_TOKEN, choisit un port libre (--port 0)
 // et annonce `{"ready": true, "port": N}` sur sa sortie standard une fois à
 // l'écoute. Avec --watch-stdin, il s'arrête quand son entrée standard se ferme :
 // il ne survit donc pas à l'application, même si elle plante.
@@ -19,7 +19,7 @@ export function pythonCommand(projectDir, platform = process.platform) {
 }
 
 // Serveur à lancer : { command, args, cwd }.
-//   - STRIKE_SERVER : exécutable figé désigné explicitement (essai en développement) ;
+//   - KITMANAGER_SERVER : exécutable figé désigné explicitement (essai en développement) ;
 //   - application empaquetée : serveur figé de ses ressources (<serverName>/) ;
 //   - sinon : Python du .venv du dépôt (python -m editor).
 // `serverName` : nom du serveur figé, <id>-server (voir app-names.json).
@@ -32,7 +32,7 @@ export function serverCommand({
   platform = process.platform,
 }) {
   const exe = platform === "win32" ? `${serverName}.exe` : serverName;
-  if (env.STRIKE_SERVER) return { command: path.resolve(env.STRIKE_SERVER), args: [], cwd: undefined };
+  if (env.KITMANAGER_SERVER) return { command: path.resolve(env.KITMANAGER_SERVER), args: [], cwd: undefined };
   if (packaged) return { command: path.join(resourcesPath, serverName, exe), args: [], cwd: undefined };
   return { command: pythonCommand(projectDir, platform), args: ["-m", "editor"], cwd: projectDir };
 }
@@ -80,7 +80,7 @@ export function fileArgument(argv, cwd, skip) {
 export function startServer({ command, args = [], cwd, token, env = process.env, timeoutMs = 30000 }) {
   const child = spawn(command, [...args, "--port", "0", "--watch-stdin"], {
     cwd,
-    env: { ...env, STRIKE_TOKEN: token },
+    env: { ...env, KITMANAGER_TOKEN: token },
     stdio: ["pipe", "pipe", "pipe"],
   });
   let stderr = "";
