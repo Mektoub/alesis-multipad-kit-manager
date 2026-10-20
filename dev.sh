@@ -8,6 +8,8 @@
 #                                de bureau ; avec TESTS, seulement les tests
 #                                Python indiqués (ex. tests.test_editor.Lancement)
 #   ./dev.sh build               build de l'interface (editor/web/dist)
+#   ./dev.sh freeze              serveur figé (PyInstaller) dans
+#                                desktop/build/strike-server/, puis test de fumée
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
@@ -23,7 +25,7 @@ PYTHON="${PYTHON:-python3}"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -121,6 +123,21 @@ step_build() {
     (cd "$WEB" && npm run --silent build)
 }
 
+step_freeze() {
+    python_deps
+    info "Serveur figé (PyInstaller)"
+    # LC_ALL=C : PyInstaller lit la sortie de ldconfig, qu'il ne comprend qu'en anglais
+    (cd "$PROJECT" && LC_ALL=C "$VENV/bin/pyinstaller" --noconfirm --log-level WARN \
+        --distpath desktop/build --workpath desktop/build/.work desktop/strike-server.spec)
+}
+
+step_test_frozen() {
+    desktop_deps
+    info "Test de fumée du serveur figé"
+    (cd "$DESKTOP" && STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server" \
+        node --test --test-name-pattern "serveur figé" test/server.test.js)
+}
+
 # Lance les étapes données, puis affiche un bilan si plusieurs ont tourné.
 run_steps() {
     local failed=() step
@@ -145,6 +162,8 @@ declare -A LABELS=(
     [lint_web]="analyse de l'interface"
     [test]="tests Python"
     [test_web]="tests de l'interface"
+    [freeze]="serveur figé"
+    [test_frozen]="test de fumée du serveur figé"
     [lint_desktop]="analyse de l'application de bureau"
     [test_desktop]="tests de l'application de bureau"
     [build]="build de l'interface"
@@ -164,7 +183,7 @@ case "$COMMAND" in
         done
         ;;
     test) TESTS="$*" ;;
-    build) (($# == 0)) || die "build n'accepte pas d'argument" ;;
+    build | freeze) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     -h | --help | help) usage 0 ;;
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
 esac
@@ -173,5 +192,6 @@ case "$COMMAND" in
     lint) run_steps lint_python lint_web lint_desktop ;;
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
+    freeze) step_build && step_freeze && run_steps test_frozen ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;
 esac
