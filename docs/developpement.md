@@ -9,7 +9,9 @@
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
 | `editeur.sh` | lancement local rapide sur une sauvegarde, avec préparation automatique du venv et de l'interface |
+| `scripts/preparer.sh` | préparation du venv et de l'interface, commune à `editeur.sh` et à l'application de bureau |
 | `dev.sh` | analyse, tests et build en local, comme la CI |
+| `desktop/` | application de bureau Electron (voir [Application de bureau](application-bureau.md)) |
 | `editor/web/` | interface Svelte (Vite) |
 | `editor/web/src/**/*.test.js` | tests de l'interface (Vitest, jsdom) |
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
@@ -38,7 +40,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh lint` | `ruff check`, `ruff format --check`, ESLint ; n'écrit rien |
 | `./dev.sh lint --fix` | corrige ce qui peut l'être et reformate (ruff, ESLint) |
 | `./dev.sh test` | tous les tests, Python et interface |
-| `./dev.sh test tests.test_editor.JetonEtChemins` | seulement les tests Python indiqués |
+| `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
 
@@ -51,6 +53,7 @@ python3 -m unittest -v tests.test_strike_kits                 # sans dépendance
 .venv/bin/python -m unittest -v tests.test_editor             # nécessite requirements.txt
 .venv/bin/python -m unittest discover -s tests -t .           # tout
 cd editor/web && npm test                                     # interface (Vitest)
+cd desktop && npm test                                        # application de bureau (node:test)
 ```
 
 ## Analyse du code
@@ -69,12 +72,13 @@ activée.
 ## Intégration continue
 
 `.github/workflows/ci.yml` (GitHub Actions) se déclenche à chaque push sur `main`
-et sur chaque pull request. Deux jobs, sous Ubuntu :
+et sur chaque pull request. Trois jobs, sous Ubuntu :
 
 | Job | Étapes |
 |---|---|
 | Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
 | Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (Vitest), `npm run build` |
+| Application de bureau (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (node:test ; sans `.venv`, le test du serveur réel est ignoré) |
 
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).

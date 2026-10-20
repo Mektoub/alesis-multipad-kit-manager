@@ -6,3 +6,4 @@ editor/web/node_modules
 editor/web/dist
 Backups/*.bkf
 Backups/*.fac
+desktop/node_modules
