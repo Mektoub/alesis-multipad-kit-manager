@@ -54,6 +54,60 @@ Autre solution, à refaire après chaque réinstallation d'Electron : donner
 `chrome-sandbox` à root avec le mode 4755
 (`sudo chown root:root desktop/node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 desktop/node_modules/electron/dist/chrome-sandbox`).
 
+#### Pourquoi ce profil, et quel risque
+
+AppArmor associe des profils à des exécutables, désignés par leur chemin, pour
+restreindre ce qu'ils peuvent faire (fichiers, réseau, privilèges). La plupart
+des programmes n'en ont pas et tournent sans restriction (`unconfined`).
+
+Les user namespaces permettent à un programme ordinaire de se créer un
+environnement isolé où il se croit root. Les sandboxes s'en servent (Chromium,
+Flatpak, Podman sans root), mais ils exposent aussi au programme des parties du
+noyau normalement réservées à root, par lesquelles sont passées de nombreuses
+élévations de privilèges. Ubuntu les réserve donc aux programmes dont le profil
+le permet (règle `userns`).
+
+Chromium y enferme les processus qui affichent les pages : une page qui
+exploiterait une faille resterait isolée, sans accès aux fichiers. Faute de user
+namespaces, il lui faut l'assistant `chrome-sandbox` appartenant à root ; sans
+l'un ni l'autre, Electron refuse de démarrer plutôt que de tourner sans
+protection.
+
+Le profil de développement n'ajoute aucune restriction (`unconfined`) et
+autorise seulement les user namespaces (`userns`), pour ce seul exécutable : il
+lui rend le comportement d'avant Ubuntu 24.04. Chrome, VS Code et le
+[paquet .deb](#paquet-deb) ont le même.
+
+- **Pour l'application**, c'est un gain : la sandbox de Chromium fonctionne,
+  alors que l'alternative courante, `--no-sandbox`, la désactive.
+- **Pour le système**, l'affaiblissement est réel mais limité, et tient au
+  chemin : le profil vise un fichier du dossier personnel, modifiable par
+  l'utilisateur. Un programme lancé sous ce compte (un paquet npm malveillant,
+  par exemple) pourrait remplacer l'exécutable et hériter du droit `userns`,
+  puis tenter d'exploiter une faille du noyau pour devenir root. Il faut pour
+  cela qu'un attaquant exécute déjà du code sous ce compte : la restriction
+  d'Ubuntu protège surtout contre cette étape suivante, et le profil la
+  contourne pour ce chemin.
+- **Le profil du paquet .deb n'a pas ce défaut** : il vise
+  `/opt/Strike Kit Editor/`, qui appartient à root ; personne d'autre ne peut y
+  remplacer l'exécutable.
+- **Les autres solutions** : `chrome-sandbox` à root en 4755 ajoute un programme
+  privilégié au milieu de fichiers modifiables par l'utilisateur (risque faible) ;
+  `--no-sandbox` ne change rien au système, mais n'offre aucune protection si une
+  page exploitait une faille (risque faible ici, la fenêtre n'affichant que le
+  serveur local).
+
+Pour l'usage courant, mieux vaut donc le paquet .deb, et ne garder le profil de
+développement que tant que l'on développe. Pour le retirer :
+
+```bash
+sudo apparmor_parser -R /etc/apparmor.d/strike-kit-editor-dev
+sudo rm /etc/apparmor.d/strike-kit-editor-dev
+```
+
+Ensuite, `npm start` affiche de nouveau son avertissement, et Electron ne démarre
+plus en développement.
+
 ## Serveur figé
 
 PyInstaller fige le serveur Python dans un dossier autonome, sans besoin de
