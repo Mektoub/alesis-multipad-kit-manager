@@ -9,7 +9,8 @@ export default [
   ...svelte.configs.recommended,
   {
     languageOptions: {
-      globals: { ...globals.browser },
+      // __APP_NAMES__ : noms de l'application, définis par vite.config.js
+      globals: { ...globals.browser, __APP_NAMES__: "readonly" },
     },
     rules: {
       // `_` : variable volontairement ignorée, ex. {#each { length: n } as _, i}

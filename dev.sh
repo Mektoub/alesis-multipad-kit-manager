@@ -2,9 +2,10 @@
 # Commandes de développement : lancement de l'éditeur, analyse, tests et build
 # comme la CI.
 #
-#   ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]
+#   ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--allow DOSSIER]… [--no-browser]
 #                                éditeur dans le navigateur sur cette sauvegarde
-#                                (lancement rapide, sans Electron)
+#                                (lancement rapide, sans Electron) ; --allow :
+#                                dossier autorisé en plus du dossier personnel
 #   ./dev.sh start [--frozen] [FICHIER]
 #                                application de bureau, sur ce fichier ;
 #                                --frozen : avec le serveur figé, reconstruit si
@@ -17,7 +18,11 @@
 #                                Python indiqués (ex. tests.test_editor.Lancement)
 #   ./dev.sh build               build de l'interface (editor/web/dist)
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
-#                                desktop/build/strike-server/, puis test de fumée
+#                                desktop/build/<id>-server/, puis test de fumée
+#   ./dev.sh package             paquet .deb de l'application dans desktop/dist/
+#                                (interface, serveur figé testé, electron-builder)
+#   ./dev.sh test-deb            installe et teste le .deb dans un conteneur Docker
+#                                Ubuntu 24.04 (reconstruit le paquet s'il est périmé)
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
@@ -32,10 +37,14 @@ VENV="$PROJECT/.venv"
 WEB="$PROJECT/editor/web"
 DESKTOP="$PROJECT/desktop"
 PYTHON="${PYTHON:-python3}"
+# serveur figé : <id>-server, <id> étant l'identifiant de app-names.json
+APP_ID="$(sed -n 's/.*"id": *"\([^"]*\)".*/\1/p' "$PROJECT/app-names.json")"
+SERVER="$APP_ID-server"
+FROZEN_EXE="$DESKTOP/build/$SERVER/$SERVER"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -71,7 +80,7 @@ desktop_deps() { node_deps "$DESKTOP"; }
 web_ready() {
     local index="$WEB/dist/index.html"
     if [[ "${REBUILD:-0}" == 1 || ! -f "$index" || -n "$(find "$WEB/src" "$WEB/index.html" \
-            "$WEB/package.json" "$WEB/vite.config.js" -newer "$index" -print -quit)" ]]; then
+            "$WEB/package.json" "$WEB/vite.config.js" "$PROJECT/app-names.json" -newer "$index" -print -quit)" ]]; then
         step_build || die "build de l'interface impossible"
     fi
 }
@@ -147,22 +156,67 @@ step_freeze() {
     info "Serveur figé (PyInstaller)"
     # LC_ALL=C : PyInstaller lit la sortie de ldconfig, qu'il ne comprend qu'en anglais
     (cd "$PROJECT" && LC_ALL=C "$VENV/bin/pyinstaller" --noconfirm --log-level WARN \
-        --distpath desktop/build --workpath desktop/build/.work desktop/strike-server.spec)
+        --distpath desktop/build --workpath desktop/build/.work desktop/server.spec)
 }
 
 step_test_frozen() {
     desktop_deps
     info "Test de fumée du serveur figé"
-    (cd "$DESKTOP" && STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server" \
+    # sans exécutable, node:test ignorerait le test au lieu d'échouer
+    [[ -x "$FROZEN_EXE" ]] || { echo "serveur figé introuvable : $FROZEN_EXE" >&2; return 1; }
+    (cd "$DESKTOP" && KITMANAGER_SERVER="$FROZEN_EXE" \
         node --test --test-name-pattern "serveur figé" test/server.test.js)
+}
+
+step_package() {
+    desktop_deps
+    info "Paquet de l'application (electron-builder)"
+    rm -rf "$DESKTOP/dist"
+    (cd "$DESKTOP" && npm run --silent package) || return 1
+    local deb
+    deb="$(ls "$DESKTOP"/dist/*.deb 2>/dev/null | head -1)"
+    [[ -n "$deb" ]] || { echo "aucun .deb produit" >&2; return 1; }
+    # le serveur figé et l'interface doivent être dans le paquet
+    local content
+    content="$(dpkg-deb -c "$deb")"
+    for f in "resources/$SERVER/$SERVER" "resources/$SERVER/_internal/editor/web/dist/index.html" \
+             resources/app.asar; do
+        grep -q "$f" <<<"$content" || { echo "absent du paquet : $f" >&2; return 1; }
+    done
+    info "Paquet : ${deb#"$PROJECT"/} ($(du -h "$deb" | cut -f1))"
+}
+
+# Le paquet manque, ou une de ses sources (application, serveur figé) est plus récente.
+deb_outdated() {
+    local deb
+    deb="$(ls "$DESKTOP"/dist/*.deb 2>/dev/null | head -1)"
+    [[ -z "$deb" ]] && return 0
+    frozen_outdated && return 0
+    [[ -n "$(find "$DESKTOP/main.js" "$DESKTOP/preload.cjs" "$DESKTOP/server.js" "$DESKTOP/package.json" \
+               "$DESKTOP/electron-builder.config.mjs" "$PROJECT/app-names.json" \
+               "$DESKTOP/build-resources" "$FROZEN_EXE" -newer "$deb" -print -quit)" ]]
+}
+
+step_test_deb() {
+    command -v docker >/dev/null || { echo "docker introuvable" >&2; return 1; }
+    local image=alesis-kit-manager-test:24.04
+    info "Image de test ($image)"
+    docker build --quiet -t "$image" "$DESKTOP/test-deb" >/dev/null || return 1
+    info "Installation et test du paquet dans le conteneur"
+    docker run --rm --security-opt seccomp=unconfined \
+        -v "$DESKTOP/dist:/paquet:ro" \
+        -v "$PROJECT/tests/ressources:/ref:ro" \
+        -v "$DESKTOP/test-deb/verifier.sh:/verifier.sh:ro" \
+        -v "$PROJECT/app-names.json:/app-names.json:ro" \
+        "$image" bash /verifier.sh
 }
 
 # Le serveur figé manque, ou une de ses sources est plus récente que lui.
 frozen_outdated() {
-    local exe="$DESKTOP/build/strike-server/strike-server"
+    local exe="$FROZEN_EXE"
     [[ ! -x "$exe" ]] && return 0
-    [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/editor" \
-               "$DESKTOP/strike-server.spec" "$DESKTOP/strike_server.py" \
+    [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/app-names.json" "$PROJECT/editor" \
+               "$DESKTOP/server.spec" "$DESKTOP/server_entry.py" \
                \( -name node_modules -o -name dist -o -name __pycache__ \) -prune -o \
                -newer "$exe" -print -quit)" ]]
 }
@@ -185,7 +239,7 @@ start_app() {
         if frozen_outdated; then
             step_build && step_freeze || die "construction du serveur figé impossible"
         fi
-        export STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server"
+        export KITMANAGER_SERVER="$FROZEN_EXE"
         info "Application de bureau (serveur figé)"
     else
         web_ready
@@ -224,6 +278,8 @@ declare -A LABELS=(
     [lint_desktop]="analyse de l'application de bureau"
     [test_desktop]="tests de l'application de bureau"
     [build]="build de l'interface"
+    [package]="paquet de l'application"
+    [test_deb]="test d'installation du paquet"
 )
 
 # --- Arguments ----------------------------------------------------------------
@@ -246,7 +302,7 @@ case "$COMMAND" in
     serve)
         while (($#)); do
             case "$1" in
-                --port | --host)
+                --port | --host | --allow)
                     (($# >= 2)) || die "valeur attendue après $1"
                     SERVE_ARGS+=("$1" "$2")
                     shift
@@ -261,7 +317,7 @@ case "$COMMAND" in
             esac
             shift
         done
-        [[ -n "$FILE" ]] || { printf 'Fichier attendu : ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]\n' >&2; exit 2; }
+        [[ -n "$FILE" ]] || { printf 'Fichier attendu : ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--allow DOSSIER]… [--no-browser]\n' >&2; exit 2; }
         ;;
     start)
         for a in "$@"; do
@@ -276,7 +332,7 @@ case "$COMMAND" in
             esac
         done
         ;;
-    build | freeze) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
+    build | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     -h | --help | help) usage 0 ;;
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
 esac
@@ -286,6 +342,13 @@ case "$COMMAND" in
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
+    package) step_build && step_freeze && step_test_frozen && run_steps package ;;
+    test-deb)
+        if deb_outdated; then
+            step_build && step_freeze && step_test_frozen && step_package || die "construction du paquet impossible"
+        fi
+        run_steps test_deb
+        ;;
     serve) serve ;;
     start) start_app ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;

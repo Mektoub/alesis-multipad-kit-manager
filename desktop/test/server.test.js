@@ -38,6 +38,9 @@ describe("fichier passé en argument", () => {
   it("empaquetée : app FICHIER, options ignorées", () => {
     assert.equal(fileArgument(["/opt/app", "--no-sandbox", "/d/B.fac"], "/ailleurs", 1), "/d/B.fac");
   });
+  it("double-clic dans le gestionnaire de fichiers : URL file:// (%U)", () => {
+    assert.equal(fileArgument(["/opt/app", "file:///home/moi/Strike%20Backup/B.bkf"], "/", 1), "/home/moi/Strike Backup/B.bkf");
+  });
   it("sans fichier", () => {
     assert.equal(fileArgument(["/x/electron", "."], "/projet", 2), null);
     assert.equal(fileArgument(["/opt/app", "--enable-logging"], "/projet", 1), null);
@@ -52,7 +55,7 @@ describe("interpréteur Python", () => {
 });
 
 describe("serveur à lancer", () => {
-  const base = { projectDir: "/p", resourcesPath: "/opt/app/resources", platform: "linux" };
+  const base = { projectDir: "/p", resourcesPath: "/opt/app/resources", serverName: "app-server", platform: "linux" };
   it("développement : Python du .venv", () => {
     assert.deepEqual(serverCommand({ ...base, packaged: false, env: {} }), {
       command: "/p/.venv/bin/python",
@@ -62,12 +65,12 @@ describe("serveur à lancer", () => {
   });
   it("empaquetée : serveur figé des ressources", () => {
     const { command, args } = serverCommand({ ...base, packaged: true, env: {} });
-    assert.deepEqual([command, args], ["/opt/app/resources/strike-server/strike-server", []]);
+    assert.deepEqual([command, args], ["/opt/app/resources/app-server/app-server", []]);
   });
-  it("STRIKE_SERVER désigne un serveur figé", () => {
+  it("KITMANAGER_SERVER désigne un serveur figé", () => {
     for (const packaged of [false, true]) {
-      const { command, args } = serverCommand({ ...base, packaged, env: { STRIKE_SERVER: "/b/strike-server" } });
-      assert.deepEqual([command, args], ["/b/strike-server", []]);
+      const { command, args } = serverCommand({ ...base, packaged, env: { KITMANAGER_SERVER: "/b/app-server" } });
+      assert.deepEqual([command, args], ["/b/app-server", []]);
     }
   });
 });
@@ -85,8 +88,8 @@ describe("serveur impossible à lancer", () => {
     assert.match(serverProblem({ ...dev, exists: only(dev.command) }), /Interface non construite.*\.\/dev\.sh start/);
   });
   it("serveur figé absent", () => {
-    assert.equal(serverProblem({ command: "/b/strike-server", exists: only() }), "Serveur introuvable : /b/strike-server.");
-    assert.equal(serverProblem({ command: "/b/strike-server", exists: only("/b/strike-server") }), null);
+    assert.equal(serverProblem({ command: "/b/app-server", exists: only() }), "Serveur introuvable : /b/app-server.");
+    assert.equal(serverProblem({ command: "/b/app-server", exists: only("/b/app-server") }), null);
   });
 });
 
@@ -97,7 +100,7 @@ describe("lancement du serveur", () => {
     assert.equal(await server.stop(), 0);
   });
 
-  it("transmet le jeton (STRIKE_TOKEN) et les options, avec port libre et --watch-stdin", async () => {
+  it("transmet le jeton (KITMANAGER_TOKEN) et les options, avec port libre et --watch-stdin", async () => {
     const server = await startFake("ready", { args: [fake, "--open", "/d/B.bkf"] });
     assert.deepEqual(server.child.spawnargs.slice(1), [fake, "--open", "/d/B.bkf", "--port", "0", "--watch-stdin"]);
     await server.stop();
@@ -130,10 +133,12 @@ describe("lancement du serveur", () => {
 // l'interface ; l'accès sans jeton est refusé.
 async function smoke(options) {
   const ref = path.join(project, "tests", "ressources", "Backup001.bkf");
-  const server = await startServer({ ...options, args: [...(options.args ?? []), "--open", ref], token: "t" });
+  // --allow : la sauvegarde de référence peut être hors du dossier personnel (HOME du test)
+  const args = [...(options.args ?? []), "--open", ref, "--allow", path.dirname(ref)];
+  const server = await startServer({ ...options, args, token: "t" });
   try {
     const base = `http://127.0.0.1:${server.port}`;
-    const get = (url) => fetch(base + url, { headers: { "X-Strike-Token": "t" } });
+    const get = (url) => fetch(base + url, { headers: { "X-KitManager-Token": "t" } });
     assert.equal((await fetch(`${base}/api/state`)).status, 403);
     assert.equal((await (await get("/api/state")).json()).path, ref);
     assert.equal((await (await get("/api/kits/031")).json()).name, "WhereIs");
@@ -153,10 +158,10 @@ describe("serveur réel (fumée)", { skip: !existsSync(python) && "pas de .venv"
 
 // Serveur figé (./dev.sh freeze) : lancé hors du dépôt, avec un environnement
 // minimal, pour vérifier qu'il ne dépend ni du .venv ni des sources.
-const frozen = process.env.STRIKE_SERVER;
-describe("serveur figé (fumée)", { skip: !(frozen && existsSync(frozen)) && "STRIKE_SERVER absent" }, () => {
+const frozen = process.env.KITMANAGER_SERVER;
+describe("serveur figé (fumée)", { skip: !(frozen && existsSync(frozen)) && "KITMANAGER_SERVER absent" }, () => {
   it("exécutable autonome", () => {
-    const cwd = mkdtempSync(path.join(tmpdir(), "strike-fige-"));
+    const cwd = mkdtempSync(path.join(tmpdir(), "kitmanager-fige-"));
     return smoke({ command: frozen, cwd, env: { PATH: "/usr/bin:/bin", HOME: cwd } }).finally(() =>
       rmSync(cwd, { recursive: true, force: true }),
     );

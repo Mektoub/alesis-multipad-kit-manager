@@ -252,7 +252,7 @@
 <svelte:window onbeforeunload={beforeunload} />
 
 <header class="top">
-  <h1>Strike Kit Editor</h1>
+  <h1>{__APP_NAMES__.long}</h1>
   <div class="open">
     {#if desktop}
       <button onclick={openDialog}>Ouvrir…</button>

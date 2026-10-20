@@ -1,0 +1,6 @@
+{
+  "long": "Alesis Strike Multipad Kit Manager",
+  "short": "Alesis Kit Manager",
+  "id": "alesis-kit-manager",
+  "config": "AlesisKitManager"
+}

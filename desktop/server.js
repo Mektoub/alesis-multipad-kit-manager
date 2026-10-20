@@ -1,7 +1,7 @@
 // Lancement du serveur Python de l'éditeur, sans dépendance à Electron (testé
 // avec node:test).
 //
-// Le serveur reçoit le jeton par STRIKE_TOKEN, choisit un port libre (--port 0)
+// Le serveur reçoit le jeton par KITMANAGER_TOKEN, choisit un port libre (--port 0)
 // et annonce `{"ready": true, "port": N}` sur sa sortie standard une fois à
 // l'écoute. Avec --watch-stdin, il s'arrête quand son entrée standard se ferme :
 // il ne survit donc pas à l'application, même si elle plante.
@@ -9,6 +9,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Interpréteur du venv du dépôt, en développement.
 export function pythonCommand(projectDir, platform = process.platform) {
@@ -18,13 +19,21 @@ export function pythonCommand(projectDir, platform = process.platform) {
 }
 
 // Serveur à lancer : { command, args, cwd }.
-//   - STRIKE_SERVER : exécutable figé désigné explicitement (essai en développement) ;
-//   - application empaquetée : serveur figé de ses ressources (strike-server/) ;
+//   - KITMANAGER_SERVER : exécutable figé désigné explicitement (essai en développement) ;
+//   - application empaquetée : serveur figé de ses ressources (<serverName>/) ;
 //   - sinon : Python du .venv du dépôt (python -m editor).
-export function serverCommand({ projectDir, packaged, resourcesPath, env = process.env, platform = process.platform }) {
-  const exe = platform === "win32" ? "strike-server.exe" : "strike-server";
-  if (env.STRIKE_SERVER) return { command: path.resolve(env.STRIKE_SERVER), args: [], cwd: undefined };
-  if (packaged) return { command: path.join(resourcesPath, "strike-server", exe), args: [], cwd: undefined };
+// `serverName` : nom du serveur figé, <id>-server (voir app-names.json).
+export function serverCommand({
+  projectDir,
+  packaged,
+  resourcesPath,
+  serverName,
+  env = process.env,
+  platform = process.platform,
+}) {
+  const exe = platform === "win32" ? `${serverName}.exe` : serverName;
+  if (env.KITMANAGER_SERVER) return { command: path.resolve(env.KITMANAGER_SERVER), args: [], cwd: undefined };
+  if (packaged) return { command: path.join(resourcesPath, serverName, exe), args: [], cwd: undefined };
   return { command: pythonCommand(projectDir, platform), args: ["-m", "editor"], cwd: projectDir };
 }
 
@@ -54,11 +63,14 @@ export function readyPort(line) {
 
 // Sauvegarde passée en argument (`electron . FICHIER`, ou `app FICHIER` une fois
 // empaquetée) : le dernier argument qui n'est pas une option, en chemin absolu.
+// Le gestionnaire de fichiers peut le donner sous forme d'URL file:// (%U).
 // `skip` : arguments à ignorer en tête (exécutable, et dossier de l'application
 // en développement).
 export function fileArgument(argv, cwd, skip) {
   const args = argv.slice(skip).filter((a) => !a.startsWith("-"));
-  return args.length ? path.resolve(cwd, args.at(-1)) : null;
+  if (!args.length) return null;
+  const arg = args.at(-1);
+  return arg.startsWith("file://") ? fileURLToPath(arg) : path.resolve(cwd, arg);
 }
 
 // Démarre le serveur et attend qu'il soit prêt. Renvoie { port, child, stop,
@@ -68,7 +80,7 @@ export function fileArgument(argv, cwd, skip) {
 export function startServer({ command, args = [], cwd, token, env = process.env, timeoutMs = 30000 }) {
   const child = spawn(command, [...args, "--port", "0", "--watch-stdin"], {
     cwd,
-    env: { ...env, STRIKE_TOKEN: token },
+    env: { ...env, KITMANAGER_TOKEN: token },
     stdio: ["pipe", "pipe", "pipe"],
   });
   let stderr = "";

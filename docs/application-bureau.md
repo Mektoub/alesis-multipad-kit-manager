@@ -1,9 +1,10 @@
 # Application de bureau
 
-Application Electron autour de l'éditeur : la même interface, dans sa propre
-fenêtre, avec les boîtes de dialogue du système. Elle n'est pas encore
-empaquetée : elle se lance depuis le dépôt et utilise le Python du `.venv`, ou
-le [serveur figé](#serveur-figé).
+Alesis Strike Multipad Kit Manager (nom court : Alesis Kit Manager) :
+application Electron autour de l'éditeur, la même interface, dans sa propre
+fenêtre, avec les boîtes de dialogue du système. Elle s'installe par un
+[paquet .deb](#paquet-deb), ou se lance depuis le dépôt en développement, avec le
+Python du `.venv` ou le [serveur figé](#serveur-figé).
 
 ## Lancement (développement)
 
@@ -39,8 +40,8 @@ Chrome et VS Code ont pour cela un profil AppArmor dans `/etc/apparmor.d`. Il en
 faut un pour l'Electron de `desktop/node_modules`, à installer une fois :
 
 ```bash
-desktop/apparmor.sh | sudo tee /etc/apparmor.d/strike-kit-editor-dev
-sudo apparmor_parser -r /etc/apparmor.d/strike-kit-editor-dev
+desktop/apparmor.sh | sudo tee /etc/apparmor.d/alesis-kit-manager-dev
+sudo apparmor_parser -r /etc/apparmor.d/alesis-kit-manager-dev
 ```
 
 `desktop/apparmor.sh` affiche le profil, avec le chemin de l'exécutable de ce
@@ -54,20 +55,74 @@ Autre solution, à refaire après chaque réinstallation d'Electron : donner
 `chrome-sandbox` à root avec le mode 4755
 (`sudo chown root:root desktop/node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 desktop/node_modules/electron/dist/chrome-sandbox`).
 
+#### Pourquoi ce profil, et quel risque
+
+AppArmor associe des profils à des exécutables, désignés par leur chemin, pour
+restreindre ce qu'ils peuvent faire (fichiers, réseau, privilèges). La plupart
+des programmes n'en ont pas et tournent sans restriction (`unconfined`).
+
+Les user namespaces permettent à un programme ordinaire de se créer un
+environnement isolé où il se croit root. Les sandboxes s'en servent (Chromium,
+Flatpak, Podman sans root), mais ils exposent aussi au programme des parties du
+noyau normalement réservées à root, par lesquelles sont passées de nombreuses
+élévations de privilèges. Ubuntu les réserve donc aux programmes dont le profil
+le permet (règle `userns`).
+
+Chromium y enferme les processus qui affichent les pages : une page qui
+exploiterait une faille resterait isolée, sans accès aux fichiers. Faute de user
+namespaces, il lui faut l'assistant `chrome-sandbox` appartenant à root ; sans
+l'un ni l'autre, Electron refuse de démarrer plutôt que de tourner sans
+protection.
+
+Le profil de développement n'ajoute aucune restriction (`unconfined`) et
+autorise seulement les user namespaces (`userns`), pour ce seul exécutable : il
+lui rend le comportement d'avant Ubuntu 24.04. Chrome, VS Code et le
+[paquet .deb](#paquet-deb) ont le même.
+
+- **Pour l'application**, c'est un gain : la sandbox de Chromium fonctionne,
+  alors que l'alternative courante, `--no-sandbox`, la désactive.
+- **Pour le système**, l'affaiblissement est réel mais limité, et tient au
+  chemin : le profil vise un fichier du dossier personnel, modifiable par
+  l'utilisateur. Un programme lancé sous ce compte (un paquet npm malveillant,
+  par exemple) pourrait remplacer l'exécutable et hériter du droit `userns`,
+  puis tenter d'exploiter une faille du noyau pour devenir root. Il faut pour
+  cela qu'un attaquant exécute déjà du code sous ce compte : la restriction
+  d'Ubuntu protège surtout contre cette étape suivante, et le profil la
+  contourne pour ce chemin.
+- **Le profil du paquet .deb n'a pas ce défaut** : il vise
+  `/opt/alesis-kit-manager/`, qui appartient à root ; personne d'autre ne peut y
+  remplacer l'exécutable.
+- **Les autres solutions** : `chrome-sandbox` à root en 4755 ajoute un programme
+  privilégié au milieu de fichiers modifiables par l'utilisateur (risque faible) ;
+  `--no-sandbox` ne change rien au système, mais n'offre aucune protection si une
+  page exploitait une faille (risque faible ici, la fenêtre n'affichant que le
+  serveur local).
+
+Pour l'usage courant, mieux vaut donc le paquet .deb, et ne garder le profil de
+développement que tant que l'on développe. Pour le retirer :
+
+```bash
+sudo apparmor_parser -R /etc/apparmor.d/alesis-kit-manager-dev
+sudo rm /etc/apparmor.d/alesis-kit-manager-dev
+```
+
+Ensuite, `npm start` affiche de nouveau son avertissement, et Electron ne démarre
+plus en développement.
+
 ## Serveur figé
 
 PyInstaller fige le serveur Python dans un dossier autonome, sans besoin de
 Python ni du `.venv` : l'exécutable, ses bibliothèques et l'interface construite.
-C'est lui que l'application empaquetée embarquera (étape suivante).
+C'est lui que le [paquet .deb](#paquet-deb) embarque.
 
 ```bash
-./dev.sh freeze                  # → desktop/build/strike-server/ (ignoré par Git)
+./dev.sh freeze                  # → desktop/build/alesis-kit-manager-server/ (ignoré par Git)
 ./dev.sh start --frozen Backups/Backup001.bkf
 ```
 
 `./dev.sh start --frozen` reconstruit d'abord le serveur figé s'il manque ou si
 une de ses sources a changé (sans relancer le test de fumée), puis lance
-l'application avec `STRIKE_SERVER=desktop/build/strike-server/strike-server`.
+l'application avec `KITMANAGER_SERVER=desktop/build/alesis-kit-manager-server/alesis-kit-manager-server`.
 
 `./dev.sh freeze` construit l'interface et le serveur figé, puis lance son test
 de fumée : depuis un dossier temporaire, avec un environnement minimal,
@@ -75,22 +130,99 @@ l'exécutable doit ouvrir la sauvegarde de référence, servir un kit, un WAV et
 l'interface, et refuser l'accès sans jeton. La CI fait de même (job « Serveur
 figé »).
 
-- Recette : `desktop/strike-server.spec`, point d'entrée `desktop/strike_server.py`
+- Recette : `desktop/server.spec`, point d'entrée `desktop/server_entry.py`
   (mêmes options que `python -m editor`).
 - Les symboles de débogage sont retirés (`strip`) : avec un Python compilé
   localement (asdf, pyenv), le dossier passe de 73 à 33 Mo.
 - Il est construit pour la plateforme et la version de Python de la machine qui
   le construit.
 
-L'application lance le serveur désigné par `STRIKE_SERVER` s'il est défini, puis,
-une fois empaquetée, celui de ses ressources (`strike-server/`), et sinon le
+L'application lance le serveur désigné par `KITMANAGER_SERVER` s'il est défini, puis,
+une fois empaquetée, celui de ses ressources (`alesis-kit-manager-server/`), et sinon le
 Python du `.venv`.
+
+## Paquet .deb
+
+```bash
+./dev.sh package                                              # → desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
+sudo apt install ./desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
+sudo apt remove alesis-kit-manager                            # désinstallation
+```
+
+`./dev.sh package` enchaîne le build de l'interface, le serveur figé et son test
+de fumée, puis electron-builder (`npm run package` dans `desktop/`). Il vérifie
+enfin que le paquet contient le serveur figé, l'interface et l'application.
+Le numéro de version est celui de `desktop/package.json`.
+
+Le paquet (environ 110 Mo) installe :
+
+- l'application dans `/opt/alesis-kit-manager/`, avec le serveur figé dans
+  `resources/alesis-kit-manager-server/` ; la commande `alesis-kit-manager` ;
+- une entrée « Alesis Kit Manager » dans le menu des applications, avec son icône ;
+- les types de fichier `.bkf` et `.fac` : un double-clic sur une sauvegarde dans
+  le gestionnaire de fichiers l'ouvre dans l'application (dans la fenêtre déjà
+  ouverte s'il y en a une) ;
+- sur Ubuntu 24.04 et suivants, un profil AppArmor
+  (`/etc/apparmor.d/alesis-kit-manager`) qui permet la sandbox de Chromium : rien
+  à faire à la main, contrairement au [développement](#ubuntu-2404-et-suivants--profil-apparmor).
+
+Aux dépendances par
+défaut d'electron-builder, le paquet ajoute `libasound2t64 | libasound2`, sans
+laquelle Electron ne démarre pas sur un système sans son installé.
+
+### Noms de l'application
+
+Tous les noms viennent de `app-names.json`, à la racine du dépôt :
+
+| Clé | Valeur | Usage |
+|---|---|---|
+| `long` | Alesis Strike Multipad Kit Manager | affichage : titre de la fenêtre et de la page, en-tête de l'interface, boîtes de dialogue, description du paquet |
+| `short` | Alesis Kit Manager | affichage court : entrée du menu des applications |
+| `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor, serveur figé `<id>-server` |
+| `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` |
+
+Ils sont lus par Vite (`editor/web/vite.config.js` : `<title>` et `__APP_NAMES__`),
+PyInstaller (`desktop/server.spec`), electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui
+les retrouve dans le `package.json` de l'application empaquetée), le serveur
+(titre de sa documentation `/docs`) et les scripts `dev.sh`, `desktop/apparmor.sh` et
+`desktop/test-deb/verifier.sh`. L'identifiant ne doit pas contenir d'espaces :
+`chrome-sandbox` ne supporte pas un chemin d'installation qui en contient.
+
+### Tester l'installation dans un conteneur
+
+```bash
+./dev.sh test-deb
+```
+
+Installe le paquet de `desktop/dist/` dans un conteneur Docker Ubuntu 24.04
+propre (`desktop/test-deb/Dockerfile`, sans Python ni Node), puis vérifie
+(`desktop/test-deb/verifier.sh`) :
+
+- l'installation par `apt` (dépendances, script d'installation) ;
+- les fichiers installés, l'entrée de menu (`desktop-file-validate`), l'absence
+  de Python ;
+- les types de fichier `.bkf` / `.fac` et l'application qui leur est associée ;
+- le serveur intégré : test de fumée sur la sauvegarde de référence ;
+- l'application : lancée sous Xvfb par un utilisateur non root, elle doit ouvrir
+  sa fenêtre sur le serveur local et charger l'éditeur, puis arrêter le serveur en
+  quittant ;
+- la désinstallation.
+
+Le paquet est d'abord reconstruit s'il manque ou si une de ses sources a changé.
+Le conteneur est lancé avec `--security-opt seccomp=unconfined` : le filtre
+seccomp par défaut de Docker interdit les user namespaces, et la sandbox de
+Chromium ne pourrait pas démarrer. Le profil AppArmor et l'intégration réelle au
+bureau (menu, double-clic, boîtes de dialogue) ne se vérifient pas dans un
+conteneur.
+
+L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
+512 px, refait avec `desktop/build-resources/render-icon.cjs` (voir son en-tête).
 
 ## Fonctionnement
 
 - **Serveur** : l'application lance le serveur (`python -m editor` ou le serveur
   figé) avec `--port 0 --watch-stdin`
-  avec un jeton aléatoire (`STRIKE_TOKEN`), attend la ligne
+  avec un jeton aléatoire (`KITMANAGER_TOKEN`), attend la ligne
   `{"ready": true, "port": N}` (30 s au plus), puis ouvre la fenêtre sur
   `http://127.0.0.1:N`. Si le serveur ne démarre pas, une boîte d'erreur affiche
   la fin de sa sortie d'erreur.
@@ -108,8 +240,13 @@ Python du `.venv`.
   *Enregistrer* (dans le fichier ouvert, avec la copie `.bak` habituelle),
   *Quitter sans enregistrer* ou *Annuler*. Une modification encore en attente
   d'envoi au serveur est comptée.
+- **Fichiers** : le serveur n'ouvre et n'enregistre que dans le dossier
+  personnel et les supports amovibles de l'utilisateur (voir
+  [Dossiers autorisés](editeur-web.md#dossiers-autorisés)) ; les boîtes de
+  dialogue permettent de parcourir tout le disque, mais un fichier choisi ailleurs
+  est refusé, avec un message dans la fenêtre.
 - **Sécurité** : la page n'a pas accès à Node (`contextIsolation`, `sandbox`) ;
-  le préchargement (`desktop/preload.cjs`) n'expose que `window.strikeDesktop`
+  le préchargement (`desktop/preload.cjs`) n'expose que `window.kitManagerDesktop`
   (voir [Mode bureau](editeur-web.md#mode-bureau)), à la seule page du serveur
   local. La navigation est limitée à ce serveur ; les liens externes s'ouvrent
   dans le navigateur.
@@ -119,16 +256,20 @@ Python du `.venv`.
 | Chemin | Rôle |
 |---|---|
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
-| `desktop/preload.cjs` | pont `window.strikeDesktop` |
+| `desktop/preload.cjs` | pont `window.kitManagerDesktop` |
+| `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |
+| `desktop/electron-builder.config.mjs` | configuration d'electron-builder : paquet .deb, types de fichier, icône |
+| `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |
+| `desktop/test-deb/` | test d'installation du paquet dans un conteneur (`./dev.sh test-deb`) |
 | `desktop/apparmor.sh` | profil AppArmor de l'Electron de développement, et vérification avant `npm start` |
 | `desktop/server.js` | choix et lancement du serveur, sans dépendance à Electron |
-| `desktop/strike-server.spec`, `desktop/strike_server.py` | recette PyInstaller du serveur figé et son point d'entrée |
+| `desktop/server.spec`, `desktop/server_entry.py` | recette PyInstaller du serveur figé et son point d'entrée |
 | `desktop/test/` | tests `node:test` (`npm test`) ; un faux serveur simule les cas d'erreur |
 
 `npm test` vérifie la lecture de la ligne « prêt », les arguments, les échecs
 (serveur arrêté, muet, introuvable) et l'arrêt ; un test de fumée lance le vrai
 serveur sur la sauvegarde de référence quand `.venv` existe, et le serveur figé
-quand `STRIKE_SERVER` le désigne (`./dev.sh freeze`).
+quand `KITMANAGER_SERVER` le désigne (`./dev.sh freeze`).
 
 ## Dépannage
 
