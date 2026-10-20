@@ -18,7 +18,7 @@
 #                                Python indiqués (ex. tests.test_editor.Lancement)
 #   ./dev.sh build               build de l'interface (editor/web/dist)
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
-#                                desktop/build/strike-server/, puis test de fumée
+#                                desktop/build/<id>-server/, puis test de fumée
 #   ./dev.sh package             paquet .deb de l'application dans desktop/dist/
 #                                (interface, serveur figé testé, electron-builder)
 #   ./dev.sh test-deb            installe et teste le .deb dans un conteneur Docker
@@ -37,6 +37,10 @@ VENV="$PROJECT/.venv"
 WEB="$PROJECT/editor/web"
 DESKTOP="$PROJECT/desktop"
 PYTHON="${PYTHON:-python3}"
+# serveur figé : <id>-server, <id> étant l'identifiant de app-names.json
+APP_ID="$(sed -n 's/.*"id": *"\([^"]*\)".*/\1/p' "$PROJECT/app-names.json")"
+SERVER="$APP_ID-server"
+FROZEN_EXE="$DESKTOP/build/$SERVER/$SERVER"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
@@ -152,13 +156,15 @@ step_freeze() {
     info "Serveur figé (PyInstaller)"
     # LC_ALL=C : PyInstaller lit la sortie de ldconfig, qu'il ne comprend qu'en anglais
     (cd "$PROJECT" && LC_ALL=C "$VENV/bin/pyinstaller" --noconfirm --log-level WARN \
-        --distpath desktop/build --workpath desktop/build/.work desktop/strike-server.spec)
+        --distpath desktop/build --workpath desktop/build/.work desktop/server.spec)
 }
 
 step_test_frozen() {
     desktop_deps
     info "Test de fumée du serveur figé"
-    (cd "$DESKTOP" && STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server" \
+    # sans exécutable, node:test ignorerait le test au lieu d'échouer
+    [[ -x "$FROZEN_EXE" ]] || { echo "serveur figé introuvable : $FROZEN_EXE" >&2; return 1; }
+    (cd "$DESKTOP" && STRIKE_SERVER="$FROZEN_EXE" \
         node --test --test-name-pattern "serveur figé" test/server.test.js)
 }
 
@@ -173,7 +179,7 @@ step_package() {
     # le serveur figé et l'interface doivent être dans le paquet
     local content
     content="$(dpkg-deb -c "$deb")"
-    for f in resources/strike-server/strike-server resources/strike-server/_internal/editor/web/dist/index.html \
+    for f in "resources/$SERVER/$SERVER" "resources/$SERVER/_internal/editor/web/dist/index.html" \
              resources/app.asar; do
         grep -q "$f" <<<"$content" || { echo "absent du paquet : $f" >&2; return 1; }
     done
@@ -188,7 +194,7 @@ deb_outdated() {
     frozen_outdated && return 0
     [[ -n "$(find "$DESKTOP/main.js" "$DESKTOP/preload.cjs" "$DESKTOP/server.js" "$DESKTOP/package.json" \
                "$DESKTOP/electron-builder.config.mjs" "$PROJECT/app-names.json" \
-               "$DESKTOP/build-resources" "$DESKTOP/build/strike-server/strike-server" -newer "$deb" -print -quit)" ]]
+               "$DESKTOP/build-resources" "$FROZEN_EXE" -newer "$deb" -print -quit)" ]]
 }
 
 step_test_deb() {
@@ -207,10 +213,10 @@ step_test_deb() {
 
 # Le serveur figé manque, ou une de ses sources est plus récente que lui.
 frozen_outdated() {
-    local exe="$DESKTOP/build/strike-server/strike-server"
+    local exe="$FROZEN_EXE"
     [[ ! -x "$exe" ]] && return 0
     [[ -n "$(find "$PROJECT/strike_kits.py" "$PROJECT/requirements.txt" "$PROJECT/app-names.json" "$PROJECT/editor" \
-               "$DESKTOP/strike-server.spec" "$DESKTOP/strike_server.py" \
+               "$DESKTOP/server.spec" "$DESKTOP/server_entry.py" \
                \( -name node_modules -o -name dist -o -name __pycache__ \) -prune -o \
                -newer "$exe" -print -quit)" ]]
 }
@@ -233,7 +239,7 @@ start_app() {
         if frozen_outdated; then
             step_build && step_freeze || die "construction du serveur figé impossible"
         fi
-        export STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server"
+        export STRIKE_SERVER="$FROZEN_EXE"
         info "Application de bureau (serveur figé)"
     else
         web_ready

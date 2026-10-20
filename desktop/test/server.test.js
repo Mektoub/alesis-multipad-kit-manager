@@ -55,7 +55,7 @@ describe("interpréteur Python", () => {
 });
 
 describe("serveur à lancer", () => {
-  const base = { projectDir: "/p", resourcesPath: "/opt/app/resources", platform: "linux" };
+  const base = { projectDir: "/p", resourcesPath: "/opt/app/resources", serverName: "app-server", platform: "linux" };
   it("développement : Python du .venv", () => {
     assert.deepEqual(serverCommand({ ...base, packaged: false, env: {} }), {
       command: "/p/.venv/bin/python",
@@ -65,12 +65,12 @@ describe("serveur à lancer", () => {
   });
   it("empaquetée : serveur figé des ressources", () => {
     const { command, args } = serverCommand({ ...base, packaged: true, env: {} });
-    assert.deepEqual([command, args], ["/opt/app/resources/strike-server/strike-server", []]);
+    assert.deepEqual([command, args], ["/opt/app/resources/app-server/app-server", []]);
   });
   it("STRIKE_SERVER désigne un serveur figé", () => {
     for (const packaged of [false, true]) {
-      const { command, args } = serverCommand({ ...base, packaged, env: { STRIKE_SERVER: "/b/strike-server" } });
-      assert.deepEqual([command, args], ["/b/strike-server", []]);
+      const { command, args } = serverCommand({ ...base, packaged, env: { STRIKE_SERVER: "/b/app-server" } });
+      assert.deepEqual([command, args], ["/b/app-server", []]);
     }
   });
 });
@@ -88,8 +88,8 @@ describe("serveur impossible à lancer", () => {
     assert.match(serverProblem({ ...dev, exists: only(dev.command) }), /Interface non construite.*\.\/dev\.sh start/);
   });
   it("serveur figé absent", () => {
-    assert.equal(serverProblem({ command: "/b/strike-server", exists: only() }), "Serveur introuvable : /b/strike-server.");
-    assert.equal(serverProblem({ command: "/b/strike-server", exists: only("/b/strike-server") }), null);
+    assert.equal(serverProblem({ command: "/b/app-server", exists: only() }), "Serveur introuvable : /b/app-server.");
+    assert.equal(serverProblem({ command: "/b/app-server", exists: only("/b/app-server") }), null);
   });
 });
 

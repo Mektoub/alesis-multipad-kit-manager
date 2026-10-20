@@ -8,6 +8,7 @@ set -uo pipefail
 
 ID="$(sed -n 's/.*"id": *"\([^"]*\)".*/\1/p' /app-names.json)"  # paquet, exécutable, /opt/<id>
 export ID  # utilisé dans les bash -c '…'
+SERVER="$ID-server"  # serveur figé, dans resources/
 FAILED=0
 ok() { printf '  \033[32m✔\033[0m %s\n' "$*"; }
 ko() { printf '  \033[31m✖\033[0m %s\n' "$*"; FAILED=1; }
@@ -27,8 +28,8 @@ grep -i "apparmor" /tmp/apt.log | sed 's/^/    /'
 step "Fichiers installés"
 APP="/opt/$ID"
 check "commande $ID → $APP/$ID" test "$(readlink -f "/usr/bin/$ID")" -ef "$APP/$ID"
-check "serveur intégré resources/strike-server" test -x "$APP/resources/strike-server/strike-server"
-check "interface intégrée" test -f "$APP/resources/strike-server/_internal/editor/web/dist/index.html"
+check "serveur intégré resources/$SERVER" test -x "$APP/resources/$SERVER/$SERVER"
+check "interface intégrée" test -f "$APP/resources/$SERVER/_internal/editor/web/dist/index.html"
 check "icône 512 px" test -f /usr/share/icons/hicolor/512x512/apps/$ID.png
 check "entrée de menu valide (desktop-file-validate)" desktop-file-validate /usr/share/applications/$ID.desktop
 check "aucun Python sur le système" bash -c '! command -v python3'
@@ -41,7 +42,7 @@ check "application associée aux .bkf et .fac" bash -c 'grep -q "application/x-s
 
 step "Serveur intégré (test de fumée)"
 cp /ref/Backup001.bkf /home/testeur/ && chown testeur: /home/testeur/Backup001.bkf
-su testeur -c "STRIKE_TOKEN=t '$APP/resources/strike-server/strike-server' --port 0 --open /home/testeur/Backup001.bkf" \
+su testeur -c "STRIKE_TOKEN=t '$APP/resources/$SERVER/$SERVER' --port 0 --open /home/testeur/Backup001.bkf" \
     > /tmp/serveur.out 2> /tmp/serveur.err &
 for _ in $(seq 40); do grep -q '"ready"' /tmp/serveur.out && break; sleep 0.25; done
 port="$(grep -o '"port": [0-9]*' /tmp/serveur.out | grep -o '[0-9]*$')"
@@ -57,7 +58,7 @@ if [[ -n "$port" ]]; then
 else
     ko "le serveur n'a pas démarré"; sed 's/^/    /' /tmp/serveur.err | tail -10
 fi
-pkill -f "strike-server --port 0 --open" ; sleep 0.5
+pkill -f "$SERVER --port 0 --open" ; sleep 0.5
 
 step "Application (Electron sous Xvfb, utilisateur non root)"
 su testeur -c "cd ~ && xvfb-run -a $ID --remote-debugging-port=9222 Backup001.bkf" > /tmp/app.log 2>&1 &
@@ -68,21 +69,21 @@ for _ in $(seq 60); do
 done
 if grep -q '"url": "http://127.0.0.1:' <<<"$pages"; then
     ok "fenêtre ouverte sur le serveur local"
-    title="$(grep -o '<title>[^<]*' "$APP/resources/strike-server/_internal/editor/web/dist/index.html" | cut -c8-)"
+    title="$(grep -o '<title>[^<]*' "$APP/resources/$SERVER/_internal/editor/web/dist/index.html" | cut -c8-)"
     for _ in $(seq 20); do  # le titre n'apparaît qu'une fois la page chargée
         grep -qF "\"title\": \"$title\"" <<<"$pages" && break
         sleep 0.5
         pages="$(curl -fsS http://127.0.0.1:9222/json/list 2>/dev/null)"
     done
     check "page de l'éditeur chargée ($title)" grep -qF "\"title\": \"$title\"" <<<"$pages"
-    check "serveur lancé par l'application (--watch-stdin)" pgrep -f "resources/strike-server/strike-server --port 0 --watch-stdin"
+    check "serveur lancé par l'application (--watch-stdin)" pgrep -f "resources/$SERVER/$SERVER --port 0 --watch-stdin"
 else
     ko "l'application n'a pas ouvert sa fenêtre"; grep -v -i "dbus\|vulkan\|gpu" /tmp/app.log | tail -15 | sed 's/^/    /'
 fi
 # processus principal (lancé par /usr/bin/<id>, d'où le motif)
 pkill -TERM -f "$ID --remote-debugging-port" ; sleep 3
 # [s] : le motif ne correspond pas à la ligne de commande de ce bash -c lui-même
-check "serveur arrêté avec l'application" bash -c '! pgrep -f "[s]trike-server --port 0 --watch-stdin"'
+check "serveur arrêté avec l'application" bash -c '! pgrep -f "[-]server --port 0 --watch-stdin"'
 
 step "Désinstallation"
 apt-get remove -y $ID > /tmp/remove.log 2>&1 && ok "apt remove" || ko "apt remove"

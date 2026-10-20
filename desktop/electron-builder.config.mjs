@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 
 const names = JSON.parse(readFileSync(new URL("../app-names.json", import.meta.url), "utf8"));
+const server = `${names.id}-server`; // serveur figé (./dev.sh freeze)
 
 export default {
   appId: `io.github.mektoub.${names.id}`,
@@ -13,7 +14,7 @@ export default {
   extraMetadata: { desktopName: `${names.id}.desktop`, appNames: names },
   directories: { output: "dist", buildResources: "build-resources" },
   files: ["main.js", "preload.cjs", "server.js", "package.json"],
-  extraResources: [{ from: "build/strike-server", to: "strike-server" }],
+  extraResources: [{ from: `build/${server}`, to: server }],
   fileAssociations: [
     { ext: "bkf", name: "Sauvegarde Strike (kits et samples)", mimeType: "application/x-strike-bkf" },
     { ext: "fac", name: "Sauvegarde Strike (kits)", mimeType: "application/x-strike-fac" },
