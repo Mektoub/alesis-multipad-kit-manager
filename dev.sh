@@ -3,8 +3,9 @@
 #
 #   ./dev.sh lint [--fix]        ruff check, ruff format --check, ESLint
 #                                (--fix : corrige et reformate au lieu de vérifier)
-#   ./dev.sh test [TESTS…]       tous les tests, ou ceux indiqués
-#                                (ex. tests.test_editor.ModeBureau)
+#   ./dev.sh test [TESTS…]       tests Python et de l'interface ; avec TESTS,
+#                                seulement les tests Python indiqués
+#                                (ex. tests.test_editor.JetonEtChemins)
 #   ./dev.sh build               build de l'interface (editor/web/dist)
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
 #
@@ -86,6 +87,12 @@ step_test() {
     fi
 }
 
+step_test_web() {
+    web_deps
+    info "Tests de l'interface (Vitest)"
+    (cd "$WEB" && npm run --silent test)
+}
+
 step_build() {
     web_deps
     info "Build de l'interface"
@@ -114,7 +121,8 @@ run_steps() {
 declare -A LABELS=(
     [lint_python]="analyse Python"
     [lint_web]="analyse de l'interface"
-    [test]="tests"
+    [test]="tests Python"
+    [test_web]="tests de l'interface"
     [build]="build de l'interface"
 )
 
@@ -139,7 +147,7 @@ esac
 
 case "$COMMAND" in
     lint) run_steps lint_python lint_web ;;
-    test) run_steps test ;;
+    test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web; fi ;;
     build) run_steps build ;;
-    all) run_steps lint_python test lint_web build ;;
+    all) run_steps lint_python test lint_web test_web build ;;
 esac
