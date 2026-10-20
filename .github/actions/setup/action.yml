@@ -1,0 +1,33 @@
+# Préparation commune aux jobs des workflows : Python 3.14 avec les dépendances
+# de développement, et/ou Node 24, avec leurs caches. À appeler après
+# actions/checkout.
+name: Préparation
+description: Python 3.14 (requirements-dev.txt) et/ou Node 24, avec caches
+
+inputs:
+  python:
+    description: Installer Python et requirements-dev.txt, "true" ou "false"
+    default: "true"
+  node-lockfiles:
+    description: "package-lock.json servant de clé au cache npm, un par ligne (vide : pas de Node)"
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.python == 'true'
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.14"
+        cache: pip
+        cache-dependency-path: requirements*.txt
+    - if: inputs.python == 'true'
+      name: Dépendances Python
+      shell: bash
+      run: pip install -r requirements-dev.txt
+    - if: inputs.node-lockfiles != ''
+      uses: actions/setup-node@v5
+      with:
+        node-version: "24"
+        cache: npm
+        cache-dependency-path: ${{ inputs.node-lockfiles }}

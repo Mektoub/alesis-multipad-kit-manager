@@ -1,0 +1,80 @@
+# Paquets de l'application de bureau, sur chaque système (PyInstaller ne fait
+# pas de compilation croisée) : .deb sous Linux, installateur NSIS et zip sous
+# Windows, dmg et zip sous macOS (Apple Silicon). Lancé sur un tag v* ou à la
+# main (onglet Actions) ; les paquets sont des artefacts de l'exécution.
+# Appelé aussi par ci.yml (workflow_call), sous Linux et sans paquet : serveur
+# figé et test de fumée seulement.
+name: Paquets
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      os:
+        description: Runners, en liste JSON (par défaut les trois systèmes)
+        type: string
+        default: '["ubuntu-latest", "windows-latest", "macos-latest"]'
+      freeze-only:
+        description: Serveur figé et test de fumée seulement, sans paquet
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ inputs.freeze-only && 'Serveur figé' || 'Paquet' }} ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # inputs est vide sur un tag ou à la main : les trois systèmes
+        os: ${{ fromJSON(inputs.os || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash # Git Bash sous Windows : mêmes commandes partout
+    env:
+      # LC_ALL=C : sous Linux, PyInstaller ne comprend la sortie de ldconfig qu'en anglais
+      LC_ALL: C
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+        with:
+          node-lockfiles: |
+            editor/web/package-lock.json
+            desktop/package-lock.json
+      - name: Interface (build)
+        working-directory: editor/web
+        run: npm ci && npm run build
+      - name: Serveur figé (PyInstaller)
+        run: >
+          pyinstaller --noconfirm --log-level WARN
+          --distpath desktop/build --workpath desktop/build/.work desktop/server.spec
+      - name: Dépendances de l'application de bureau
+        working-directory: desktop
+        run: npm ci
+      - name: Test de fumée du serveur figé
+        working-directory: desktop
+        run: |
+          server="$(node -p 'require("../app-names.json").id')-server"
+          exe="build/$server/$server"
+          [[ "$RUNNER_OS" == Windows ]] && exe="$exe.exe"
+          [[ -f "$exe" ]] || { echo "serveur figé introuvable : $exe" >&2; exit 1; }
+          KITMANAGER_SERVER="$exe" node --test --test-name-pattern "serveur figé" test/server.test.js
+      - name: Paquet (electron-builder)
+        if: ${{ !inputs.freeze-only }}
+        working-directory: desktop
+        run: npm run package
+      - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.freeze-only }}
+        with:
+          name: paquet-${{ runner.os }}
+          path: |
+            desktop/dist/*.deb
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+          if-no-files-found: error

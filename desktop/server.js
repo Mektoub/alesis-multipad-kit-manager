@@ -82,6 +82,7 @@ export function startServer({ command, args = [], cwd, token, env = process.env,
     cwd,
     env: { ...env, KITMANAGER_TOKEN: token },
     stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true, // Windows : pas de fenêtre de console pour le serveur figé
   });
   let stderr = "";
   child.stderr.setEncoding("utf8");
