@@ -1,6 +1,6 @@
 {
   "name": "strike-kit-editor",
-  "productName": "Strike Kit Editor",
+  "productName": "Alesis Strike Multipad Kit Manager",
   "desktopName": "strike-kit-editor.desktop",
   "private": true,
   "version": "0.3.0",

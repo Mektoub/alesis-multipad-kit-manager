@@ -190,6 +190,11 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
   *Enregistrer* (dans le fichier ouvert, avec la copie `.bak` habituelle),
   *Quitter sans enregistrer* ou *Annuler*. Une modification encore en attente
   d'envoi au serveur est comptée.
+- **Fichiers** : le serveur n'ouvre et n'enregistre que dans le dossier
+  personnel et les supports amovibles de l'utilisateur (voir
+  [Dossiers autorisés](editeur-web.md#dossiers-autorisés)) ; les boîtes de
+  dialogue permettent de parcourir tout le disque, mais un fichier choisi ailleurs
+  est refusé, avec un message dans la fenêtre.
 - **Sécurité** : la page n'a pas accès à Node (`contextIsolation`, `sandbox`) ;
   le préchargement (`desktop/preload.cjs`) n'expose que `window.strikeDesktop`
   (voir [Mode bureau](editeur-web.md#mode-bureau)), à la seule page du serveur

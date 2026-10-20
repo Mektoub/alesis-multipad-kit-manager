@@ -17,7 +17,7 @@ import { fileArgument, serverCommand, serverProblem, startServer } from "./serve
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(here, "..");
-const TITLE = "Strike Kit Editor";
+const TITLE = "Alesis Strike Multipad Kit Manager";
 
 app.setName(TITLE);
 

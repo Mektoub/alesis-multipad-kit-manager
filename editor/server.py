@@ -3,11 +3,14 @@
 Un seul mode, pour l'application Electron comme pour le lancement local
 (./dev.sh serve) : chaque requête /api/* doit porter l'en-tête X-Strike-Token avec
 le jeton donné au lancement, et les fichiers sont ouverts et enregistrés par
-chemin absolu, comme dans tout éditeur.
+chemin absolu, comme dans tout éditeur, mais seulement dans les dossiers
+autorisés : le dossier personnel, les supports amovibles de l'utilisateur et les
+dossiers ajoutés au lancement (--allow), chemins résolus.
 « Enregistrer » écrit dans le fichier ouvert ; au premier enregistrement d'une
 session sur un fichier d'origine, son état précédent est copié dans <fichier>.N.bak.
 """
 
+import getpass
 import secrets
 import shutil
 import threading
@@ -60,6 +63,20 @@ class TransferRequest(BaseModel):
     mode: Literal["copy", "swap"]
 
 
+def default_roots():
+    """Zone autorisée par défaut : le dossier personnel et les supports amovibles
+    de l'utilisateur (clé USB, Strike branché en USB)."""
+    user = getpass.getuser()
+    return [Path.home(), Path("/media") / user, Path("/run/media") / user]
+
+
+def outside_roots(path, roots):
+    """Message d'erreur si `path` (résolu) n'est dans aucun des `roots`, sinon None."""
+    if any(path.is_relative_to(root) for root in roots):
+        return None
+    return "hors des dossiers autorisés (%s) : %s" % (", ".join(str(r) for r in roots), path)
+
+
 def next_backup_path(path):
     """Premier <fichier>.N.bak libre (N = 1, 2…)."""
     n = 1
@@ -69,19 +86,24 @@ def next_backup_path(path):
 
 
 class Session:
-    def __init__(self):
+    def __init__(self, roots):
+        self.roots = roots  # dossiers autorisés, résolus
         self.backup = None
         self.file = None  # fichier ouvert (chemin absolu)
         self.original = False  # le fichier ouvert n'a pas été écrit par l'éditeur
         self.backed_up = False  # copie .bak déjà faite pour cette session
         self.lock = threading.Lock()
 
-    @staticmethod
-    def resolve(path):
+    def resolve(self, path):
+        """Chemin absolu résolu (liens symboliques suivis), dans la zone autorisée."""
         p = Path(path)
         if not p.is_absolute():
             raise HTTPException(400, "chemin absolu attendu : %s" % path)
-        return p.resolve()
+        p = p.resolve()
+        error = outside_roots(p, self.roots)
+        if error:
+            raise HTTPException(403, error)
+        return p
 
     def check_unsaved(self, force):
         """409 si des modifications seraient perdues, sauf confirmation (`force`)."""
@@ -113,11 +135,15 @@ class Session:
         }
 
 
-def load_backup(path):
-    """Sauvegarde .bkf/.fac du chemin absolu `path` ; StrikeError sinon."""
+def load_backup(path, roots=None):
+    """Sauvegarde .bkf/.fac du chemin absolu `path`, dans `roots` s'ils sont
+    donnés ; StrikeError sinon."""
     path = Path(path)
     if not path.is_absolute():
         raise sk.StrikeError("chemin absolu attendu : %s" % path)
+    error = roots is not None and outside_roots(path.resolve(), roots)
+    if error:
+        raise sk.StrikeError(error)
     if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
         raise sk.StrikeError("sauvegarde introuvable : %s" % path)
     return sk.Backup.open(path)
@@ -130,14 +156,15 @@ def strike_errors(fn):
         raise HTTPException(400, str(exc)) from exc
 
 
-def create_app(token, open_file=None):
-    """`token` : jeton exigé sur /api/* ; `open_file` : sauvegarde ouverte au démarrage."""
+def create_app(token, open_file=None, allow=()):
+    """`token` : jeton exigé sur /api/* ; `open_file` : sauvegarde ouverte au
+    démarrage ; `allow` : dossiers autorisés en plus de la zone par défaut."""
     if not token:
         raise ValueError("un jeton est obligatoire")
-    s = Session()
+    s = Session([Path(r).resolve() for r in [*default_roots(), *allow]])
     if open_file is not None:
         path = Path(open_file)
-        s.set_opened(load_backup(path), path.resolve())
+        s.set_opened(load_backup(path, s.roots), path.resolve())
     app = FastAPI(title="Éditeur Strike MultiPad")
 
     @app.middleware("http")
