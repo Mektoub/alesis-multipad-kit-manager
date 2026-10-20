@@ -83,7 +83,7 @@ et sur chaque pull request. Quatre jobs, sous Ubuntu :
 | Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
 | Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (Vitest), `npm run build` |
 | Application de bureau (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (node:test ; sans `.venv`, le test du serveur réel est ignoré) |
-| Serveur figé (Python 3.14, Node 24) | `./dev.sh freeze` : build de l'interface, PyInstaller, test de fumée |
+| Serveur figé (Python 3.14, Node 24) | workflow `build.yml` appelé sous Linux, sans paquet : build de l'interface, PyInstaller, test de fumée |
 
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).
@@ -91,6 +91,13 @@ ci-dessus).
 Un second workflow, `.github/workflows/build.yml` (« Paquets »), construit les
 paquets de l'application de bureau sous Linux, Windows et macOS, sur un tag `v*`
 ou à la main (voir [l'application de bureau](application-bureau.md#paquets-windows-et-macos)).
+`ci.yml` le réutilise pour le job « Serveur figé » (`workflow_call`, entrées `os`
+et `freeze-only`) : les étapes du freeze n'existent qu'à un endroit. `./dev.sh
+freeze` fait la même chose en local, mais la CI ne l'exécute plus.
+
+La préparation commune à tous les jobs (Python 3.14 et `requirements-dev.txt`,
+Node 24, caches pip et npm) est l'action composite `.github/actions/setup` :
+les versions de Python et de Node ne sont écrites que là.
 
 Tous les tests reposent sur **une seule sauvegarde**, `tests/ressources/Backup001.bkf`
 (5 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été

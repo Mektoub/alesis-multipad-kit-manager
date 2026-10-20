@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.3.0 — en cours
+## 0.3.0 — Passage à une application desktop avec electron
 
 - `strike_kits.py` devient le paquet `strike_kits/` (code dans `__init__.py`, imports inchangés) ; ligne de commande : `python3 -m strike_kits export|import …` au lieu de `python3 strike_kits.py …`.
+- CI factorisée : préparation commune des jobs dans l'action composite `.github/actions/setup` (versions de Python et de Node à un seul endroit) ; le job « Serveur figé » de `ci.yml` réutilise le workflow « Paquets » (`workflow_call`, sous Linux, sans paquet) au lieu de `./dev.sh freeze`.
 - Paquets Windows (installateur NSIS en un clic, zip) et macOS Apple Silicon (dmg, zip), non signés : workflow « Paquets » (`.github/workflows/build.yml`), un runner par système, sur un tag `v*` ou à la main ; paquets en artefacts. Nom affiché « Alesis Kit Manager » sous Windows et macOS. `npm run package` construit les paquets du système courant.
 - Dossiers autorisés par défaut selon le système : `/Volumes` sous macOS, tous les lecteurs sauf celui du système sous Windows.
 - Serveur lancé sans fenêtre de console sous Windows ; test de fumée du serveur figé utilisable sous Windows et avec un chemin relatif.
