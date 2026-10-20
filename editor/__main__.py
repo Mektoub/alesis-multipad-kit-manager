@@ -4,7 +4,7 @@ L'API exige toujours un jeton (en-tête X-Strike-Token) :
   - application Electron : le jeton est donné par la variable d'environnement
     STRIKE_TOKEN ; une fois le serveur prêt, une ligne JSON
     `{"ready": true, "port": N}` est écrite sur la sortie standard ;
-  - lancement local (editeur.sh) : sans STRIKE_TOKEN, un jeton est créé et
+  - lancement local (./dev.sh serve) : sans STRIKE_TOKEN, un jeton est créé et
     transmis au navigateur dans l'adresse (http://…/#token=…).
 Avec --port 0, un port libre est choisi. Avec --watch-stdin, le serveur s'arrête
 quand son entrée standard se ferme : l'application qui l'a lancé s'est arrêtée,
@@ -83,7 +83,7 @@ def main():
         sys.exit(2)
     if not WEB_DIST.is_dir():
         print(
-            "Interface non construite : lancer ./editeur.sh, ou `npm ci && npm run build` dans editor/web.",
+            "Interface non construite : lancer ./dev.sh build, ou `npm ci && npm run build` dans editor/web.",
             file=sys.stderr,  # avertissement : la sortie standard reste réservée aux lignes utiles
         )
 

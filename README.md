@@ -15,12 +15,13 @@ copie de la sauvegarde d'origine** avant de charger un fichier produit par ces o
 |---|---|
 | `python3 strike_kits.py export SAUVEGARDE DOSSIER [--no-wav]` | exporte les kits en JSON et les samples utilisateur en WAV |
 | `python3 strike_kits.py import SAUVEGARDE DOSSIER -o NOUVELLE` | applique les JSON et les nouveaux WAV, écrit une nouvelle sauvegarde |
-| `./editeur.sh SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement local rapide) |
+| `./dev.sh serve SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement rapide) |
 | `./dev.sh start [--frozen] [SAUVEGARDE]` | lance l'application de bureau (Electron), en développement |
 
-`strike_kits.py` n'a besoin que de Python 3. `editeur.sh` demande en plus
-Node.js : au premier lancement, il crée l'environnement virtuel `.venv`, installe
-les dépendances et construit l'interface ; ensuite, il ne refait que ce qui a changé.
+`strike_kits.py` n'a besoin que de Python 3. `./dev.sh serve` et `./dev.sh start`
+demandent en plus Node.js : au premier lancement, ils créent l'environnement
+virtuel `.venv`, installent les dépendances et construisent l'interface ;
+ensuite, ils ne refont que ce qui a changé.
 
 ## Exemple
 

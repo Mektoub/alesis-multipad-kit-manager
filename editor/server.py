@@ -1,7 +1,7 @@
 """API de l'éditeur : une sauvegarde ouverte à la fois, éditée en mémoire.
 
 Un seul mode, pour l'application Electron comme pour le lancement local
-(editeur.sh) : chaque requête /api/* doit porter l'en-tête X-Strike-Token avec
+(./dev.sh serve) : chaque requête /api/* doit porter l'en-tête X-Strike-Token avec
 le jeton donné au lancement, et les fichiers sont ouverts et enregistrés par
 chemin absolu, comme dans tout éditeur.
 « Enregistrer » écrit dans le fichier ouvert ; au premier enregistrement d'une

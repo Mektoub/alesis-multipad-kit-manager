@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
-# Commandes de développement : analyse, tests et build, comme la CI.
+# Commandes de développement : lancement de l'éditeur, analyse, tests et build
+# comme la CI.
 #
+#   ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]
+#                                éditeur dans le navigateur sur cette sauvegarde
+#                                (lancement rapide, sans Electron)
+#   ./dev.sh start [--frozen] [FICHIER]
+#                                application de bureau, sur ce fichier ;
+#                                --frozen : avec le serveur figé, reconstruit si
+#                                une source a changé
 #   ./dev.sh lint [--fix]        ruff check, ruff format --check, ESLint (interface
 #                                et application de bureau)
 #                                (--fix : corrige et reformate au lieu de vérifier)
@@ -11,14 +19,12 @@
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
 #                                desktop/build/strike-server/, puis test de fumée
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
-#   ./dev.sh start [--frozen] [FICHIER]
-#                                lance l'application de bureau, sur ce fichier ;
-#                                --frozen : avec le serveur figé, reconstruit si
-#                                une source a changé
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
-# et les paquets de editor/web et desktop (npm ci). Variable : PYTHON
-# (interpréteur pour créer le venv, défaut python3).
+# et les paquets de editor/web et desktop (npm ci) ; serve et start
+# (re)construisent l'interface si une de ses sources a changé. Variables :
+# PYTHON (interpréteur pour créer le venv, défaut python3), REBUILD=1 (forcer
+# la reconstruction de l'interface).
 set -uo pipefail
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +35,7 @@ PYTHON="${PYTHON:-python3}"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -60,6 +66,15 @@ node_deps() {
 }
 web_deps() { node_deps "$WEB"; }
 desktop_deps() { node_deps "$DESKTOP"; }
+
+# Construit l'interface si elle manque ou si une de ses sources est plus récente.
+web_ready() {
+    local index="$WEB/dist/index.html"
+    if [[ "${REBUILD:-0}" == 1 || ! -f "$index" || -n "$(find "$WEB/src" "$WEB/index.html" \
+            "$WEB/package.json" "$WEB/vite.config.js" -newer "$index" -print -quit)" ]]; then
+        step_build || die "build de l'interface impossible"
+    fi
+}
 
 # --- Étapes (chacune renvoie 0 si elle réussit) -------------------------------
 
@@ -152,9 +167,20 @@ frozen_outdated() {
                -newer "$exe" -print -quit)" ]]
 }
 
-# Lance l'application (npm start) ; remplace ce script, pour que Ctrl+C l'arrête.
+# Les commandes de lancement remplacent ce script (exec), pour que Ctrl+C les arrête.
+
+# Éditeur dans le navigateur (python -m editor --open FICHIER).
+serve() {
+    python_deps
+    web_ready
+    cd "$PROJECT" || die "dossier du projet introuvable"
+    exec "$VENV/bin/python" -m editor --open "$FILE" "${SERVE_ARGS[@]}"
+}
+
+# Application de bureau (npm start).
 start_app() {
     desktop_deps
+    python_deps
     if [[ $FROZEN == 1 ]]; then
         if frozen_outdated; then
             step_build && step_freeze || die "construction du serveur figé impossible"
@@ -162,6 +188,7 @@ start_app() {
         export STRIKE_SERVER="$DESKTOP/build/strike-server/strike-server"
         info "Application de bureau (serveur figé)"
     else
+        web_ready
         info "Application de bureau"
     fi
     cd "$DESKTOP" || die "dossier desktop introuvable"
@@ -208,6 +235,7 @@ FIX=0
 TESTS=""
 FROZEN=0
 FILE=""
+SERVE_ARGS=()
 case "$COMMAND" in
     lint | all)
         for a in "$@"; do
@@ -215,6 +243,26 @@ case "$COMMAND" in
         done
         ;;
     test) TESTS="$*" ;;
+    serve)
+        while (($#)); do
+            case "$1" in
+                --port | --host)
+                    (($# >= 2)) || die "valeur attendue après $1"
+                    SERVE_ARGS+=("$1" "$2")
+                    shift
+                    ;;
+                --no-browser) SERVE_ARGS+=("$1") ;;
+                -*) die "option inconnue pour serve : $1" ;;
+                *)
+                    [[ -z "$FILE" ]] || die "un seul fichier à la fois"
+                    [[ -f "$1" ]] || die "fichier introuvable : $1"
+                    FILE="$(realpath -- "$1")"
+                    ;;
+            esac
+            shift
+        done
+        [[ -n "$FILE" ]] || { printf 'Fichier attendu : ./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]\n' >&2; exit 2; }
+        ;;
     start)
         for a in "$@"; do
             case "$a" in
@@ -238,6 +286,7 @@ case "$COMMAND" in
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
+    serve) serve ;;
     start) start_app ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;
 esac
