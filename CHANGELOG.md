@@ -6,7 +6,8 @@
 - `editeur.sh FICHIER` : lancement local rapide sur une sauvegarde (usage affiché sans paramètre) ; `python -m editor --open FICHIER`. En local, un jeton est créé et transmis au navigateur dans l'adresse (`#token=…`), puis conservé pour l'onglet.
 - Interface : ouverture par chemin complet, champ « Ouvrir » mis à jour après « Enregistrer sous ».
 - Interface en mode bureau (étape 2 du passage à Electron) : si l'application expose `window.strikeDesktop` (jeton, boîtes natives `openFile` / `saveFile`, `setDirty`), *Ouvrir…* et *Enregistrer sous…* passent par les boîtes de dialogue du système, et l'état « non enregistré » lui est signalé. Bouchon de développement (`#…&desktop=fake`, absent du build) pour tester ce mode dans le navigateur.
-- Limitation temporaire : l'écoute des samples (▶) ne fonctionne pas, la balise audio ne pouvant pas envoyer le jeton.
+- Écoute des samples (▶) : le WAV est téléchargé avec le jeton puis lu depuis un blob (la balise audio ne pouvait pas envoyer le jeton).
+- Tests de l'interface avec Vitest et jsdom (`npm test`), lancés par `dev.sh test` / `all` et par la CI.
 - Intégration continue GitHub Actions (`.github/workflows/ci.yml`) : sur chaque push sur `main` et chaque pull request, `ruff check`, `ruff format --check` et tests sous Python 3.14 ; ESLint et build de l'interface sous Node 24.
 - Analyse du code : ruff (`pyproject.toml`, `requirements-dev.txt`) avec les règles E, F, W, I, B et formatage automatique ; ESLint avec les règles recommandées JavaScript et Svelte (`editor/web/eslint.config.js`, `npm run lint`).
 - `dev.sh` : `lint [--fix]`, `test [TESTS…]`, `build`, `all` (bilan final) ; installe au besoin les dépendances de développement.

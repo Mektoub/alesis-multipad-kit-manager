@@ -11,6 +11,7 @@
 | `editeur.sh` | lancement local rapide sur une sauvegarde, avec préparation automatique du venv et de l'interface |
 | `dev.sh` | analyse, tests et build en local, comme la CI |
 | `editor/web/` | interface Svelte (Vite) |
+| `editor/web/src/**/*.test.js` | tests de l'interface (Vitest, jsdom) |
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
 | `tests/test_editor.py` | tests de l'API |
 | `tests/outils.py` | outils communs aux tests (sauvegarde de référence, WAV et `.fac` synthétiques) |
@@ -36,8 +37,8 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 |---|---|
 | `./dev.sh lint` | `ruff check`, `ruff format --check`, ESLint ; n'écrit rien |
 | `./dev.sh lint --fix` | corrige ce qui peut l'être et reformate (ruff, ESLint) |
-| `./dev.sh test` | tous les tests |
-| `./dev.sh test tests.test_editor.ModeBureau` | seulement les tests indiqués |
+| `./dev.sh test` | tous les tests, Python et interface |
+| `./dev.sh test tests.test_editor.JetonEtChemins` | seulement les tests Python indiqués |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
 
@@ -49,6 +50,7 @@ Les sections suivantes détaillent les commandes appelées.
 python3 -m unittest -v tests.test_strike_kits                 # sans dépendance
 .venv/bin/python -m unittest -v tests.test_editor             # nécessite requirements.txt
 .venv/bin/python -m unittest discover -s tests -t .           # tout
+cd editor/web && npm test                                     # interface (Vitest)
 ```
 
 ## Analyse du code
@@ -72,7 +74,7 @@ et sur chaque pull request. Deux jobs, sous Ubuntu :
 | Job | Étapes |
 |---|---|
 | Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
-| Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm run build` |
+| Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (Vitest), `npm run build` |
 
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).

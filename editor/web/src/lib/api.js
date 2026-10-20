@@ -25,7 +25,8 @@ function readToken() {
 
 const TOKEN = readToken();
 
-async function request(method, url, body) {
+// `blob` : réponse binaire (WAV) au lieu de JSON.
+async function request(method, url, body, { blob = false } = {}) {
   const options = { method, headers: { "X-Strike-Token": TOKEN } };
   if (body instanceof FormData) {
     options.body = body;
@@ -45,7 +46,7 @@ async function request(method, url, body) {
     err.status = res.status;
     throw err;
   }
-  return res.json();
+  return blob ? res.blob() : res.json();
 }
 
 export const api = {
@@ -66,5 +67,7 @@ export const api = {
   },
   // sans chemin : « Enregistrer » dans le fichier ouvert ; avec : « Enregistrer sous »
   save: (path = null, overwrite = false) => request("POST", "/api/save", path == null ? {} : { path, overwrite }),
-  wavUrl: (id) => `/api/samples/${id}/wav`,
+  // WAV d'un sample utilisateur, en Blob : une balise audio ne pourrait pas
+  // envoyer le jeton, l'interface le télécharge donc elle-même.
+  wav: (id) => request("GET", `/api/samples/${id}/wav`, undefined, { blob: true }),
 };
