@@ -2,7 +2,8 @@
 
 Application Electron autour de l'éditeur : la même interface, dans sa propre
 fenêtre, avec les boîtes de dialogue du système. Elle n'est pas encore
-empaquetée : elle se lance depuis le dépôt et utilise le Python du `.venv`.
+empaquetée : elle se lance depuis le dépôt et utilise le Python du `.venv`, ou
+le [serveur figé](#serveur-figé).
 
 ## Lancement (développement)
 
@@ -49,9 +50,38 @@ Autre solution, à refaire après chaque réinstallation d'Electron : donner
 `chrome-sandbox` à root avec le mode 4755
 (`sudo chown root:root desktop/node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 desktop/node_modules/electron/dist/chrome-sandbox`).
 
+## Serveur figé
+
+PyInstaller fige le serveur Python dans un dossier autonome, sans besoin de
+Python ni du `.venv` : l'exécutable, ses bibliothèques et l'interface construite.
+C'est lui que l'application empaquetée embarquera (étape suivante).
+
+```bash
+./dev.sh freeze                  # → desktop/build/strike-server/ (ignoré par Git)
+STRIKE_SERVER=build/strike-server/strike-server npm start -- ../Backups/Backup001.bkf
+```
+
+`./dev.sh freeze` construit l'interface et le serveur figé, puis lance son test
+de fumée : depuis un dossier temporaire, avec un environnement minimal,
+l'exécutable doit ouvrir la sauvegarde de référence, servir un kit, un WAV et
+l'interface, et refuser l'accès sans jeton. La CI fait de même (job « Serveur
+figé »).
+
+- Recette : `desktop/strike-server.spec`, point d'entrée `desktop/strike_server.py`
+  (mêmes options que `python -m editor`).
+- Les symboles de débogage sont retirés (`strip`) : avec un Python compilé
+  localement (asdf, pyenv), le dossier passe de 73 à 33 Mo.
+- Il est construit pour la plateforme et la version de Python de la machine qui
+  le construit.
+
+L'application lance le serveur désigné par `STRIKE_SERVER` s'il est défini, puis,
+une fois empaquetée, celui de ses ressources (`strike-server/`), et sinon le
+Python du `.venv`.
+
 ## Fonctionnement
 
-- **Serveur** : l'application lance `python -m editor --port 0 --watch-stdin`
+- **Serveur** : l'application lance le serveur (`python -m editor` ou le serveur
+  figé) avec `--port 0 --watch-stdin`
   avec un jeton aléatoire (`STRIKE_TOKEN`), attend la ligne
   `{"ready": true, "port": N}` (30 s au plus), puis ouvre la fenêtre sur
   `http://127.0.0.1:N`. Si le serveur ne démarre pas, une boîte d'erreur affiche
@@ -83,12 +113,14 @@ Autre solution, à refaire après chaque réinstallation d'Electron : donner
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
 | `desktop/preload.cjs` | pont `window.strikeDesktop` |
 | `desktop/apparmor.sh` | profil AppArmor de l'Electron de développement, et vérification avant `npm start` |
-| `desktop/server.js` | lancement du serveur Python, sans dépendance à Electron |
+| `desktop/server.js` | choix et lancement du serveur, sans dépendance à Electron |
+| `desktop/strike-server.spec`, `desktop/strike_server.py` | recette PyInstaller du serveur figé et son point d'entrée |
 | `desktop/test/` | tests `node:test` (`npm test`) ; un faux serveur simule les cas d'erreur |
 
 `npm test` vérifie la lecture de la ligne « prêt », les arguments, les échecs
 (serveur arrêté, muet, introuvable) et l'arrêt ; un test de fumée lance le vrai
-serveur sur la sauvegarde de référence quand `.venv` existe.
+serveur sur la sauvegarde de référence quand `.venv` existe, et le serveur figé
+quand `STRIKE_SERVER` le désigne (`./dev.sh freeze`).
 
 ## Dépannage
 

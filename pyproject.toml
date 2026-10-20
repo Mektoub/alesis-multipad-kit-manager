@@ -3,7 +3,7 @@
 [tool.ruff]
 line-length = 120
 target-version = "py314"
-extend-exclude = ["editor/web", "mes_kits", "Backups"]
+extend-exclude = ["editor/web", "mes_kits", "Backups", "desktop/node_modules", "desktop/build"]
 
 [tool.ruff.lint]
 # Erreurs réelles (F, E9), style PEP 8 (E, W), ordre des imports (I), pièges courants (B).

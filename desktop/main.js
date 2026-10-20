@@ -3,7 +3,8 @@
 // les boîtes de dialogue natives et le menu, confirme la fermeture quand des
 // modifications ne sont pas enregistrées, et arrête le serveur en quittant.
 //
-// En développement : npm start [-- FICHIER] (Python du .venv du dépôt).
+// En développement : npm start [-- FICHIER] (Python du .venv du dépôt, ou le
+// serveur figé désigné par STRIKE_SERVER).
 
 import { randomBytes } from "node:crypto";
 import path from "node:path";
@@ -11,7 +12,7 @@ import { fileURLToPath } from "node:url";
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 
-import { fileArgument, pythonCommand, startServer } from "./server.js";
+import { fileArgument, serverCommand, startServer } from "./server.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(here, "..");
@@ -267,9 +268,7 @@ function run() {
     Menu.setApplicationMenu(buildMenu());
     try {
       server = await startServer({
-        command: pythonCommand(PROJECT),
-        args: ["-m", "editor"],
-        cwd: PROJECT,
+        ...serverCommand({ projectDir: PROJECT, packaged: app.isPackaged, resourcesPath: process.resourcesPath }),
         token,
       });
     } catch (err) {

@@ -16,6 +16,17 @@ export function pythonCommand(projectDir, platform = process.platform) {
     : path.join(projectDir, ".venv", "bin", "python");
 }
 
+// Serveur à lancer : { command, args, cwd }.
+//   - STRIKE_SERVER : exécutable figé désigné explicitement (essai en développement) ;
+//   - application empaquetée : serveur figé de ses ressources (strike-server/) ;
+//   - sinon : Python du .venv du dépôt (python -m editor).
+export function serverCommand({ projectDir, packaged, resourcesPath, env = process.env, platform = process.platform }) {
+  const exe = platform === "win32" ? "strike-server.exe" : "strike-server";
+  if (env.STRIKE_SERVER) return { command: path.resolve(env.STRIKE_SERVER), args: [], cwd: undefined };
+  if (packaged) return { command: path.join(resourcesPath, "strike-server", exe), args: [], cwd: undefined };
+  return { command: pythonCommand(projectDir, platform), args: ["-m", "editor"], cwd: projectDir };
+}
+
 // Port annoncé par une ligne de la sortie du serveur, ou null.
 export function readyPort(line) {
   try {
