@@ -1,19 +1,80 @@
 {
-  "name": "strike-kit-editor-desktop",
+  "name": "strike-kit-editor",
+  "productName": "Strike Kit Editor",
+  "desktopName": "strike-kit-editor.desktop",
   "private": true,
   "version": "0.3.0",
-  "description": "Application de bureau de l'éditeur de kits du Strike MultiPad",
+  "description": "Éditeur des kits de l'Alesis Strike MultiPad",
+  "author": {
+    "name": "Mektoub",
+    "email": "Mektoub@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/Mektoub/alesis-multipad-kit-manager",
+  "license": "UNLICENSED",
   "type": "module",
   "main": "main.js",
   "scripts": {
     "start": "./apparmor.sh --check && electron .",
     "lint": "eslint .",
-    "test": "node --test --test-timeout=20000 test/*.test.js"
+    "test": "node --test --test-timeout=20000 test/*.test.js",
+    "package": "electron-builder --linux deb --publish never"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "electron": "44.5.1",
+    "electron-builder": "26.15.3",
     "eslint": "10.12.0",
     "globals": "17.12.0"
+  },
+  "build": {
+    "appId": "io.github.mektoub.strike-kit-editor",
+    "executableName": "strike-kit-editor",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build-resources"
+    },
+    "files": [
+      "main.js",
+      "preload.cjs",
+      "server.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/strike-server",
+        "to": "strike-server"
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "bkf",
+        "name": "Sauvegarde Strike (kits et samples)",
+        "mimeType": "application/x-strike-bkf"
+      },
+      {
+        "ext": "fac",
+        "name": "Sauvegarde Strike (kits)",
+        "mimeType": "application/x-strike-fac"
+      }
+    ],
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "icon": "build-resources/icon.png",
+      "category": "AudioVideo",
+      "synopsis": "Éditeur des kits de l'Alesis Strike MultiPad",
+      "desktop": {
+        "entry": {
+          "Name": "Strike Kit Editor",
+          "Comment": "Éditer les kits de l'Alesis Strike MultiPad",
+          "Keywords": "Alesis;Strike;MultiPad;kit;sample;"
+        }
+      },
+      "syncDesktopName": true
+    },
+    "deb": {
+      "packageCategory": "sound"
+    }
   }
 }
