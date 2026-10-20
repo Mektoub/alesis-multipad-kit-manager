@@ -182,6 +182,31 @@
     if (path) await save(path, true); // la boîte native a déjà confirmé l'écrasement
   }
 
+  // Commandes de l'application de bureau : menu Fichier, fichier passé au
+  // lancement, fermeture de la fenêtre.
+  async function handleCommand({ command, path }) {
+    switch (command) {
+      case "open":
+        return openDialog();
+      case "open-file":
+        return openBackup(path);
+      case "save":
+        if (session?.path) await save();
+        return null;
+      case "save-as":
+        if (session?.path) await saveAsDialog();
+        return null;
+      case "prepare-close":
+        await flush();
+        return { dirty: Boolean(session?.dirty) };
+      case "save-before-close":
+        await save();
+        return { saved: !session?.dirty };
+      default:
+        return { error: `commande inconnue : ${command}` };
+    }
+  }
+
   async function uploadSample(file) {
     const added = await api.addSample(file);
     samples = await api.samples();
@@ -218,6 +243,9 @@
           : "Accès refusé : ouvrir l'éditeur par l'adresse affichée au lancement (avec #token=…)."
         : `Serveur injoignable : ${err.message}`;
     }
+    // après le chargement initial, pour qu'un fichier transmis au lancement ne
+    // soit pas remplacé par l'état lu ci-dessus
+    desktop?.onCommand(handleCommand);
   });
 </script>
 

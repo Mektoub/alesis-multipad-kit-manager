@@ -517,6 +517,29 @@ class Lancement(unittest.TestCase):
             servers[0].should_exit = True
             thread.join(10)
 
+    def test_arret_quand_l_entree_standard_se_ferme(self):
+        """--watch-stdin : le serveur s'arrête quand l'application qui l'a lancé
+        ferme son entrée standard, ou disparaît (plantage compris)."""
+        project = Path(__file__).resolve().parent.parent
+        p = subprocess.Popen(
+            [sys.executable, "-m", "editor", "--port", "0", "--watch-stdin"],
+            cwd=project,
+            env={**os.environ, "STRIKE_TOKEN": "t"},
+            text=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            self.assertTrue(json.loads(p.stdout.readline())["ready"])
+            p.stdin.close()
+            out, err = p.communicate(timeout=15)
+        finally:
+            if p.poll() is None:
+                p.kill()
+        self.assertEqual(p.returncode, 0, err)
+        self.assertNotIn("Traceback", err)
+
 
 if __name__ == "__main__":
     unittest.main()

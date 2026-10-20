@@ -1,7 +1,9 @@
 // Bouchon de window.strikeDesktop pour tester le mode bureau dans le navigateur,
 // sans Electron : en développement seulement (npm run dev), activé par
 // « desktop=fake » dans l'adresse (#token=…&desktop=fake) et conservé pour
-// l'onglet. Les boîtes natives sont remplacées par prompt(). Absent du build.
+// l'onglet. Les boîtes natives sont remplacées par prompt(), et les commandes de
+// l'application s'envoient depuis la console : await strikeFakeCommand("save").
+// Absent du build.
 //
 // Ce module doit être importé avant api.js (premier import de main.js).
 
@@ -17,6 +19,9 @@ if (import.meta.env.DEV) {
         setDirty: (dirty) => {
           console.info(`[bouchon] setDirty(${dirty})`);
           document.title = `${dirty ? "● " : ""}Strike Kit Editor`;
+        },
+        onCommand: (handler) => {
+          window.strikeFakeCommand = (command, path) => handler({ command, path });
         },
       };
       console.info("[bouchon] mode bureau simulé (window.strikeDesktop)");

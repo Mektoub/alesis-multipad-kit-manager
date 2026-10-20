@@ -1,4 +1,5 @@
-# Intégration continue : analyse et tests Python, analyse et build de l'interface.
+# Intégration continue : analyse et tests Python, analyse, tests et build de
+# l'interface, analyse et tests de l'application de bureau.
 name: CI
 
 on:
@@ -54,3 +55,23 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  desktop:
+    name: Application de bureau (ESLint, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Dépendances
+        run: npm ci
+      - name: Analyse (ESLint)
+        run: npm run lint
+      - name: Tests (node:test ; le test du serveur réel est ignoré, sans .venv)
+        run: npm test
