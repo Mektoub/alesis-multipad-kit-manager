@@ -125,6 +125,7 @@ function run() {
       minHeight: 500,
       title: TITLE,
       show: false,
+      autoHideMenuBar: true, // barre de menus masquée ; Alt l'affiche (raccourcis toujours actifs)
       webPreferences: {
         preload: path.join(here, "preload.cjs"),
         contextIsolation: true,

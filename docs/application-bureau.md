@@ -62,7 +62,8 @@ Autre solution, à refaire après chaque réinstallation d'Electron : donner
   de lui-même, l'application le signale et se ferme.
 - **Une seule instance** : relancer l'application avec un fichier l'ouvre dans la
   fenêtre existante.
-- **Menu** : *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
+- **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
+  actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
   sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition*, *Affichage* (zoom, outils de
   développement).
 - **Fermeture** : avec des modifications non enregistrées, une boîte propose
