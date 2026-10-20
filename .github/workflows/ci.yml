@@ -1,5 +1,7 @@
 # Intégration continue : analyse et tests Python, analyse, tests et build de
-# l'interface, analyse et tests de l'application de bureau, serveur figé.
+# l'interface, analyse et tests de l'application de bureau, serveur figé
+# (workflow build.yml, sous Linux, sans paquet). Préparation commune :
+# .github/actions/setup.
 name: CI
 
 on:
@@ -20,13 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements*.txt
-      - name: Dépendances
-        run: pip install -r requirements-dev.txt
+      - uses: ./.github/actions/setup
       - name: Analyse (ruff check)
         run: ruff check --output-format github .
       - name: Formatage (ruff format)
@@ -42,11 +38,10 @@ jobs:
         working-directory: editor/web
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: ./.github/actions/setup
         with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: editor/web/package-lock.json
+          python: "false"
+          node-lockfiles: editor/web/package-lock.json
       - name: Dépendances
         run: npm ci
       - name: Analyse (ESLint)
@@ -64,11 +59,10 @@ jobs:
         working-directory: desktop
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: ./.github/actions/setup
         with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          python: "false"
+          node-lockfiles: desktop/package-lock.json
       - name: Dépendances
         run: npm ci
       - name: Analyse (ESLint)
@@ -77,21 +71,8 @@ jobs:
         run: npm test
 
   frozen:
-    name: Serveur figé (PyInstaller, test de fumée)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements*.txt
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: |
-            editor/web/package-lock.json
-            desktop/package-lock.json
-      - name: Construction et test de fumée (./dev.sh freeze)
-        run: ./dev.sh freeze
+    name: Serveur figé
+    uses: ./.github/workflows/build.yml
+    with:
+      os: '["ubuntu-latest"]'
+      freeze-only: true
