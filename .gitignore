@@ -7,3 +7,4 @@ editor/web/dist
 Backups/*.bkf
 Backups/*.fac
 desktop/node_modules
+desktop/build

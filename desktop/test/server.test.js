@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { fileArgument, pythonCommand, readyPort, startServer } from "../server.js";
+import { fileArgument, pythonCommand, readyPort, serverCommand, startServer } from "../server.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const project = path.resolve(here, "..", "..");
@@ -50,6 +51,27 @@ describe("interpréteur Python", () => {
   });
 });
 
+describe("serveur à lancer", () => {
+  const base = { projectDir: "/p", resourcesPath: "/opt/app/resources", platform: "linux" };
+  it("développement : Python du .venv", () => {
+    assert.deepEqual(serverCommand({ ...base, packaged: false, env: {} }), {
+      command: "/p/.venv/bin/python",
+      args: ["-m", "editor"],
+      cwd: "/p",
+    });
+  });
+  it("empaquetée : serveur figé des ressources", () => {
+    const { command, args } = serverCommand({ ...base, packaged: true, env: {} });
+    assert.deepEqual([command, args], ["/opt/app/resources/strike-server/strike-server", []]);
+  });
+  it("STRIKE_SERVER désigne un serveur figé", () => {
+    for (const packaged of [false, true]) {
+      const { command, args } = serverCommand({ ...base, packaged, env: { STRIKE_SERVER: "/b/strike-server" } });
+      assert.deepEqual([command, args], ["/b/strike-server", []]);
+    }
+  });
+});
+
 describe("lancement du serveur", () => {
   it("attend la ligne « prêt », puis s'arrête à la fermeture de stdin", async () => {
     const server = await startFake("ready");
@@ -86,18 +108,39 @@ describe("lancement du serveur", () => {
   });
 });
 
+// Test de fumée : ouvre la sauvegarde de référence, lit un kit et un WAV, sert
+// l'interface ; l'accès sans jeton est refusé.
+async function smoke(options) {
+  const ref = path.join(project, "tests", "ressources", "Backup001.bkf");
+  const server = await startServer({ ...options, args: [...(options.args ?? []), "--open", ref], token: "t" });
+  try {
+    const base = `http://127.0.0.1:${server.port}`;
+    const get = (url) => fetch(base + url, { headers: { "X-Strike-Token": "t" } });
+    assert.equal((await fetch(`${base}/api/state`)).status, 403);
+    assert.equal((await (await get("/api/state")).json()).path, ref);
+    assert.equal((await (await get("/api/kits/031")).json()).name, "WhereIs");
+    const wav = await get("/api/samples/8071/wav");
+    assert.deepEqual([wav.status, wav.headers.get("content-type")], [200, "audio/wav"]);
+    const page = await (await fetch(`${base}/`)).text();
+    assert.match(page, /<div id="app">/, "interface non servie");
+  } finally {
+    assert.equal(await server.stop(), 0);
+  }
+}
+
 const python = pythonCommand(project);
 describe("serveur réel (fumée)", { skip: !existsSync(python) && "pas de .venv" }, () => {
-  it("ouvre la sauvegarde de référence et répond avec le jeton", async () => {
-    const ref = path.join(project, "tests", "ressources", "Backup001.bkf");
-    const server = await startServer({ command: python, args: ["-m", "editor", "--open", ref], cwd: project, token: "t" });
-    try {
-      const url = `http://127.0.0.1:${server.port}/api/state`;
-      assert.equal((await fetch(url)).status, 403);
-      const state = await (await fetch(url, { headers: { "X-Strike-Token": "t" } })).json();
-      assert.equal(state.path, ref);
-    } finally {
-      assert.equal(await server.stop(), 0);
-    }
+  it("Python du .venv", () => smoke({ command: python, args: ["-m", "editor"], cwd: project }));
+});
+
+// Serveur figé (./dev.sh freeze) : lancé hors du dépôt, avec un environnement
+// minimal, pour vérifier qu'il ne dépend ni du .venv ni des sources.
+const frozen = process.env.STRIKE_SERVER;
+describe("serveur figé (fumée)", { skip: !(frozen && existsSync(frozen)) && "STRIKE_SERVER absent" }, () => {
+  it("exécutable autonome", () => {
+    const cwd = mkdtempSync(path.join(tmpdir(), "strike-fige-"));
+    return smoke({ command: frozen, cwd, env: { PATH: "/usr/bin:/bin", HOME: cwd } }).finally(() =>
+      rmSync(cwd, { recursive: true, force: true }),
+    );
   });
 });
