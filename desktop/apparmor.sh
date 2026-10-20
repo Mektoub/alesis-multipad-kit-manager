@@ -37,7 +37,7 @@ MSG
 fi
 
 cat <<PROFILE
-# Electron de développement de Alesis Strike Multipad Kit Editor ($HERE).
+# Electron de développement de Alesis Strike Multipad Kit Manager ($HERE).
 # Comme les profils de Chrome ou VS Code : aucune restriction (unconfined) ;
 # le profil sert à autoriser les user namespaces de la sandbox de Chromium.
 

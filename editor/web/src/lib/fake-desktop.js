@@ -18,7 +18,7 @@ if (import.meta.env.DEV) {
         saveFile: async (defaultPath) => prompt("[bouchon] Enregistrer sous : chemin absolu", defaultPath) || null,
         setDirty: (dirty) => {
           console.info(`[bouchon] setDirty(${dirty})`);
-          document.title = `${dirty ? "● " : ""}Strike Kit Editor`;
+          document.title = `${dirty ? "● " : ""}Alesis Strike Multipad Kit Manager`;
         },
         onCommand: (handler) => {
           window.strikeFakeCommand = (command, path) => handler({ command, path });

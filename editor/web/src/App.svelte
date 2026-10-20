@@ -252,7 +252,7 @@
 <svelte:window onbeforeunload={beforeunload} />
 
 <header class="top">
-  <h1>Strike Kit Editor</h1>
+  <h1>Alesis Strike Multipad Kit Manager</h1>
   <div class="open">
     {#if desktop}
       <button onclick={openDialog}>Ouvrir…</button>
