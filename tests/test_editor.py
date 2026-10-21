@@ -563,6 +563,14 @@ class Lancement(unittest.TestCase):
         self.assertIn("inexistant.bkf", err)
         self.assertNotIn("Traceback", err)
 
+    def test_option_version(self):
+        """--version affiche « <id>-server X.Y.Z » (version de app-names.json) et quitte."""
+        names = json.loads((Path(__file__).resolve().parent.parent / "app-names.json").read_text(encoding="utf-8"))
+        p = self.start_local("--version")
+        out, err = p.communicate(timeout=15)
+        self.assertEqual(p.returncode, 0, err)
+        self.assertEqual(out.strip(), "%s-server %s" % (names["id"], names["version"]))
+
     def test_option_allow(self):
         """--allow DOSSIER ajoute un dossier à la zone autorisée ; sans lui, une
         sauvegarde hors zone est refusée dès le lancement."""

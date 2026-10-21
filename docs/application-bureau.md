@@ -279,7 +279,12 @@ Les dossiers autorisés par défaut dépendent du système (voir
 - **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
   actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
   sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition*, *Affichage* (zoom, outils de
-  développement).
+  développement), *Aide* (À propos : nom et version).
+- **Version** : affichée à côté du titre de l'interface et dans *Aide › À
+  propos* ; `alesis-kit-manager --version` l'écrit dans le terminal et quitte
+  sans ouvrir de fenêtre (`npx electron . --version` en développement ; rien ne
+  s'affiche sous Windows, où l'application n'a pas de console). Le serveur figé
+  a aussi `--version`.
 - **Fermeture** : avec des modifications non enregistrées, une boîte propose
   *Enregistrer* (dans le fichier ouvert, avec la copie `.bak` habituelle),
   *Quitter sans enregistrer* ou *Annuler*. Une modification encore en attente
