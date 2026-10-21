@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 — en cours
+
+- `./dev.sh release X.Y.Z` : sur `main`, arbre propre et section `## X.Y.Z` présente dans le CHANGELOG, met la version dans `app-names.json`, `desktop/package.json` et `editor/web/package.json` (+ locks), commite « Version X.Y.Z » et crée le tag annoté `vX.Y.Z` (message : la section du CHANGELOG), sans le pousser.
+- La version de l'application est aussi dans `app-names.json` ; l'API l'affiche (`/docs`, au lieu de la 0.1.0 par défaut de FastAPI). `editor/web/package.json` passe de 0.1.0 à la version de l'application au prochain `release`.
+
 ## 0.3.1 — Corrections GitHub Actions
 
 - CI : actions GitHub en v7 (fin des avertissements Node 20) ; paquet Linux et job « Serveur figé » construits sur `ubuntu-24.04` (`ubuntu-latest` passe à Ubuntu 26, dont la glibc rendrait le .deb inutilisable sur 24.04). Runners Windows et macOS figés aussi : `windows-2025`, `macos-26`.
