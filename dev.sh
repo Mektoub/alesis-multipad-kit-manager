@@ -16,6 +16,8 @@
 #   ./dev.sh test [TESTS…]       tests Python, de l'interface et de l'application
 #                                de bureau ; avec TESTS, seulement les tests
 #                                Python indiqués (ex. tests.test_editor.Lancement)
+#   ./dev.sh e2e                 test de bout en bout de l'application de bureau
+#                                (Playwright : ouvrir, modifier, enregistrer, fermer)
 #   ./dev.sh build               build de l'interface (editor/web/dist)
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
 #                                desktop/build/<id>-server/, puis test de fumée
@@ -156,6 +158,14 @@ step_test_desktop() {
     (cd "$DESKTOP" && npm run --silent test)
 }
 
+step_e2e() {
+    desktop_deps
+    python_deps
+    web_ready
+    info "Test de bout en bout de l'application de bureau (Playwright)"
+    (cd "$DESKTOP" && ./apparmor.sh --check && npm run --silent e2e)
+}
+
 step_build() {
     web_deps
     info "Build de l'interface"
@@ -289,6 +299,7 @@ declare -A LABELS=(
     [test_frozen]="test de fumée du serveur figé"
     [lint_desktop]="analyse de l'application de bureau"
     [test_desktop]="tests de l'application de bureau"
+    [e2e]="test de bout en bout de l'application"
     [build]="build de l'interface"
     [package]="paquet de l'application"
     [test_deb]="test d'installation du paquet"
@@ -389,7 +400,7 @@ case "$COMMAND" in
             esac
         done
         ;;
-    build | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
+    build | e2e | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     release)
         (($# == 1)) || die "version attendue : ./dev.sh release X.Y.Z"
         VERSION="$1"
@@ -403,6 +414,7 @@ case "$COMMAND" in
     lint) run_steps lint_python lint_web lint_desktop versions ;;
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
+    e2e) run_steps e2e ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
     package) step_build && step_freeze && step_test_frozen && run_steps package ;;
     test-deb)
@@ -414,5 +426,5 @@ case "$COMMAND" in
     serve) serve ;;
     start) start_app ;;
     release) release ;;
-    all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop versions ;;
+    all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop e2e versions ;;
 esac

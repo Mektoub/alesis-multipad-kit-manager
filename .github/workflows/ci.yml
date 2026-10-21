@@ -1,5 +1,6 @@
 # Intégration continue : analyse et tests Python, analyse, tests et build de
-# l'interface, analyse et tests de l'application de bureau, serveur figé
+# l'interface, analyse et tests de l'application de bureau, test de bout en
+# bout (Playwright, Linux seulement), serveur figé
 # (workflow build.yml, sous Linux, sans paquet). Préparation commune :
 # .github/actions/setup.
 name: CI
@@ -71,6 +72,33 @@ jobs:
         run: npm run lint
       - name: Tests (node:test ; le test du serveur réel est ignoré, sans .venv)
         run: npm test
+
+  e2e:
+    name: Application de bureau (bout en bout)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - uses: ./.github/actions/setup
+        with:
+          python: "false"
+          node-lockfiles: |
+            editor/web/package-lock.json
+            desktop/package-lock.json
+      # Ubuntu 24.04 : la sandbox de Chromium a besoin du profil AppArmor (voir
+      # docs/application-bureau.md)
+      - name: Profil AppArmor de l'Electron de développement
+        run: |
+          npm ci --prefix desktop --no-audit --no-fund
+          profile="/etc/apparmor.d/$(jq -r .id app-names.json)-dev"
+          desktop/apparmor.sh | sudo tee "$profile" >/dev/null
+          sudo apparmor_parser -r "$profile"
+      - name: Test de bout en bout (venv, interface, Playwright sous xvfb)
+        run: xvfb-run -a ./dev.sh e2e
 
   frozen:
     name: Serveur figé
