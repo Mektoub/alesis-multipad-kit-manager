@@ -89,9 +89,10 @@ et sur chaque pull request. Quatre jobs, sous Ubuntu :
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).
 
-Un second workflow, `.github/workflows/build.yml` (« Paquets »), construit les
-paquets de l'application de bureau sous Linux, Windows et macOS, sur un tag `v*`
-ou à la main (voir [l'application de bureau](application-bureau.md#paquets-windows-et-macos)).
+Le workflow `.github/workflows/build.yml` (« Package ») construit les
+paquets de l'application de bureau sous Linux, Windows et macOS, à la main ou
+appelé par `release.yml` sur un tag `v*` (voir [Nouvelle version](#nouvelle-version)
+et [l'application de bureau](application-bureau.md#paquets-windows-et-macos)).
 `ci.yml` le réutilise pour le job « Serveur figé » (`workflow_call`, entrées `os`
 et `freeze-only`) : les étapes du freeze n'existent qu'à un endroit. `./dev.sh
 freeze` fait la même chose en local, mais la CI ne l'exécute plus.
@@ -135,9 +136,13 @@ La version de l'application est écrite à trois endroits, tenus à jour par
 
 | Fichier | Sert à |
 |---|---|
-| `app-names.json` (`version`) | serveur : version affichée par la documentation de l'API (`/docs`), embarquée dans le serveur figé |
-| `desktop/package.json` (+ `package-lock.json`) | paquets : nom des fichiers (`alesis-kit-manager_X.Y.Z_amd64.deb`…) et version déclarée au système |
+| `app-names.json` (`version`) | serveur et interface : `--version`, À propos, en-tête, documentation de l'API (`/docs`) ; embarquée dans le serveur figé |
+| `desktop/package.json` (+ `package-lock.json`) | paquets : nom des fichiers et version déclarée au système |
 | `editor/web/package.json` (+ `package-lock.json`) | alignée sur les autres, sans autre usage |
+
+`scripts/verifier-version.py` vérifie qu'ils concordent (`./dev.sh lint`, `all`
+et la CI) ; avec une version, qu'ils ont tous celle-ci et que le CHANGELOG a sa
+section (`scripts/verifier-version.py X.Y.Z`).
 
 Étapes :
 
@@ -149,9 +154,28 @@ La version de l'application est écrite à trois endroits, tenus à jour par
    si elle y est déjà) et crée le tag annoté `vX.Y.Z`, dont le message reprend la
    section du CHANGELOG ;
 3. vérifier, puis pousser : `git push origin main vX.Y.Z`. Le tag lance le
-   workflow « Package » (paquets des trois systèmes).
+   workflow « Release » (`.github/workflows/release.yml`) : il revérifie les
+   versions du commit, construit les paquets des trois systèmes (`build.yml`) et
+   crée une **release en brouillon** avec les paquets et les notes du CHANGELOG ;
+4. relire la release sur GitHub (onglet *Releases*) et la publier.
 
 Le script ne lance pas les vérifications : passer `./dev.sh all` avant.
+
+### Hooks Git
+
+`.githooks/` contient deux hooks, activés par le premier `./dev.sh` lancé
+(`git config core.hooksPath .githooks`) :
+
+- `reference-transaction` : `git tag vX.Y.Z` échoue si le commit visé n'a pas la
+  version X.Y.Z dans tous les fichiers, ou pas de section `## X.Y.Z` dans le
+  CHANGELOG (Git n'a pas de hook « pre-tag » : celui-ci voit chaque modification
+  de référence) ;
+- `pre-push` : même vérification avant de pousser un tag créé sans le hook.
+
+Seuls les tags `v*` sont vérifiés ; ceux d'avant la version dans
+`app-names.json` (0.3.1 et avant) sont ignorés. Un hook se contourne
+(`git -c core.hooksPath=/dev/null tag …`, `git push --no-verify`) : le workflow
+« Release » refait la vérification avant de construire quoi que ce soit.
 
 ## Interface
 

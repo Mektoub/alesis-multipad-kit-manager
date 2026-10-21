@@ -223,7 +223,7 @@ L'icône est `desktop/build-resources/icon.svg` ; `icon.png` en est le rendu à
 
 PyInstaller ne fait pas de compilation croisée : le serveur figé se construit sur
 le système visé. Les paquets des trois systèmes sont donc construits par GitHub
-Actions (`.github/workflows/build.yml`, « Paquets »), sur un runner par système :
+Actions (`.github/workflows/build.yml`, « Package »), sur un runner par système :
 
 | Runner | Paquets (`desktop/dist/`) |
 |---|---|
@@ -237,11 +237,21 @@ label dans `build.yml` (écrit deux fois, voir le commentaire en tête). Sous Wi
 et macOS, la version du runner ne fixe pas le système minimal des utilisateurs
 (qui dépend de Python et d'Electron) ; sous Linux, si : voir `ubuntu-24.04`.
 
-Le workflow se lance sur un tag `v*`, ou à la main depuis l'onglet Actions
-(« Run workflow »). Chaque job construit l'interface, fige le serveur, le teste
-(test de fumée), puis lance `npm run package` ; les paquets sont les artefacts
-de l'exécution (`paquet-Linux`, `paquet-Windows`, `paquet-macOS`). Les étapes
-sont écrites dans le workflow, sans `dev.sh` (Linux seulement).
+Le workflow se lance à la main depuis l'onglet Actions (« Run workflow »), ou par
+le workflow « Release » sur un tag `vX.Y.Z`, qui publie ensuite les paquets dans
+une release GitHub en brouillon (voir [Nouvelle version](developpement.md#nouvelle-version)).
+Chaque job vérifie la cohérence des versions, construit l'interface, fige le
+serveur, le teste (test de fumée, `--version`), lance `npm run package`, puis
+vérifie que les paquets attendus portent la version de `app-names.json` ; ce
+sont les artefacts de l'exécution (`paquet-Linux`, `paquet-Windows`,
+`paquet-macOS`). Les étapes sont écrites dans le workflow, sans `dev.sh` (Linux
+seulement).
+
+| Système | Paquets |
+|---|---|
+| Linux | `alesis-kit-manager_X.Y.Z_amd64.deb` (nom Debian ; version du paquet vérifiée) |
+| Windows | `alesis-kit-manager-X.Y.Z-win-x64-setup.exe`, `alesis-kit-manager-X.Y.Z-win-x64.zip` |
+| macOS | `alesis-kit-manager-X.Y.Z-mac-arm64.dmg`, `alesis-kit-manager-X.Y.Z-mac-arm64.zip` |
 
 En local, `npm run package` construit les paquets du système courant (cibles de
 `desktop/electron-builder.config.mjs`) ; sous Linux, passer par `./dev.sh package`.

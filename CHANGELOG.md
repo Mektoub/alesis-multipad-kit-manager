@@ -2,6 +2,11 @@
 
 ## 0.3.2 — en cours
 
+- Release GitHub sur un tag `vX.Y.Z` (workflow « Release », `release.yml`) : versions du commit vérifiées, paquets des trois systèmes construits (`build.yml`, qui ne se lance plus lui-même sur un tag), puis release en brouillon avec les paquets et les notes du CHANGELOG.
+- Paquets Windows et macOS nommés `alesis-kit-manager-X.Y.Z-<win|mac>-<arch>[-setup].<ext>` (sans espaces) ; le build vérifie que chaque paquet attendu porte la version de `app-names.json` (et la version du .deb), ainsi que `--version` du serveur figé.
+- `scripts/verifier-version.py` : cohérence de la version dans `app-names.json`, les `package.json` et les locks (`./dev.sh lint` / `all`, CI) ; avec `X.Y.Z`, vérifie aussi la section du CHANGELOG ; `--notes` donne les notes de version (utilisé par `./dev.sh release` et la release GitHub).
+- Hooks Git (`.githooks/`, activés par `./dev.sh`) : `git tag vX.Y.Z` et le push d'un tag sont refusés si les versions du commit ne sont pas X.Y.Z.
+- `editor/web/package.json` aligné sur la version de l'application (0.3.1).
 - Version affichée dans l'interface (à côté du titre) et dans le menu *Aide › À propos* de l'application ; `alesis-kit-manager --version` et `python -m editor --version` (serveur figé compris) l'affichent et quittent. Le test Docker du .deb les vérifie.
 - `./dev.sh release X.Y.Z` : sur `main`, arbre propre et section `## X.Y.Z` présente dans le CHANGELOG, met la version dans `app-names.json`, `desktop/package.json` et `editor/web/package.json` (+ locks), commite « Version X.Y.Z » et crée le tag annoté `vX.Y.Z` (message : la section du CHANGELOG), sans le pousser.
 - La version de l'application est aussi dans `app-names.json` ; l'API l'affiche (`/docs`, au lieu de la 0.1.0 par défaut de FastAPI). `editor/web/package.json` passe de 0.1.0 à la version de l'application au prochain `release`.

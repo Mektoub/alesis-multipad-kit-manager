@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Commun aux hooks reference-transaction et pre-push : vérifie qu'un tag vX.Y.Z
+# vise un commit dont les fichiers portent la version X.Y.Z (et dont le CHANGELOG
+# a la section « ## X.Y.Z »). Arguments : le tag (refs/tags/vX.Y.Z) et son objet.
+# Les tags d'avant la version dans app-names.json (0.3.1 et avant) sont ignorés.
+set -uo pipefail
+ref="$1" object="$2"
+tag="${ref#refs/tags/}"
+version="${tag#v}"
+root="$(git rev-parse --show-toplevel)"
+commit="$(git rev-parse -q --verify "$object^{commit}")" || exit 0
+git show "$commit:app-names.json" 2>/dev/null | grep -q '"version"' || exit 0
+python3 "$root/scripts/verifier-version.py" "$version" --rev "$commit" >/dev/null && exit 0
+echo "Tag $tag refusé : les versions du commit ${commit:0:7} ne sont pas $version." >&2
+echo "Lancer ./dev.sh release $version (ou corriger les fichiers), puis recréer le tag." >&2
+exit 1
