@@ -235,10 +235,12 @@ Structure d'un emplacement (offsets relatifs) :
 | +0x0C | 2 | `0x0001` |
 | +0x10 | 1 | couleur Play (0 = Red … 16 = White, ordre du manuel) |
 | +0x11 | 1 | mode Play (0–6) |
-| +0x12 | 1 | inconnu (beat ?) |
+| +0x12 | 1 | Play Beat : 0 = 1/2, 1 = 1/4, 2 = 1/8, 3 = 1/16 (vérifié : 3 = 1/16) |
 | +0x14 | 1 | couleur Stop |
 | +0x15 | 1 | mode Stop |
-| +0x16 | 1 | inconnu (beat ?) |
+| +0x16 | 1 | Stop Beat, mêmes valeurs (vérifié : 0 = 1/2) |
+| +0x18 | 1 | inconnu (0–6) |
+| +0x19 | 1 | Sync Mode : Mute, Cycle, Random, Together, HiHat (vérifié : 4 = HiHat) |
 | +0x28–0x80 | 4 × n | **paramètres du pad** (enregistrements, voir ci-dessous) |
 | +0x80–0xE0 | 0x60 | **wave A** |
 | +0xE0–0x140 | 0x60 | **wave B** |
@@ -269,17 +271,17 @@ Paramètres de pad (zone +0x28) :
 | 0x00 | 0–100 | volume |
 | 0x02 | 0–31 | pan (15 = centre) |
 | 0x08 | 0–127 | note MIDI (confirmé : 36, 37, 38… sur P1, P2, P3…) |
-| 0x09 | 0–4 | ? (5 valeurs : Sync Mode ?) |
+| 0x09 | 0–4 | ? (Sync Mode est à +0x19) |
 | 0x0C | 0–16 | Sync Group |
 | 0x0E | 0–16 | ? (17 valeurs : une couleur ?) |
 | 0x0F | 0–5 | **Audio Output** : 0 = Main+Phone, 1–3 = FX1–3, 4 = Aux+Phone (vérifié), 5 = Phone Only |
 | 0x10 | 0–127 | Fixed Level (0 = Off) |
 | 0x11 | 1–32 | Sensitivity |
 | 0x12 | 0–32 | Threshold (défaut 4, comme dans le manuel) |
-| 0x13 | 0–7 | ? |
+| 0x13 | 0–7 | **Curve** : Normal, Exp1, Exp2, Log1, Log2, Loud (vérifié : 5 = Loud) |
 | 0x14 | 0–13 | **Control** (vérifié : 3 = Click On/Off). Ordre probable du manuel : Off, Next Kit, Previous Kit, Click On/Off, Tap Tempo, Panic, Looper Rec, Looper Play/Stop, Kit FX1–3, MST FX ; 14 valeurs possibles, soit 2 de plus que dans le manuel v1.2 |
 | 0x15 | 0–1 | Sound On/Off |
-| 0x16 | 0–127 | ? (Kit FX Level ?) |
+| 0x16 | 0–127 | **Kit FX Level** (vérifié ; 40 par défaut) |
 | 0x17 | 0–16 | ? |
 
 Paramètres de wave (zone +0x08) :
@@ -288,10 +290,10 @@ Paramètres de wave (zone +0x08) :
 |---|---|---|
 | 0x00 | 0–100 | volume |
 | 0x02 | 0–32 | pan |
-| 0x09 | 0–5 | ? (Playback Mode ?) |
+| 0x09 | 0–5 | **Playback Mode** : Oneshot, Alter, Loop, RoundRobin, Hi-hat, puis FS1–FS4 ; FS4 vaut 9 (vérifié), au-delà du max déclaré |
 | 0x10 | 0–127 | ? (vélocité ?) |
 | 0x18 | 0–255 | ? |
-| 0x19 | 0–1 | ? (Poly/Mono ?) ; passe de 1 à 0 sur toutes les waves du kit 072 |
+| 0x19 | 0–1 | **Poly/Mono** : 0 = Mono (vérifié), 1 = Poly |
 | 0x1A | 0–100 | Fade In |
 | 0x1B | 0–100 | Fade Out |
 | 0x1C | 0–2 | Priority (Low/Medium/High) |
