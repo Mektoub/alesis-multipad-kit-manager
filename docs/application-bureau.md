@@ -144,8 +144,8 @@ Python du `.venv`.
 ## Paquet .deb
 
 ```bash
-./dev.sh package                                              # → desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
-sudo apt install ./desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
+./dev.sh package                                              # → desktop/dist/alesis-kit-manager_<version>_amd64.deb
+sudo apt install ./desktop/dist/alesis-kit-manager_*_amd64.deb
 sudo apt remove alesis-kit-manager                            # désinstallation
 ```
 
@@ -226,9 +226,15 @@ Actions (`.github/workflows/build.yml`, « Paquets »), sur un runner par systè
 
 | Runner | Paquets (`desktop/dist/`) |
 |---|---|
-| `ubuntu-latest` | `.deb` |
-| `windows-latest` (x64) | installateur NSIS `.exe`, archive `.zip` |
-| `macos-latest` (Apple Silicon, arm64) | image `.dmg`, archive `.zip` |
+| `ubuntu-24.04` | `.deb` (pas `ubuntu-latest`, passé à Ubuntu 26 : le serveur figé dépend de la glibc du système de build, le paquet doit aussi marcher sur 24.04) |
+| `windows-2025` (x64) | installateur NSIS `.exe`, archive `.zip` |
+| `macos-26` (Apple Silicon, arm64) | image `.dmg`, archive `.zip` |
+
+Les runners sont figés plutôt que `*-latest`, pour qu'un build ne change pas sans
+modification du dépôt. Quand GitHub annonce le retrait d'une image, changer son
+label dans `build.yml` (écrit deux fois, voir le commentaire en tête). Sous Windows
+et macOS, la version du runner ne fixe pas le système minimal des utilisateurs
+(qui dépend de Python et d'Electron) ; sous Linux, si : voir `ubuntu-24.04`.
 
 Le workflow se lance sur un tag `v*`, ou à la main depuis l'onglet Actions
 (« Run workflow »). Chaque job construit l'interface, fige le serveur, le teste
