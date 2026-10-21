@@ -24,6 +24,11 @@
 #   ./dev.sh test-deb            installe et teste le .deb dans un conteneur Docker
 #                                Ubuntu 24.04 (reconstruit le paquet s'il est périmé)
 #   ./dev.sh all [--fix]         tout ; continue après un échec et affiche un bilan
+#   ./dev.sh release X.Y.Z       nouvelle version, sur main, arbre propre, section
+#                                « ## X.Y.Z — … » déjà écrite dans CHANGELOG.md :
+#                                met la version dans app-names.json et les
+#                                package.json (+ locks), commite « Version X.Y.Z »
+#                                et crée le tag annoté vX.Y.Z, sans le pousser
 #
 # Au besoin, crée l'environnement virtuel (.venv), installe requirements-dev.txt
 # et les paquets de editor/web et desktop (npm ci) ; serve et start
@@ -44,7 +49,8 @@ FROZEN_EXE="$DESKTOP/build/$SERVER/$SERVER"
 
 info() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'Erreur : %s\n' "$*" >&2; exit 2; }
-usage() { sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+# aide : le commentaire d'en-tête, jusqu'à la première ligne qui n'en est pas un
+usage() { awk 'NR == 1 { next } !/^#/ { exit } { sub(/^# ?/, ""); print }' "${BASH_SOURCE[0]}"; exit "${1:-0}"; }
 
 # --- Dépendances --------------------------------------------------------------
 
@@ -282,6 +288,42 @@ declare -A LABELS=(
     [test_deb]="test d'installation du paquet"
 )
 
+# Nouvelle version : version dans app-names.json (lue par le serveur) et dans les
+# package.json de desktop/ (paquets) et editor/web/, commit, tag annoté dont le
+# message reprend la section du CHANGELOG. Rien n'est poussé.
+release() {
+    local v="$VERSION" tag="v$VERSION" branch notes
+    [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "version attendue sous la forme X.Y.Z : $v"
+    cd "$PROJECT" || return 1
+    branch="$(git branch --show-current)"
+    [[ "$branch" == main ]] || die "à lancer sur main (branche actuelle : ${branch:-aucune})"
+    [[ -z "$(git status --porcelain)" ]] || die "des modifications ne sont pas commitées"
+    ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null || die "le tag $tag existe déjà"
+    notes="$(awk -v title="## $v" 'index($0, "## ") == 1 { if (found) exit; found = ($0 == title || index($0, title " ") == 1) } found' CHANGELOG.md)"
+    [[ -n "$notes" ]] || die "pas de section « ## $v — … » dans CHANGELOG.md"
+
+    info "Version $v"
+    sed -i -E "s/(\"version\": *\")[^\"]*\"/\1$v\"/" app-names.json
+    local dir
+    for dir in "$DESKTOP" "$WEB"; do
+        (cd "$dir" && npm version "$v" --no-git-tag-version --allow-same-version >/dev/null) ||
+            die "mise à jour de la version impossible dans ${dir#"$PROJECT"/}"
+    done
+    git add app-names.json desktop/package.json desktop/package-lock.json editor/web/package.json editor/web/package-lock.json
+    if git diff --cached --quiet; then
+        echo "Déjà en version $v : pas de commit."
+    else
+        git commit -q -m "Version $v" || die "commit impossible"
+        echo "Commit : $(git log -1 --format='%h %s')"
+    fi
+    # message : « Version X.Y.Z — titre », puis la section (sans son titre « ## » :
+    # git retirerait les lignes commençant par #)
+    printf 'Version %s\n%s\n' "${notes%%$'\n'*}" "$(tail -n +2 <<<"$notes")" | sed '1s/^Version ## /Version /' |
+        git tag -a "$tag" --cleanup=whitespace -F - || die "création du tag impossible"
+    info "Tag $tag créé (non poussé). Pour publier et lancer le build des paquets :"
+    echo "  git push origin main $tag"
+}
+
 # --- Arguments ----------------------------------------------------------------
 
 (($# >= 1)) || usage 2
@@ -291,6 +333,7 @@ FIX=0
 TESTS=""
 FROZEN=0
 FILE=""
+VERSION=""
 SERVE_ARGS=()
 case "$COMMAND" in
     lint | all)
@@ -333,6 +376,10 @@ case "$COMMAND" in
         done
         ;;
     build | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
+    release)
+        (($# == 1)) || die "version attendue : ./dev.sh release X.Y.Z"
+        VERSION="$1"
+        ;;
     -h | --help | help) usage 0 ;;
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
 esac
@@ -351,5 +398,6 @@ case "$COMMAND" in
         ;;
     serve) serve ;;
     start) start_app ;;
+    release) release ;;
     all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;
 esac

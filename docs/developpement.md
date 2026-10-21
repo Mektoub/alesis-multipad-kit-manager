@@ -47,6 +47,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh start [--frozen] [FICHIER]` | lance l'application de bureau ; `--frozen` : avec le serveur figé, reconstruit si une source a changé |
 | `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/alesis-kit-manager-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
+| `./dev.sh release X.Y.Z` | nouvelle version : met à jour les versions, commite et crée le tag `vX.Y.Z` (voir [Nouvelle version](#nouvelle-version)) |
 
 Les sections suivantes détaillent les commandes appelées.
 
@@ -126,6 +127,31 @@ référence à l'identique.
 
 Avant de corriger un bug, écrire un test qui le met en évidence et vérifier qu'il
 échoue, puis corriger.
+
+## Nouvelle version
+
+La version de l'application est écrite à trois endroits, tenus à jour par
+`./dev.sh release` :
+
+| Fichier | Sert à |
+|---|---|
+| `app-names.json` (`version`) | serveur : version affichée par la documentation de l'API (`/docs`), embarquée dans le serveur figé |
+| `desktop/package.json` (+ `package-lock.json`) | paquets : nom des fichiers (`alesis-kit-manager_X.Y.Z_amd64.deb`…) et version déclarée au système |
+| `editor/web/package.json` (+ `package-lock.json`) | alignée sur les autres, sans autre usage |
+
+Étapes :
+
+1. écrire la section `## X.Y.Z — titre` en tête de `CHANGELOG.md`, la commiter et
+   la fusionner dans `main` ;
+2. sur `main` à jour, l'arbre propre : `./dev.sh release X.Y.Z`. Le script refuse
+   s'il manque la section du CHANGELOG ou si le tag existe déjà ; il met la
+   version dans les fichiers ci-dessus, commite « Version X.Y.Z » (rien à commiter
+   si elle y est déjà) et crée le tag annoté `vX.Y.Z`, dont le message reprend la
+   section du CHANGELOG ;
+3. vérifier, puis pousser : `git push origin main vX.Y.Z`. Le tag lance le
+   workflow « Package » (paquets des trois systèmes).
+
+Le script ne lance pas les vérifications : passer `./dev.sh all` avant.
 
 ## Interface
 

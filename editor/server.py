@@ -30,7 +30,7 @@ import strike_kits as sk
 from editor.meta import meta
 
 WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
-# noms de l'application (à la racine du dépôt ; à côté du paquet editor/ une fois figé)
+# noms et version de l'application (à la racine du dépôt ; à côté du paquet editor/ une fois figé)
 APP_NAMES = json.loads((Path(__file__).resolve().parent.parent / "app-names.json").read_text(encoding="utf-8"))
 EXTENSIONS = (".bkf", ".fac")
 TOKEN_HEADER = "X-KitManager-Token"
@@ -178,7 +178,7 @@ def create_app(token, open_file=None, allow=()):
     if open_file is not None:
         path = Path(open_file)
         s.set_opened(load_backup(path, s.roots), path.resolve())
-    app = FastAPI(title=APP_NAMES["long"])
+    app = FastAPI(title=APP_NAMES["long"], version=APP_NAMES["version"])
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
