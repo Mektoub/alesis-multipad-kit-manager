@@ -226,7 +226,7 @@ Actions (`.github/workflows/build.yml`, « Paquets »), sur un runner par systè
 
 | Runner | Paquets (`desktop/dist/`) |
 |---|---|
-| `ubuntu-latest` | `.deb` |
+| `ubuntu-24.04` | `.deb` (pas `ubuntu-latest`, passé à Ubuntu 26 : le serveur figé dépend de la glibc du système de build, le paquet doit aussi marcher sur 24.04) |
 | `windows-latest` (x64) | installateur NSIS `.exe`, archive `.zip` |
 | `macos-latest` (Apple Silicon, arm64) | image `.dmg`, archive `.zip` |
 
