@@ -1,5 +1,6 @@
 <script>
-  // Réglages d'un emplacement (pad ou entrée externe) : pad, éclairage, waves.
+  // Réglages d'un emplacement (pad ou entrée externe), par sections comme sur
+  // l'appareil (Feel, Control, Output, Light, Group), puis les deux waves.
   import ColorSwatches from "./ColorSwatches.svelte";
   import ParamField from "./ParamField.svelte";
   import WaveEditor from "./WaveEditor.svelte";
@@ -8,74 +9,85 @@
   let { slot, meta, sampleIndex, onpick } = $props();
 
   let defaults = $derived(meta.defaults.slots[slot.slot - 1]);
-  let colorDef = $derived({ labels: meta.colors.map((c) => c.name) });
-  const lightTip = (key, labels) => tooltip(meta.help[key], { labels }, defaults.light[key]);
-
-  let known = $derived(meta.pad_params.filter((d) => d.known && d.name in slot.params));
+  // « params.x » / « light.x » -> définition
+  let defs = $derived(
+    new Map([
+      ...meta.pad_params.map((d) => [`params.${d.name}`, d]),
+      ...meta.light_params.map((d) => [`light.${d.name}`, d]),
+    ]),
+  );
+  // champs présents dans cet emplacement (illisibles dans certains kits KITC)
+  let sections = $derived(
+    meta.pad_sections
+      .map((s) => ({ ...s, fields: s.fields.map(split).filter(([part, key]) => key in slot[part]) }))
+      .filter((s) => s.fields.length),
+  );
   let unknown = $derived(meta.pad_params.filter((d) => !d.known && d.name in slot.params));
+
+  function split(field) {
+    const [part, key] = field.split(".");
+    return [part, key];
+  }
+  const isColor = (key) => key.endsWith("_color");
 </script>
 
 <div class="slot">
-  <section>
-    <h3>Pad</h3>
-    {#each known as def (def.name)}
-      <ParamField {def} bind:value={slot.params[def.name]} defaultValue={defaults.params[def.name]} />
-    {/each}
-    {#if unknown.length}
+  {#each sections as s (s.title)}
+    <section>
+      <h3>{s.title}</h3>
+      {#each s.fields as [part, key] (`${part}.${key}`)}
+        {@const def = defs.get(`${part}.${key}`)}
+        {#if isColor(key)}
+          <div class="color-row" title={tooltip(def.description, def, defaults[part][key])}>
+            <span class="muted">{def.title}</span>
+            <ColorSwatches colors={meta.colors} bind:value={slot[part][key]} label={def.title} />
+          </div>
+        {:else}
+          <ParamField {def} bind:value={slot[part][key]} defaultValue={defaults[part][key]} />
+        {/if}
+      {/each}
+    </section>
+  {/each}
+
+  {#if unknown.length}
+    <section>
       <details>
         <summary class="muted">Paramètres non identifiés ({unknown.length})</summary>
         {#each unknown as def (def.name)}
           <ParamField {def} bind:value={slot.params[def.name]} defaultValue={defaults.params[def.name]} />
         {/each}
       </details>
-    {/if}
-  </section>
+    </section>
+  {/if}
+</div>
 
-  <section>
-    <h3>Éclairage</h3>
-    {#if "play_color" in slot.light}
-      <div class="light-row" title={lightTip("play_color", colorDef.labels)}><span class="muted">Play</span><ColorSwatches colors={meta.colors} bind:value={slot.light.play_color} label="Couleur Play" /></div>
-    {/if}
-    {#if "play_mode" in slot.light}
-      <label class="light-row" title={lightTip("play_mode", meta.play_modes)}><span class="muted">Mode Play</span>
-        <select bind:value={slot.light.play_mode}>
-          {#each meta.play_modes as m, i (m)}<option value={i}>{m}</option>{/each}
-        </select>
-      </label>
-    {/if}
-    {#if "stop_color" in slot.light}
-      <div class="light-row" title={lightTip("stop_color", colorDef.labels)}><span class="muted">Stop</span><ColorSwatches colors={meta.colors} bind:value={slot.light.stop_color} label="Couleur Stop" /></div>
-    {/if}
-    {#if "stop_mode" in slot.light}
-      <label class="light-row" title={lightTip("stop_mode", meta.stop_modes)}><span class="muted">Mode Stop</span>
-        <select bind:value={slot.light.stop_mode}>
-          {#each meta.stop_modes as m, i (m)}<option value={i}>{m}</option>{/each}
-          {#if slot.light.stop_mode >= meta.stop_modes.length}<option value={slot.light.stop_mode}>Valeur {slot.light.stop_mode}</option>{/if}
-        </select>
-      </label>
-    {/if}
-  </section>
-
+<div class="waves">
   <WaveEditor wave={slot.wave_a} title="Wave A" {meta} {sampleIndex} defaults={defaults.wave_a} onpick={() => onpick("wave_a")} />
   <WaveEditor wave={slot.wave_b} title="Wave B" {meta} {sampleIndex} defaults={defaults.wave_b} onpick={() => onpick("wave_b")} />
 </div>
 
 <style>
-  .slot {
+  .slot,
+  .waves {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
+  }
+  .waves {
+    margin-top: 20px;
   }
   section {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-  .light-row {
+  .color-row {
     display: grid;
-    grid-template-columns: 80px 1fr;
+    grid-template-columns: 110px 1fr;
     gap: 8px;
     align-items: center;
+    font-size: 13px;
+    cursor: help;
   }
   details summary {
     cursor: pointer;

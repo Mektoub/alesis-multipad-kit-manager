@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3 — en cours
+
+- Paramètres identifiés en comparant deux sauvegardes de l'appareil : Curve, Kit FX Level, Sync Mode (`params.sync_mode`, octet fixe de l'emplacement), Play Beat et Stop Beat (`light.play_beat` / `stop_beat`), Playback Mode (0–9, FS4 = 9 au-delà du max déclaré) et Poly/Mono des waves. Les clés JSON `p13`, `p16`, wave `p09` et `p19` deviennent `curve`, `kit_fx_level`, `playback_mode` et `poly_mono`.
+- Éditeur web : réglages rangés par sections, comme sur l'appareil (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix), aussi dans *Modifier plusieurs pads* ; « Control » s'appelle « Mode ».
+
 ## 0.3.2 — Gestion des versions / releases
 
 - Release GitHub sur un tag `vX.Y.Z` (workflow « Release », `release.yml`) : versions du commit vérifiées, paquets des trois systèmes construits (`build.yml`, qui ne se lance plus lui-même sur un tag), puis release en brouillon avec les paquets et les notes du CHANGELOG.

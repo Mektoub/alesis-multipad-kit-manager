@@ -1,5 +1,5 @@
 <script>
-  // Une couche (wave A ou B) : sample, plage de vélocité, mixage.
+  // Une couche (wave A ou B) : sample, puis sections Mode et Mix comme sur l'appareil.
   import ParamField from "./ParamField.svelte";
   import { onPlaying, toggle } from "./player.js";
   import { tooltip } from "./format.js";
@@ -11,8 +11,24 @@
 
   let sample = $derived(wave.sample == null ? null : sampleIndex.get(wave.sample));
   let hasHeader = $derived("sample" in wave);
-  let known = $derived(meta.wave_params.filter((d) => d.known && d.name in wave.params));
+  let defs = $derived(
+    new Map([
+      ...meta.wave_params.map((d) => [`params.${d.name}`, d]),
+      ...meta.velocity_params.map((d) => [d.name, d]),
+    ]),
+  );
+  // champs présents dans cette wave (vélocité illisible dans certains kits KITC)
+  let sections = $derived(
+    meta.wave_sections
+      .map((s) => ({ ...s, fields: s.fields.filter(present) }))
+      .filter((s) => s.fields.length),
+  );
   let unknown = $derived(meta.wave_params.filter((d) => !d.known && d.name in wave.params));
+
+  function present(field) {
+    const [part, key] = field.split(".");
+    return key ? key in wave[part] : hasHeader && part in wave;
+  }
 
   function clampVelocity(edited) {
     if (wave.velocity_low > wave.velocity_high) {
@@ -42,18 +58,24 @@
         <button onclick={() => (wave.sample = null)} aria-label="Retirer le sample" title="Retirer le sample">✕</button>
       {/if}
     </div>
-    <div class="velocity">
-      <span class="muted" title={tooltip(`${meta.help.velocity_low} ${meta.help.velocity_high}`, {}, `${defaults.velocity_low} à ${defaults.velocity_high}`)}>Vélocité</span>
-      <input type="number" min="0" max="126" bind:value={wave.velocity_low} onchange={() => clampVelocity("low")} title={tooltip(meta.help.velocity_low, {}, defaults.velocity_low)} />
-      <span class="muted">à</span>
-      <input type="number" min="1" max="127" bind:value={wave.velocity_high} onchange={() => clampVelocity("high")} title={tooltip(meta.help.velocity_high, {}, defaults.velocity_high)} />
-    </div>
   {:else}
     <p class="muted">Sample et vélocité illisibles dans ce kit.</p>
   {/if}
 
-  {#each known as def (def.name)}
-    <ParamField {def} bind:value={wave.params[def.name]} defaultValue={defaults.params[def.name]} />
+  {#each sections as s (s.title)}
+    <h4>{s.title}</h4>
+    {#each s.fields as field (field)}
+      {@const def = defs.get(field)}
+      {#if field.startsWith("params.")}
+        <ParamField {def} bind:value={wave.params[def.name]} defaultValue={defaults.params[def.name]} />
+      {:else}
+        {@const edge = def.name === "velocity_low" ? "low" : "high"}
+        <label class="velocity" title={tooltip(def.description, def, defaults[def.name])}>
+          <span class="muted">{def.title}</span>
+          <input type="number" min={def.min} max={def.max} bind:value={wave[def.name]} onchange={() => clampVelocity(edge)} />
+        </label>
+      {/if}
+    {/each}
   {/each}
   {#if unknown.length}
     <details>
@@ -88,10 +110,19 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  h4 {
+    margin: 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
   .velocity {
-    display: flex;
+    display: grid;
+    grid-template-columns: 110px 1fr;
     align-items: center;
     gap: 8px;
+    min-height: 30px;
+    font-size: 13px;
+    cursor: help;
   }
   .velocity input {
     width: 70px;

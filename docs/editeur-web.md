@@ -99,12 +99,14 @@ cd editor/web && npm ci && npm run build && cd ../..
 3. **Régler le kit** : nom, volume, tempo.
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
    4-5-6 au milieu, 1-2-3 en bas). Elle montre le sample, la couleur de LED et,
-   si le pad a un Control, un badge (« Click » pour Click On/Off). Les emplacements 10 à 24 sont accessibles sous la grille.
+   si le pad a un Mode (Control), un badge (« Click » pour Click On/Off). Les emplacements 10 à 24 sont accessibles sous la grille.
 5. **Régler le pad** :
-   - *Pad* : volume, pan, note MIDI, Control, Audio Output… ; les paramètres non
-     identifiés sont regroupés à part ;
-   - *Éclairage* : couleurs et modes Play / Stop ;
-   - *Wave A / Wave B* : sample, plage de vélocité, mixage.
+   - sections du pad, comme sur l'appareil : *Feel* (Sensitivity, Curve, Threshold,
+     Fixed Level), *Control* (Mode, Sound), *Output* (Audio Output, Kit FX Level,
+     MIDI Note Output, Volume, Pan), *Light* (couleur, mode et beat Play / Stop),
+     *Group* (Sync Group, Sync Mode) ; les paramètres non identifiés sont regroupés à part ;
+   - *Wave A / Wave B* : sample, puis *Mode* (Playback Mode, Poly/Mono) et *Mix*
+     (Volume, Pan, Fade In/Out, Velocity High/Low, Priority).
 
    Survoler le nom d'un réglage affiche sa description, d'après le manuel, et sa
    valeur par défaut pour le pad affiché. Celle-ci est relevée dans un kit vide
