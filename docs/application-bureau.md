@@ -144,8 +144,8 @@ Python du `.venv`.
 ## Paquet .deb
 
 ```bash
-./dev.sh package                                              # → desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
-sudo apt install ./desktop/dist/alesis-kit-manager_0.3.0_amd64.deb
+./dev.sh package                                              # → desktop/dist/alesis-kit-manager_<version>_amd64.deb
+sudo apt install ./desktop/dist/alesis-kit-manager_*_amd64.deb
 sudo apt remove alesis-kit-manager                            # désinstallation
 ```
 
