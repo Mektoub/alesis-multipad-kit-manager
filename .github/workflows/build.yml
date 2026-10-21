@@ -1,14 +1,12 @@
-# Packages de l'application de bureau, sur chaque système (PyInstaller ne fait
+# Paquets de l'application de bureau, sur chaque système (PyInstaller ne fait
 # pas de compilation croisée) : .deb sous Linux, installateur NSIS et zip sous
-# Windows, dmg et zip sous macOS (Apple Silicon). Lancé sur un tag v* ou à la
-# main (onglet Actions) ; les paquets sont des artefacts de l'exécution.
-# Appelé aussi par ci.yml (workflow_call), sous Linux et sans paquet : serveur
-# figé et test de fumée seulement.
+# Windows, dmg et zip sous macOS (Apple Silicon), nommés avec la version de
+# app-names.json (vérifiée). Lancé à la main (onglet Actions) ; les paquets sont
+# des artefacts de l'exécution. Appelé par release.yml sur un tag vX.Y.Z (release
+# GitHub), et par ci.yml sous Linux sans paquet : serveur figé et test de fumée.
 name: Package
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -53,6 +51,8 @@ jobs:
           node-lockfiles: |
             editor/web/package-lock.json
             desktop/package-lock.json
+      - name: Versions (app-names.json, package.json et locks identiques)
+        run: python scripts/verifier-version.py
       - name: Interface (build)
         working-directory: editor/web
         run: npm ci && npm run build
@@ -71,17 +71,35 @@ jobs:
           [[ "$RUNNER_OS" == Windows ]] && exe="$exe.exe"
           [[ -f "$exe" ]] || { echo "serveur figé introuvable : $exe" >&2; exit 1; }
           KITMANAGER_SERVER="$exe" node --test --test-name-pattern "serveur figé" test/server.test.js
+          expected="$server $(node -p 'require("../app-names.json").version')"
+          [[ "$("$exe" --version)" == "$expected" ]] || { echo "--version : $("$exe" --version), attendu : $expected" >&2; exit 1; }
       - name: Paquet (electron-builder)
         if: ${{ !inputs.freeze-only }}
         working-directory: desktop
         run: npm run package
+      - name: Paquets attendus, avec la version dans leur nom
+        if: ${{ !inputs.freeze-only }}
+        working-directory: desktop
+        run: |
+          id="$(node -p 'require("../app-names.json").id')"
+          v="$(node -p 'require("../app-names.json").version')"
+          case "$RUNNER_OS" in
+            Linux) files=("${id}_${v}_amd64.deb") ;;
+            Windows) files=("$id-$v-win-x64-setup.exe" "$id-$v-win-x64.zip") ;;
+            macOS) files=("$id-$v-mac-arm64.dmg" "$id-$v-mac-arm64.zip") ;;
+          esac
+          mkdir -p paquets
+          for f in "${files[@]}"; do
+            [[ -f "dist/$f" ]] || { echo "paquet absent : dist/$f" >&2; ls dist >&2; exit 1; }
+            cp "dist/$f" paquets/ && echo "✔ $f"
+          done
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            deb_version="$(dpkg-deb -f "dist/${files[0]}" Version)"
+            [[ "$deb_version" == "$v" ]] || { echo "version du .deb : $deb_version, attendu : $v" >&2; exit 1; }
+          fi
       - uses: actions/upload-artifact@v7
         if: ${{ !inputs.freeze-only }}
         with:
           name: paquet-${{ runner.os }}
-          path: |
-            desktop/dist/*.deb
-            desktop/dist/*.exe
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
+          path: desktop/paquets/*
           if-no-files-found: error

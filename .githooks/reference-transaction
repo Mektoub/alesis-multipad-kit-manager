@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Refuse la création ou le déplacement d'un tag vX.Y.Z dont le commit n'a pas la
+# version X.Y.Z dans tous les fichiers (voir verifier-tag). Git n'a pas de hook
+# « pre-tag » : celui-ci voit chaque modification de référence, avant qu'elle soit
+# appliquée (état « prepared ») ; une erreur annule toute la transaction.
+# Installé par ./dev.sh (git config core.hooksPath .githooks).
+[[ "$1" == prepared ]] || exit 0
+zero="$(git hash-object --stdin </dev/null | tr '0-9a-f' '0')"
+status=0
+while read -r _old new ref; do
+    [[ "$ref" == refs/tags/v* && "$new" != "$zero" ]] || continue
+    "$(dirname "$0")/verifier-tag" "$ref" "$new" || status=1
+done
+exit "$status"

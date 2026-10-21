@@ -29,6 +29,8 @@ jobs:
         run: ruff format --check .
       - name: Tests
         run: python -m unittest discover -v -s tests -t .
+      - name: Versions (app-names.json, package.json et locks identiques)
+        run: python scripts/verifier-version.py
 
   web:
     name: Interface (ESLint, build)
