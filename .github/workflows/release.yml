@@ -1,0 +1,55 @@
+# Release GitHub sur un tag vX.Y.Z (créé par ./dev.sh release X.Y.Z) : vérifie
+# que les fichiers du commit portent la version X.Y.Z, construit les paquets des
+# trois systèmes (build.yml), puis crée une release en brouillon avec les
+# paquets et les notes de la section du CHANGELOG. La publier depuis GitHub
+# (onglet Releases) après relecture.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Version du tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fichiers et CHANGELOG en version ${{ github.ref_name }}
+        run: python3 scripts/verifier-version.py "${GITHUB_REF_NAME#v}"
+
+  package:
+    name: Paquets
+    needs: version
+    uses: ./.github/workflows/build.yml
+
+  release:
+    name: Release (brouillon)
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # création de la release et envoi des paquets
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: paquet-*
+          path: paquets
+          merge-multiple: true
+      - name: Release ${{ github.ref_name }} avec les paquets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          python3 scripts/verifier-version.py --notes "${tag#v}" > notes.md
+          ls -l paquets
+          if gh release view "$tag" >/dev/null 2>&1; then
+            # relance du workflow : paquets remplacés, release inchangée
+            gh release upload "$tag" paquets/* --clobber
+          else
+            gh release create "$tag" paquets/* --draft --verify-tag \
+              --title "$(head -1 notes.md)" --notes-file <(tail -n +2 notes.md)
+          fi
