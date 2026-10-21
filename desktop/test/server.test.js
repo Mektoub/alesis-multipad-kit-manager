@@ -50,7 +50,7 @@ describe("fichier passé en argument", () => {
 describe("interpréteur Python", () => {
   it("venv du dépôt", () => {
     assert.equal(pythonCommand("/p", "linux"), "/p/.venv/bin/python");
-    assert.equal(pythonCommand("C:\\p", "win32").endsWith(path.join(".venv", "Scripts", "python.exe")), true);
+    assert.equal(pythonCommand("C:\\p", "win32"), "C:\\p\\.venv\\Scripts\\python.exe");
   });
 });
 
@@ -66,6 +66,12 @@ describe("serveur à lancer", () => {
   it("empaquetée : serveur figé des ressources", () => {
     const { command, args } = serverCommand({ ...base, packaged: true, env: {} });
     assert.deepEqual([command, args], ["/opt/app/resources/app-server/app-server", []]);
+  });
+  // chemins construits selon `platform`, quel que soit le système qui lance les tests
+  it("empaquetée sous Windows : serveur figé .exe", () => {
+    const win = { ...base, resourcesPath: "C:\\App\\resources", platform: "win32", packaged: true };
+    assert.equal(serverCommand({ ...win, env: {} }).command, "C:\\App\\resources\\app-server\\app-server.exe");
+    assert.equal(serverCommand({ ...win, env: { KITMANAGER_SERVER: "D:\\b\\s.exe" } }).command, "D:\\b\\s.exe");
   });
   it("KITMANAGER_SERVER désigne un serveur figé", () => {
     for (const packaged of [false, true]) {
