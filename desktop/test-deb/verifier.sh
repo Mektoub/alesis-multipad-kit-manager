@@ -9,6 +9,7 @@ set -uo pipefail
 ID="$(sed -n 's/.*"id": *"\([^"]*\)".*/\1/p' /app-names.json)"  # paquet, exécutable, /opt/<id>
 export ID  # utilisé dans les bash -c '…'
 SERVER="$ID-server"  # serveur figé, dans resources/
+VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' /app-names.json)"
 FAILED=0
 ok() { printf '  \033[32m✔\033[0m %s\n' "$*"; }
 ko() { printf '  \033[31m✖\033[0m %s\n' "$*"; FAILED=1; }
@@ -33,6 +34,8 @@ check "interface intégrée" test -f "$APP/resources/$SERVER/_internal/editor/we
 check "icône 512 px" test -f /usr/share/icons/hicolor/512x512/apps/$ID.png
 check "entrée de menu valide (desktop-file-validate)" desktop-file-validate /usr/share/applications/$ID.desktop
 check "aucun Python sur le système" bash -c '! command -v python3'
+check "$ID --version → $ID $VERSION" bash -c "[[ \"\$(su testeur -c '$ID --version' 2>/dev/null)\" == '$ID $VERSION' ]]"
+check "$SERVER --version → $SERVER $VERSION" bash -c "[[ \"\$('$APP/resources/$SERVER/$SERVER' --version)\" == '$SERVER $VERSION' ]]"
 
 step "Types de fichier"
 # base des types MIME (xdg-mime query filetype demande un environnement de bureau)

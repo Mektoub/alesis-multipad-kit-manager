@@ -29,8 +29,13 @@ app.setName(NAMES.config); // dossier de configuration : ~/.config/<config>
 // le chemin est donc relatif au dossier d'où la commande a été tapée (INIT_CWD).
 const launchFile = fileArgument(process.argv, process.env.INIT_CWD ?? process.cwd(), app.isPackaged ? 1 : 2);
 
+// <id> --version : affiche la version et quitte, sans fenêtre ni serveur (sous
+// Windows, une application graphique n'a pas de console : rien ne s'affiche).
 // Une seule instance : une deuxième transmet son fichier à la première.
-if (!app.requestSingleInstanceLock({ file: launchFile })) {
+if (process.argv.includes("--version")) {
+  process.stdout.write(`${NAMES.id} ${NAMES.version}\n`);
+  app.exit(0);
+} else if (!app.requestSingleInstanceLock({ file: launchFile })) {
   app.quit();
 } else {
   run();
@@ -210,6 +215,18 @@ function run() {
     return result?.saved === true; // en cas d'échec, l'erreur est affichée dans la fenêtre
   }
 
+  // --- À propos ----------------------------------------------------------------
+  function about() {
+    const options = {
+      type: "info",
+      title: `À propos de ${NAMES.short}`,
+      message: NAMES.long,
+      detail: `Version ${NAMES.version}\nÉditeur des kits et des samples de l'Alesis Strike MultiPad.`,
+      buttons: ["OK"],
+    };
+    return win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options);
+  }
+
   // --- Menu --------------------------------------------------------------------
   function buildMenu() {
     const send = (name) => () => win && command(name);
@@ -248,6 +265,10 @@ function run() {
           { type: "separator" },
           { label: "Plein écran", role: "togglefullscreen" },
         ],
+      },
+      {
+        label: "Ai&de",
+        submenu: [{ label: "À &propos", click: about }],
       },
     ]);
   }

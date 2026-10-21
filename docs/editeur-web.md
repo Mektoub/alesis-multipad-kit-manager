@@ -39,6 +39,7 @@ dossier `Backups/` du projet sont ignorés par Git.
 | `--no-browser` | ne pas ouvrir le navigateur | — |
 | `--allow DOSSIER` | dossier autorisé en plus de la [zone par défaut](#dossiers-autorisés) (répétable) | — |
 | `--watch-stdin` | s'arrêter quand l'entrée standard se ferme (utilisé par l'application de bureau) | — |
+| `--version` | afficher la version (`alesis-kit-manager-server X.Y.Z`) et quitter | — |
 
 Le navigateur s'ouvre sur l'adresse affichée, de la forme
 `http://127.0.0.1:8765/#token=…`. Le serveur n'écoute que sur la machine locale et
