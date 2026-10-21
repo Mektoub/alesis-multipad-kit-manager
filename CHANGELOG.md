@@ -2,6 +2,7 @@
 
 ## 0.3.2 — en cours
 
+- Version affichée dans l'interface (à côté du titre) et dans le menu *Aide › À propos* de l'application ; `alesis-kit-manager --version` et `python -m editor --version` (serveur figé compris) l'affichent et quittent. Le test Docker du .deb les vérifie.
 - `./dev.sh release X.Y.Z` : sur `main`, arbre propre et section `## X.Y.Z` présente dans le CHANGELOG, met la version dans `app-names.json`, `desktop/package.json` et `editor/web/package.json` (+ locks), commite « Version X.Y.Z » et crée le tag annoté `vX.Y.Z` (message : la section du CHANGELOG), sans le pousser.
 - La version de l'application est aussi dans `app-names.json` ; l'API l'affiche (`/docs`, au lieu de la 0.1.0 par défaut de FastAPI). `editor/web/package.json` passe de 0.1.0 à la version de l'application au prochain `release`.
 

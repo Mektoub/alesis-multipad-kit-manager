@@ -24,7 +24,7 @@ from pathlib import Path
 import uvicorn
 
 import strike_kits as sk
-from editor.server import WEB_DIST, create_app
+from editor.server import APP_NAMES, WEB_DIST, create_app
 
 
 def ready_line(port):
@@ -80,6 +80,7 @@ def main():
     ap.add_argument(
         "--watch-stdin", action="store_true", help="s'arrêter quand l'entrée standard se ferme (application arrêtée)"
     )
+    ap.add_argument("--version", action="version", version="%s-server %s" % (APP_NAMES["id"], APP_NAMES["version"]))
     args = ap.parse_args()
     desktop_token = os.environ.get("KITMANAGER_TOKEN") or None
     token = desktop_token or secrets.token_urlsafe(24)
