@@ -180,6 +180,7 @@ Tous les noms viennent de `app-names.json`, à la racine du dépôt :
 | `short` | Alesis Kit Manager | affichage court : entrée du menu des applications ; sous Windows et macOS, nom de l'application installée (`Alesis Kit Manager.app`, menu Démarrer) |
 | `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor, serveur figé `<id>-server` |
 | `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` (Windows : `%APPDATA%\<config>`, macOS : `~/Library/Application Support/<config>`) |
+| `version` | 0.3.1 | version de l'application vue par le serveur (`/docs`) ; mise à jour par `./dev.sh release` avec celles des `package.json` (voir [Nouvelle version](developpement.md#nouvelle-version)) |
 
 Ils sont lus par Vite (`editor/web/vite.config.js` : `<title>` et `__APP_NAMES__`),
 PyInstaller (`desktop/server.spec`), electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui

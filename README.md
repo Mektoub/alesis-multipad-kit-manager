@@ -18,6 +18,7 @@ copie de la sauvegarde d'origine** avant de charger un fichier produit par ces o
 | `./dev.sh serve SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement rapide) |
 | `./dev.sh start [--frozen] [SAUVEGARDE]` | lance l'application de bureau (Electron), en développement |
 | `./dev.sh package` | construit le paquet .deb de l'application de bureau (`sudo apt install ./desktop/dist/alesis-kit-manager_*.deb`) |
+| `./dev.sh release X.Y.Z` | nouvelle version : versions mises à jour, commit et tag `vX.Y.Z` (non poussé) |
 
 `strike_kits` n'a besoin que de Python 3. `./dev.sh serve` et `./dev.sh start`
 demandent en plus Node.js : au premier lancement, ils créent l'environnement

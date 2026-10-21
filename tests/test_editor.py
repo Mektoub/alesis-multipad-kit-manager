@@ -216,6 +216,12 @@ class Api(unittest.TestCase):
 
 
 class SansSauvegarde(unittest.TestCase):
+    def test_version_de_l_application(self):
+        # version de app-names.json (./dev.sh release), dans la documentation /docs de l'API
+        names = json.loads((Path(__file__).resolve().parent.parent / "app-names.json").read_text(encoding="utf-8"))
+        self.assertRegex(names["version"], r"^\d+\.\d+\.\d+$")
+        self.assertEqual(client_for().get("/openapi.json").json()["info"]["version"], names["version"])
+
     def test_etat_vide(self):
         client = client_for()
         self.assertEqual(client.get("/api/state").json()["path"], None)
