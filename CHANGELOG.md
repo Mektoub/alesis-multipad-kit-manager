@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.2 — en cours
+## 0.3.2 — Gestion des versions / releases
 
 - Release GitHub sur un tag `vX.Y.Z` (workflow « Release », `release.yml`) : versions du commit vérifiées, paquets des trois systèmes construits (`build.yml`, qui ne se lance plus lui-même sur un tag), puis release en brouillon avec les paquets et les notes du CHANGELOG.
 - Paquets Windows et macOS nommés `alesis-kit-manager-X.Y.Z-<win|mac>-<arch>[-setup].<ext>` (sans espaces) ; le build vérifie que chaque paquet attendu porte la version de `app-names.json` (et la version du .deb), ainsi que `--version` du serveur figé.
