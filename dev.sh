@@ -106,6 +106,11 @@ step_lint_python() {
     fi
 }
 
+step_versions() {
+    info "Versions : app-names.json, package.json et locks identiques"
+    python3 "$PROJECT/scripts/verifier-version.py"
+}
+
 step_lint_web() {
     web_deps
     if [[ $FIX == 1 ]]; then
@@ -277,6 +282,7 @@ run_steps() {
 declare -A LABELS=(
     [lint_python]="analyse Python"
     [lint_web]="analyse de l'interface"
+    [versions]="cohérence des versions"
     [test]="tests Python"
     [test_web]="tests de l'interface"
     [freeze]="serveur figé"
@@ -299,8 +305,7 @@ release() {
     [[ "$branch" == main ]] || die "à lancer sur main (branche actuelle : ${branch:-aucune})"
     [[ -z "$(git status --porcelain)" ]] || die "des modifications ne sont pas commitées"
     ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null || die "le tag $tag existe déjà"
-    notes="$(awk -v title="## $v" 'index($0, "## ") == 1 { if (found) exit; found = ($0 == title || index($0, title " ") == 1) } found' CHANGELOG.md)"
-    [[ -n "$notes" ]] || die "pas de section « ## $v — … » dans CHANGELOG.md"
+    notes="$(python3 scripts/verifier-version.py --notes "$v")" || die "pas de section « ## $v — … » dans CHANGELOG.md"
 
     info "Version $v"
     sed -i -E "s/(\"version\": *\")[^\"]*\"/\1$v\"/" app-names.json
@@ -309,6 +314,7 @@ release() {
         (cd "$dir" && npm version "$v" --no-git-tag-version --allow-same-version >/dev/null) ||
             die "mise à jour de la version impossible dans ${dir#"$PROJECT"/}"
     done
+    python3 scripts/verifier-version.py "$v" >/dev/null || die "versions incohérentes après mise à jour"
     git add app-names.json desktop/package.json desktop/package-lock.json editor/web/package.json editor/web/package-lock.json
     if git diff --cached --quiet; then
         echo "Déjà en version $v : pas de commit."
@@ -316,12 +322,20 @@ release() {
         git commit -q -m "Version $v" || die "commit impossible"
         echo "Commit : $(git log -1 --format='%h %s')"
     fi
-    # message : « Version X.Y.Z — titre », puis la section (sans son titre « ## » :
-    # git retirerait les lignes commençant par #)
-    printf 'Version %s\n%s\n' "${notes%%$'\n'*}" "$(tail -n +2 <<<"$notes")" | sed '1s/^Version ## /Version /' |
-        git tag -a "$tag" --cleanup=whitespace -F - || die "création du tag impossible"
+    # message : « Version X.Y.Z — titre », puis la section du CHANGELOG ; le hook
+    # reference-transaction revérifie les versions du commit
+    git tag -a "$tag" --cleanup=whitespace -F - <<<"$notes" || die "création du tag impossible"
     info "Tag $tag créé (non poussé). Pour publier et lancer le build des paquets :"
     echo "  git push origin main $tag"
+}
+
+# Hooks Git du dépôt (.githooks/ : tag vX.Y.Z refusé si les versions ne
+# concordent pas), activés une fois pour toutes au premier ./dev.sh.
+git_hooks() {
+    git -C "$PROJECT" rev-parse --git-dir >/dev/null 2>&1 || return 0
+    [[ "$(git -C "$PROJECT" config --get core.hooksPath)" == .githooks ]] && return 0
+    git -C "$PROJECT" config core.hooksPath .githooks &&
+        info "Hooks Git activés (core.hooksPath = .githooks) : vérification des versions des tags"
 }
 
 # --- Arguments ----------------------------------------------------------------
@@ -384,8 +398,9 @@ case "$COMMAND" in
     *) printf 'Commande inconnue : %s\n\n' "$COMMAND" >&2; usage 2 ;;
 esac
 
+git_hooks
 case "$COMMAND" in
-    lint) run_steps lint_python lint_web lint_desktop ;;
+    lint) run_steps lint_python lint_web lint_desktop versions ;;
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
@@ -399,5 +414,5 @@ case "$COMMAND" in
     serve) serve ;;
     start) start_app ;;
     release) release ;;
-    all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop ;;
+    all) run_steps lint_python test lint_web test_web build lint_desktop test_desktop versions ;;
 esac

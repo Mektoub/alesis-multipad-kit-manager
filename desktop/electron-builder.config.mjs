@@ -6,6 +6,9 @@ import { readFileSync } from "node:fs";
 
 const names = JSON.parse(readFileSync(new URL("../app-names.json", import.meta.url), "utf8"));
 const server = `${names.id}-server`; // serveur figé (./dev.sh freeze)
+// paquets Windows et macOS : <id>-<version>-<win|mac>-<arch>.<ext>, sans espaces
+// (macros d'electron-builder) ; le .deb garde le nom Debian <id>_<version>_<arch>.deb
+const artifact = (suffix = "") => `${names.id}-\${version}-\${os}-\${arch}${suffix}.\${ext}`;
 
 export default {
   appId: `io.github.mektoub.${names.id}`,
@@ -39,19 +42,22 @@ export default {
   },
   win: {
     target: ["nsis", "zip"],
+    artifactName: artifact(),
     icon: "build-resources/icon.png",
   },
   // installation en un clic, pour l'utilisateur courant, sans droits administrateur
-  nsis: { shortcutName: names.short },
+  nsis: { shortcutName: names.short, artifactName: artifact("-setup") },
   mac: {
     target: [{ target: "dmg", arch: "arm64" }, { target: "zip", arch: "arm64" }],
     icon: "build-resources/icon.png",
     category: "public.app-category.music",
+    artifactName: artifact(),
     // sans certificat Apple : signature ad hoc, indispensable sur Apple Silicon ;
     // le runtime durci refuserait les bibliothèques d'Electron signées par une autre équipe
     identity: "-",
     hardenedRuntime: false,
   },
+  dmg: { artifactName: artifact() },
   deb: {
     packageName: names.id,
     packageCategory: "sound",
