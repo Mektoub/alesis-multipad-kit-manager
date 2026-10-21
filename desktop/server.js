@@ -11,11 +11,16 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Chemins à la manière de `platform` (\\ sous Windows), quel que soit le système
+// qui exécute le code : les tests vérifient chaque plateforme partout.
+const pathFor = (platform) => (platform === "win32" ? path.win32 : path.posix);
+
 // Interpréteur du venv du dépôt, en développement.
 export function pythonCommand(projectDir, platform = process.platform) {
+  const p = pathFor(platform);
   return platform === "win32"
-    ? path.join(projectDir, ".venv", "Scripts", "python.exe")
-    : path.join(projectDir, ".venv", "bin", "python");
+    ? p.join(projectDir, ".venv", "Scripts", "python.exe")
+    : p.join(projectDir, ".venv", "bin", "python");
 }
 
 // Serveur à lancer : { command, args, cwd }.
@@ -31,9 +36,10 @@ export function serverCommand({
   env = process.env,
   platform = process.platform,
 }) {
+  const p = pathFor(platform);
   const exe = platform === "win32" ? `${serverName}.exe` : serverName;
-  if (env.KITMANAGER_SERVER) return { command: path.resolve(env.KITMANAGER_SERVER), args: [], cwd: undefined };
-  if (packaged) return { command: path.join(resourcesPath, serverName, exe), args: [], cwd: undefined };
+  if (env.KITMANAGER_SERVER) return { command: p.resolve(env.KITMANAGER_SERVER), args: [], cwd: undefined };
+  if (packaged) return { command: p.join(resourcesPath, serverName, exe), args: [], cwd: undefined };
   return { command: pythonCommand(projectDir, platform), args: ["-m", "editor"], cwd: projectDir };
 }
 
