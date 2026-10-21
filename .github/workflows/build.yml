@@ -15,11 +15,14 @@ on:
       os:
         description: Runners, en liste JSON (par défaut les trois systèmes)
         type: string
-        default: '["ubuntu-latest", "windows-latest", "macos-latest"]'
+        default: '["ubuntu-24.04", "windows-latest", "macos-latest"]'
       freeze-only:
         description: Serveur figé et test de fumée seulement, sans paquet
         type: boolean
         default: false
+
+# Linux : ubuntu-24.04 et non ubuntu-latest (Ubuntu 26) : le serveur figé dépend
+# de la glibc du système de build, le .deb doit aussi marcher sur 24.04.
 
 permissions:
   contents: read
@@ -31,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         # inputs est vide sur un tag ou à la main : les trois systèmes
-        os: ${{ fromJSON(inputs.os || '["ubuntu-latest", "windows-latest", "macos-latest"]') }}
+        os: ${{ fromJSON(inputs.os || '["ubuntu-24.04", "windows-latest", "macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -40,7 +43,7 @@ jobs:
       # LC_ALL=C : sous Linux, PyInstaller ne comprend la sortie de ldconfig qu'en anglais
       LC_ALL: C
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
         with:
           node-lockfiles: |
@@ -68,7 +71,7 @@ jobs:
         if: ${{ !inputs.freeze-only }}
         working-directory: desktop
         run: npm run package
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !inputs.freeze-only }}
         with:
           name: paquet-${{ runner.os }}

@@ -83,7 +83,7 @@ et sur chaque pull request. Quatre jobs, sous Ubuntu :
 | Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
 | Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (Vitest), `npm run build` |
 | Application de bureau (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (node:test ; sans `.venv`, le test du serveur réel est ignoré) |
-| Serveur figé (Python 3.14, Node 24) | workflow `build.yml` appelé sous Linux, sans paquet : build de l'interface, PyInstaller, test de fumée |
+| Serveur figé (Python 3.14, Node 24) | workflow `build.yml` appelé sous Ubuntu 24.04, sans paquet : build de l'interface, PyInstaller, test de fumée |
 
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
 ci-dessus).
