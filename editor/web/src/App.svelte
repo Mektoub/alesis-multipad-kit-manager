@@ -252,7 +252,7 @@
 <svelte:window onbeforeunload={beforeunload} />
 
 <header class="top">
-  <h1>{__APP_NAMES__.long}</h1>
+  <h1>{__APP_NAMES__.long} <span class="version">v{__APP_NAMES__.version}</span></h1>
   <div class="open">
     {#if desktop}
       <button onclick={openDialog}>Ouvrir…</button>
@@ -351,6 +351,11 @@
   h1 {
     margin: 0;
     font-size: 17px;
+  }
+  .version {
+    font-size: 12px;
+    font-weight: normal;
+    color: var(--muted);
   }
   .open,
   .save {
