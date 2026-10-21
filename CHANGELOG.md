@@ -2,7 +2,7 @@
 
 ## 0.3.1 — en cours
 
-- CI : actions GitHub en v7 (fin des avertissements Node 20) ; paquet Linux et job « Serveur figé » construits sur `ubuntu-24.04` (`ubuntu-latest` passe à Ubuntu 26, dont la glibc rendrait le .deb inutilisable sur 24.04).
+- CI : actions GitHub en v7 (fin des avertissements Node 20) ; paquet Linux et job « Serveur figé » construits sur `ubuntu-24.04` (`ubuntu-latest` passe à Ubuntu 26, dont la glibc rendrait le .deb inutilisable sur 24.04). Runners Windows et macOS figés aussi : `windows-2025`, `macos-26`.
 - Correction : les tests de `desktop/server.js` échouaient sous Windows (build « Package » de la 0.3.0) ; les chemins du serveur à lancer suivent maintenant la plateforme indiquée (`path.win32` / `path.posix`), et un test vérifie le cas Windows sur tous les systèmes.
 
 ## 0.3.0 — Passage à une application desktop avec electron
