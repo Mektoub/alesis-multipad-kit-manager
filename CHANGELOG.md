@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 — en cours
+
+- Correction : les tests de `desktop/server.js` échouaient sous Windows (build « Package » de la 0.3.0) ; les chemins du serveur à lancer suivent maintenant la plateforme indiquée (`path.win32` / `path.posix`), et un test vérifie le cas Windows sur tous les systèmes.
+
 ## 0.3.0 — Passage à une application desktop avec electron
 
 - `strike_kits.py` devient le paquet `strike_kits/` (code dans `__init__.py`, imports inchangés) ; ligne de commande : `python3 -m strike_kits export|import …` au lieu de `python3 strike_kits.py …`.
