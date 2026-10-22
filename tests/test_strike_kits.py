@@ -656,6 +656,54 @@ class CopieKit(unittest.TestCase):
         self.assertFalse(self.b.dirty)
 
 
+class DeplacementKit(unittest.TestCase):
+    """Déplacer un kit à un autre numéro : il y prend place, les kits entre les
+    deux numéros se décalent d'un cran (comme dans une liste)."""
+
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+        self.raw = {n: self.b.get_raw(n) for n in self.b.kit_numbers()}
+
+    def nums(self, first, last):
+        return ["%03d" % n for n in range(first, last + 1)]
+
+    def test_vers_le_haut(self):
+        self.b.move_kit("040", "033")  # Ham & Beans en 033, 033…039 -> 034…040
+        self.assertEqual(self.b.get_raw("033"), self.raw["040"])
+        for old, new in zip(self.nums(33, 39), self.nums(34, 40), strict=True):
+            self.assertEqual(self.b.get_raw(new), self.raw[old], new)
+        for n in self.raw:
+            if not "033" <= n <= "040":
+                self.assertEqual(self.b.get_raw(n), self.raw[n], n)
+        self.assertTrue(self.b.dirty)
+        self.assertEqual(sk.Backup(self.b.serialize()).decode("033")["name"], "Ham & Beans")
+
+    def test_vers_le_bas(self):
+        self.b.move_kit("031", "035")  # WhereIs en 035, 032…035 -> 031…034
+        self.assertEqual(self.b.get_raw("035"), self.raw["031"])
+        for old, new in zip(self.nums(32, 35), self.nums(31, 34), strict=True):
+            self.assertEqual(self.b.get_raw(new), self.raw[old], new)
+        self.assertEqual(self.b.get_raw("036"), self.raw["036"])
+
+    def test_meme_numero(self):
+        self.b.move_kit("031", "031")
+        self.assertFalse(self.b.dirty)
+
+    def test_fac(self):
+        b = sk.Backup(ref_fac())
+        first = b.get_raw("001")
+        b.move_kit("001", "003")
+        out = sk.Backup(b.serialize())
+        self.assertEqual(out.get_raw("003"), first)
+        self.assertEqual(out.decode("001")["name"], "CrazyInLove")
+
+    def test_kits_invalides(self):
+        for a, b in (("031", "101"), ("999", "040")):
+            with self.assertRaises(sk.StrikeError):
+                self.b.move_kit(a, b)
+        self.assertFalse(self.b.dirty)
+
+
 class SuppressionKit(unittest.TestCase):
     """Supprimer un kit : le remplacer par le kit vide écrit par l'appareil."""
 

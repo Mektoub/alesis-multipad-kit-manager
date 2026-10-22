@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.4.0 — Améliorations visuelles
+## 0.4.0 — Améliorations UI
 
+- Éditeur web : réorganisation des kits par glisser-déposer dans la liste, par la poignée ⠿ en bout de ligne (visible au survol) : le kit prend la place du kit visé, ceux d'entre les deux se décalent d'un cran. API : `POST /api/kits/{num}/move` ; `strike_kits` : `Backup.move_kit`.
 - Éditeur web : *Valeurs par défaut…* remet les réglages des emplacements choisis aux valeurs du kit vide de l'appareil (propres à chaque emplacement), par sections (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix, et sample sur demande ; aucune cochée au départ, lien *toutes les sections*). API : `POST /api/kits/{num}/reset` ; `strike_kits` : `Backup.reset_slots`.
 - Éditeur web : Sound (section Control) affiché Off / On (0 = Off par défaut, 1 = On).
 - Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
