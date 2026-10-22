@@ -29,8 +29,8 @@ libre : on peut renommer le fichier.
     {
       "slot": 1,
       "_label": "P1",
-      "light":  { "play_color": 16, "play_mode": 3, "stop_color": 8, "stop_mode": 1 },
-      "params": { "volume": 90, "pan": 15, "midi_note": 36, "control": 0, "p09": 0, "…": 0 },
+      "light":  { "play_color": 16, "play_mode": 3, "play_beat": 1, "stop_color": 8, "…": 0 },
+      "params": { "volume": 90, "pan": 15, "midi_note": 36, "curve": 0, "p09": 0, "…": 0 },
       "wave_a": {
         "sample": 8071,
         "_sample_name": "WIMH sample track",

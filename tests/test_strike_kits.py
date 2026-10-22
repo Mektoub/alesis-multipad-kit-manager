@@ -334,7 +334,7 @@ class KitcChampsRecouverts(unittest.TestCase):
         cls.kits = kits_of(REF.read_bytes())
 
     def test_tous_les_champs_sur_tous_les_pads(self):
-        pad = [sk.param_name(sk.PAD_PARAMS, r) for r, _, _ in sk.PAD_LAYOUT]
+        pad = [sk.param_name(sk.PAD_PARAMS, r) for r, _, _ in sk.PAD_LAYOUT] + list(sk.PAD_FIELDS)
         wave = [sk.param_name(sk.WAVE_PARAMS, r) for r, _, _ in sk.WAVE_LAYOUT]
         for name in ("031.kit", "032.kit"):
             for s in sk.decode_kit(self.kits[name])["slots"]:
@@ -366,6 +366,76 @@ class Controle(unittest.TestCase):
         self.assertEqual([s["params"]["control"] for s in whereis["slots"][6:9]], [3, 3, 3])
         # Audio Output du pad 9 passé de Main+Phone (0) à Aux+Phone (4)
         self.assertEqual(crazy["slots"][8]["params"]["audio_output"], 4)
+
+
+class ParametresIdentifies(unittest.TestCase):
+    """Réglages faits sur l'appareil à partir des kits 031 et 032 de la référence
+    (identiques à ceux de la sauvegarde de départ) : octets changés dans la
+    sauvegarde écrite par l'appareil, somme de contrôle (0x08) comprise."""
+
+    DEVICE = {
+        "031.kit": {0x08: 95, 0x276: 0, 0x3F9: 4, 0x731: 5, 0x8BD: 50, 0x9F2: 3},
+        "032.kit": {0x08: 88, 0x2E2: 50, 0x771: 9, 0x7D1: 9, 0x8FD: 0, 0xA63: 100},
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.kits = kits_of(REF.read_bytes())
+
+    def changed(self, name, edit):
+        raw = self.kits[name]
+        data = sk.decode_kit(raw)
+        edit(data["slots"])
+        new = sk.encode_kit(raw, data)
+        return {i: new[i] for i in range(len(raw)) if raw[i] != new[i]}
+
+    def test_kit_1_comme_l_appareil(self):
+        def edit(s):
+            s[3]["params"]["curve"] = 5  # Loud
+            s[4]["params"]["kit_fx_level"] = 50
+            s[5]["light"]["play_beat"] = 3  # 1/16
+            s[0]["light"]["stop_beat"] = 0  # 1/2
+            s[1]["params"]["sync_mode"] = 4  # HiHat
+
+        self.assertEqual(self.changed("031.kit", edit), self.DEVICE["031.kit"])
+
+    def test_kit_2_comme_l_appareil(self):
+        def edit(s):
+            for w in ("wave_a", "wave_b"):
+                s[3][w]["params"]["playback_mode"] = 9  # FS4
+            s[4]["wave_a"]["params"]["poly_mono"] = 0  # Mono
+            s[5]["wave_a"]["velocity_high"] = 100
+            s[0]["wave_a"]["velocity_low"] = 50
+
+        self.assertEqual(self.changed("032.kit", edit), self.DEVICE["032.kit"])
+
+    def test_valeurs_lues(self):
+        s = sk.decode_kit(self.kits["031.kit"])["slots"]
+        self.assertEqual((s[4]["params"]["kit_fx_level"], s[3]["params"]["curve"]), (40, 0))
+        self.assertEqual((s[0]["light"]["play_beat"], s[0]["light"]["stop_beat"]), (1, 1))
+        self.assertEqual(s[1]["params"]["sync_mode"], 0)
+        w = sk.decode_kit(self.kits["032.kit"])["slots"][4]["wave_a"]["params"]
+        self.assertEqual((w["playback_mode"], w["poly_mono"]), (0, 1))
+
+    def test_plages(self):
+        # Playback Mode : l'enregistrement annonce 0–5, l'appareil écrit 9 (FS4)
+        for name, edit in (
+            ("playback_mode", lambda s: s[0]["wave_a"]["params"].update(playback_mode=10)),
+            ("sync_mode", lambda s: s[0]["params"].update(sync_mode=5)),
+            ("play_beat", lambda s: s[0]["light"].update(play_beat=4)),
+        ):
+            with self.assertRaisesRegex(sk.StrikeError, "hors plage", msg=name):
+                self.changed("033.kit", edit)
+
+    def test_modification_groupee(self):
+        b = sk.Backup.open(REF)
+        for field in ("params.sync_mode", "light.play_beat", "light.stop_beat", "wave_a.params.playback_mode"):
+            kit, skipped = b.set_slots("033", [1, 2], field, 3)
+            self.assertEqual(skipped, [], field)
+            node = kit["slots"][1]
+            for key in field.split("."):
+                node = node[key]
+            self.assertEqual(node, 3, field)
 
 
 class BackupEnMemoire(unittest.TestCase):

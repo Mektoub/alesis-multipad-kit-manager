@@ -10,30 +10,31 @@
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];
 
   // Réglages proposés, construits une fois à l'ouverture (`meta` ne change pas).
+  // Groupés par sections, comme dans l'éditeur ; les paramètres non identifiés à la fin.
   function buildFields(meta) {
-    const colorNames = meta.colors.map((c) => c.name);
-    const light = [
-      { key: "play_color", title: "Couleur Play", labels: colorNames },
-      { key: "play_mode", title: "Mode Play", labels: meta.play_modes },
-      { key: "stop_color", title: "Couleur Stop", labels: colorNames },
-      { key: "stop_mode", title: "Mode Stop", labels: meta.stop_modes },
-    ];
-    const fromParam = (prefix, group, d) => ({
-      field: `${prefix}.${d.name}`, group, title: d.title, min: d.min, max: d.max,
+    const fromDef = (field, group, d) => ({
+      field, group, title: d.title, min: d.min, max: d.max,
       labels: d.labels, description: d.description, known: d.known,
     });
+    const pad = new Map([
+      ...meta.pad_params.map((d) => [`params.${d.name}`, d]),
+      ...meta.light_params.map((d) => [`light.${d.name}`, d]),
+    ]);
+    const wave = new Map([
+      ...meta.wave_params.map((d) => [`params.${d.name}`, d]),
+      ...meta.velocity_params.map((d) => [d.name, d]),
+    ]);
+    const unknown = (params) => params.filter((d) => !d.known);
     return [
-      ...meta.pad_params.map((d) => fromParam("params", "Pad", d)),
-      ...light.map((l) => ({ field: `light.${l.key}`, group: "Éclairage", title: l.title, min: 0,
-                             max: l.labels.length - 1, labels: l.labels, description: meta.help[l.key], known: true })),
+      ...meta.pad_sections.flatMap((s) => s.fields.map((f) => fromDef(f, `Pad · ${s.title}`, pad.get(f)))),
+      ...unknown(meta.pad_params).map((d) => fromDef(`params.${d.name}`, "Pad · non identifiés", d)),
       ...["wave_a", "wave_b"].flatMap((w) => {
-        const group = w === "wave_a" ? "Wave A" : "Wave B";
+        const title = w === "wave_a" ? "Wave A" : "Wave B";
         return [
-          { field: `${w}.velocity_low`, group, title: "Velocity Low", min: 0, max: 126,
-            description: meta.help.velocity_low, known: true },
-          { field: `${w}.velocity_high`, group, title: "Velocity High", min: 1, max: 127,
-            description: meta.help.velocity_high, known: true },
-          ...meta.wave_params.map((d) => fromParam(`${w}.params`, group, d)),
+          ...meta.wave_sections.flatMap((s) =>
+            s.fields.map((f) => fromDef(`${w}.${f}`, `${title} · ${s.title}`, wave.get(f))),
+          ),
+          ...unknown(meta.wave_params).map((d) => fromDef(`${w}.params.${d.name}`, `${title} · non identifiés`, d)),
         ];
       }),
     ];

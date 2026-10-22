@@ -214,6 +214,30 @@ class Api(unittest.TestCase):
         self.assertEqual(len(meta["colors"]), 17)
         self.assertEqual(len(meta["slots"]), 24)
 
+    def test_meta_parametres_identifies(self):
+        meta = self.client.get("/api/meta").json()
+        pad = {p["name"]: p for p in meta["pad_params"]}
+        wave = {p["name"]: p for p in meta["wave_params"]}
+        light = {p["name"]: p for p in meta["light_params"]}
+        self.assertEqual(pad["curve"]["labels"][5], "Loud")
+        self.assertEqual((pad["sync_mode"]["max"], pad["sync_mode"]["labels"][4]), (4, "HiHat"))
+        self.assertEqual(pad["control"]["title"], "Mode")
+        self.assertEqual((wave["playback_mode"]["max"], wave["playback_mode"]["labels"][9]), (9, "FS4"))
+        self.assertEqual(wave["poly_mono"]["labels"], ["Mono", "Poly"])
+        self.assertEqual([light[k]["labels"][3] for k in ("play_beat", "stop_beat")], ["1/16", "1/16"])
+
+    def test_sections(self):
+        """Chaque réglage identifié figure dans une seule section, dans l'ordre de l'appareil."""
+        meta = self.client.get("/api/meta").json()
+        pad = [f for s in meta["pad_sections"] for f in s["fields"]]
+        wave = [f for s in meta["wave_sections"] for f in s["fields"]]
+        self.assertEqual([s["title"] for s in meta["pad_sections"]], ["Feel", "Control", "Output", "Light", "Group"])
+        self.assertEqual([s["title"] for s in meta["wave_sections"]], ["Mode", "Mix"])
+        known = ["params." + p["name"] for p in meta["pad_params"] if p["known"]]
+        self.assertCountEqual(pad, known + ["light." + p["name"] for p in meta["light_params"]])
+        known = ["params." + p["name"] for p in meta["wave_params"] if p["known"]]
+        self.assertCountEqual(wave, known + [p["name"] for p in meta["velocity_params"]])
+
 
 class SansSauvegarde(unittest.TestCase):
     def test_version_de_l_application(self):
@@ -232,7 +256,7 @@ class SansSauvegarde(unittest.TestCase):
         pad = {p["name"]: p for p in meta["pad_params"]}
         wave = {p["name"]: p for p in meta["wave_params"]}
         self.assertIn("seuil", pad["threshold"]["description"].lower())
-        self.assertIn("non identifié", pad["p13"]["description"])
+        self.assertIn("non identifié", pad["p0e"]["description"])
         for p in meta["pad_params"] + meta["wave_params"]:
             self.assertTrue(p["description"], p["name"])
         self.assertIn("fondu", wave["fade_in"]["description"].lower())
