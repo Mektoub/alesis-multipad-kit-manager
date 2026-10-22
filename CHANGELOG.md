@@ -2,7 +2,7 @@
 
 ## 0.4.0 — en cours
 
-- Éditeur web : contenu des pads centré ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
+- Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
 
 ## 0.3.3 — Corrections
 
