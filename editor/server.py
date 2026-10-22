@@ -64,6 +64,11 @@ class MultiSetRequest(SetRequest):
     kits: list[str]
 
 
+class ResetRequest(BaseModel):
+    targets: list[int]
+    fields: list[str]
+
+
 class TransferRequest(BaseModel):
     target: str
     mode: Literal["copy", "swap"]
@@ -255,6 +260,14 @@ def create_app(token, open_file=None, allow=()):
         with s.lock:
             b = kit_or_404(num)
             kit, skipped = strike_errors(lambda: b.set_slots(num, req.targets, req.field, req.value))
+            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+
+    @app.post("/api/kits/{num}/reset")
+    def reset_slots(num: str, req: ResetRequest):
+        """Remet des champs d'emplacements aux valeurs du kit vide de l'appareil."""
+        with s.lock:
+            b = kit_or_404(num)
+            kit, skipped = strike_errors(lambda: b.reset_slots(num, req.targets, req.fields))
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
 
     @app.post("/api/kits/{num}/transfer")

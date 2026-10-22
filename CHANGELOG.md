@@ -2,6 +2,7 @@
 
 ## 0.4.0 — Améliorations visuelles
 
+- Éditeur web : *Valeurs par défaut…* remet les réglages des emplacements choisis aux valeurs du kit vide de l'appareil (propres à chaque emplacement), par sections (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix, et sample sur demande ; aucune cochée au départ, lien *toutes les sections*). API : `POST /api/kits/{num}/reset` ; `strike_kits` : `Backup.reset_slots`.
 - Éditeur web : Sound (section Control) affiché Off / On (0 = Off par défaut, 1 = On).
 - Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
 - Éditeur web : sections du pad disposées en colonnes, chacune juste sous la précédente (plus d'espace vide sous les sections courtes, Group ne descend plus au bas de Light).
