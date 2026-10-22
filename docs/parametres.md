@@ -23,7 +23,7 @@ Rangés par sections, comme dans le menu Pad de l'appareil et dans l'éditeur.
 | Feel | `threshold` | Threshold (4 par défaut) | 0–32 |
 | Feel | `fixed_level` | Fixed Level, 0 = Off | 0–127 |
 | Control | `control` | Mode (voir ci-dessous) | 0–13 |
-| Control | `sound` | Sound On/Off (sens des valeurs à confirmer) | 0–1 |
+| Control | `sound` | Sound : 0 = Off (par défaut), 1 = On | 0–1 |
 | Output | `audio_output` | Audio Output (voir ci-dessous) | 0–5 |
 | Output | `kit_fx_level` | Kit FX Level (vérifié ; 40 par défaut) | 0–127 |
 | Output | `midi_note` | MIDI Note Output (vérifié : 36, 37, 38… sur P1, P2, P3…) | 0–127 |
