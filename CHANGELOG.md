@@ -6,6 +6,7 @@
 - Éditeur web : réglages rangés par sections, comme sur l'appareil (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix), aussi dans *Modifier plusieurs pads* ; « Control » s'appelle « Mode ».
 - Test de bout en bout de l'application de bureau (Playwright, `desktop/e2e/`, `./dev.sh e2e`, inclus dans `./dev.sh all`) : ouverture d'une copie de la sauvegarde de référence, modification, enregistrement par le menu et relecture, confirmation de fermeture avec des modifications non enregistrées. Lancé par la CI sous Ubuntu 24.04 (xvfb).
 - Liste de vérifications manuelles par système avant une release (`docs/application-bureau.md`).
+- Profil AppArmor de développement (`desktop/apparmor.sh`) en syntaxe AppArmor 4.0 (`abi/4.0`, sans `@{exec_path}`) : refusé auparavant par Ubuntu 24.04, dont le runner de la CI.
 
 ## 0.3.2 — Gestion des versions / releases
 
