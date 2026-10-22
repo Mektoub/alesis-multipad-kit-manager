@@ -3,7 +3,7 @@
   import SlotEditor from "./SlotEditor.svelte";
   import { tooltip } from "./format.js";
 
-  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer, onclear, empty, onbulk } = $props();
+  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, onreset, ontransfer, onclear, empty, onbulk } = $props();
 
   // Disposition de l'appareil : 7-8-9 en haut (pads deux fois moins hauts),
   // 4-5-6 au milieu, 1-2-3 en bas.
@@ -78,6 +78,7 @@
       <span class="actions">
         <button onclick={() => onbulk(selected + 1)} title="Donner une même valeur à un réglage de plusieurs pads">Modifier plusieurs pads…</button>
         <button onclick={() => oncopy(selected + 1)}>Copier vers…</button>
+        <button onclick={() => onreset(selected + 1)} title="Remettre des réglages aux valeurs par défaut">Valeurs par défaut…</button>
       </span>
     </div>
     {#key selected}

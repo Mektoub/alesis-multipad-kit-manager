@@ -119,6 +119,15 @@ cd editor/web && npm ci && npm run build && cd ../..
    éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
    la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
    message de confirmation.
+
+   *Valeurs par défaut…* (à côté) remet des réglages aux valeurs d'un kit vide de
+   l'appareil, propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).
+   On choisit les emplacements (le pad affiché est présélectionné) et les
+   sections : Feel, Control, Output, Light et Group pour le pad, Mode et Mix pour
+   chaque wave, *Sample (retirer)* pour retirer aussi le sample. Aucune section
+   n'est cochée au départ ; *toutes les sections* les coche toutes, sauf le retrait
+   des samples.
+   Les paramètres non identifiés ne sont pas touchés.
 7. **Modifier plusieurs pads** : *Modifier plusieurs pads…* (en haut des réglages
    du pad) donne une même valeur à un réglage sur une sélection de pads, par
    exemple Sensitivity = 20 sur P1, P3, P5 et P9. On choisit le réglage (pad,
@@ -173,6 +182,7 @@ porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
 | POST | `/api/kits/set` | même chose dans plusieurs kits, tout ou rien (`{"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}`) ; renvoie l'état et les champs absents |
 | POST | `/api/kits/{num}/set` | même valeur pour un champ de plusieurs emplacements (`{"targets": [1, 3, 5], "field": "params.sensitivity", "value": 20}` ; champs : `params.*`, `light.*`, `wave_a.*` / `wave_b.*` dont `sample` et les vélocités, `wave_a.params.*` / `wave_b.params.*`) |
+| POST | `/api/kits/{num}/reset` | remettre des champs d'emplacements aux valeurs du kit vide de l'appareil (`{"targets": [1, 2], "fields": ["params.curve", "wave_a.sample"]}`) ; renvoie le kit et les champs non modifiés |
 | POST | `/api/kits/{num}/clear` | supprimer le kit : le remplacer par le kit vide de l'appareil ; renvoie l'état |
 | POST | `/api/kits/{num}/transfer` | copier le kit vers un autre numéro (`{"target": "040", "mode": "copy"}`) ou échanger les deux kits (`"mode": "swap"`) ; renvoie l'état |
 | POST | `/api/kits/{num}/copy` | recopier un emplacement (`{"source": 9, "targets": [7, 8], "parts": ["params", "light", "wave_a", "wave_b"], "include_midi_note": false}`) |

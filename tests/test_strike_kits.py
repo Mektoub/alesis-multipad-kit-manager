@@ -8,6 +8,7 @@ Contenu de la référence (voir construire_reference.py) :
 """
 
 import json
+import re
 import struct
 import tempfile
 import unittest
@@ -692,6 +693,61 @@ class SuppressionKit(unittest.TestCase):
     def test_kit_inexistant(self):
         with self.assertRaises(sk.StrikeError):
             self.b.clear_kit("999")
+        self.assertFalse(self.b.dirty)
+
+
+class ReinitialisationEmplacements(unittest.TestCase):
+    """Remettre des réglages d'emplacements aux valeurs du kit vide de l'appareil."""
+
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+        self.empty = sk.decode_kit(sk.EMPTY_KIT)["slots"]
+
+    def test_champs_choisis(self):
+        kit = self.b.decode("031")
+        p1 = kit["slots"][0]
+        p1["params"]["curve"], p1["light"]["play_beat"], p1["wave_a"]["params"]["volume"] = 5, 3, 50
+        p1["params"]["threshold"] = 10
+        self.b.update("031", kit)
+        before = self.b.decode("031")
+        fields = ["params.curve", "light.play_beat", "wave_a.params.volume"]
+        kit, skipped = self.b.reset_slots("031", [1], fields)
+        self.assertEqual(skipped, [])
+        p1, e1 = kit["slots"][0], self.empty[0]
+        self.assertEqual(p1["params"]["curve"], e1["params"]["curve"])
+        self.assertEqual(p1["light"]["play_beat"], e1["light"]["play_beat"])
+        self.assertEqual(p1["wave_a"]["params"]["volume"], e1["wave_a"]["params"]["volume"])
+        self.assertEqual(p1["params"]["threshold"], 10)  # champ non choisi
+        self.assertEqual(p1["wave_a"]["sample"], 8071)  # sample conservé
+        self.assertEqual(kit["slots"][1:], before["slots"][1:])  # autres emplacements intacts
+        self.assertTrue(self.b.dirty)
+
+    def test_valeurs_propres_a_chaque_emplacement(self):
+        # kit d'usine : tous les champs identifiés de tous les emplacements -> ceux du kit vide
+        # (les paramètres non identifiés, que l'interface ne propose pas, sont laissés de côté :
+        # le kit vide y a des valeurs au-delà du max déclaré, refusées à l'encodage)
+        def known(field):
+            return not re.fullmatch(r"p[0-9a-f]{2}", field.split(".")[-1])
+
+        fields = [f for f in sk.slot_field_names() if known(f)]
+        kit, _ = self.b.reset_slots("040", list(range(1, 25)), fields)
+        for got, want in zip(kit["slots"], self.empty, strict=True):
+            for field in fields:
+                g, w = got, want
+                for key in field.split("."):
+                    g, w = g[key], w[key]
+                self.assertEqual(g, w, (got["slot"], field))
+
+    def test_sample_retire_sur_demande(self):
+        kit, _ = self.b.reset_slots("031", [1], ["wave_a.sample"])
+        self.assertIsNone(kit["slots"][0]["wave_a"]["sample"])
+
+    def test_demandes_invalides(self):
+        raw = self.b.get_raw("031")
+        for targets, fields in (([1], ["params.inconnu"]), ([25], ["params.curve"]), ([], ["params.curve"]), ([1], [])):
+            with self.assertRaises(sk.StrikeError, msg=(targets, fields)):
+                self.b.reset_slots("031", targets, fields)
+        self.assertEqual(self.b.get_raw("031"), raw)
         self.assertFalse(self.b.dirty)
 
 

@@ -182,6 +182,20 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.get("/api/kits/031").json()["name"], "Empty")
         self.assertEqual(self.client.post("/api/kits/999/clear").status_code, 404)
 
+    def test_reinitialisation_d_emplacements(self):
+        body = {"targets": [1, 2], "fields": ["params.sensitivity", "wave_a.sample"]}
+        self.client.post("/api/kits/031/set", json={"targets": [1, 2], "field": "params.sensitivity", "value": 30})
+        r = self.client.post("/api/kits/031/reset", json=body)
+        self.assertEqual(r.status_code, 200, r.text)
+        slots = r.json()["kit"]["slots"]
+        self.assertEqual([s["params"]["sensitivity"] for s in slots[:2]], [16, 16])
+        self.assertEqual([s["wave_a"]["sample"] for s in slots[:2]], [None, None])
+        self.assertEqual(r.json()["skipped"], [])
+        self.assertTrue(self.client.get("/api/state").json()["dirty"])
+        bad = {"targets": [1], "fields": ["params.inconnu"]}
+        self.assertEqual(self.client.post("/api/kits/031/reset", json=bad).status_code, 400)
+        self.assertEqual(self.client.post("/api/kits/999/reset", json=body).status_code, 404)
+
     def test_modification_multi_kits(self):
         body = {"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}
         r = self.client.post("/api/kits/set", json=body)

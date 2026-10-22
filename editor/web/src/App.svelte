@@ -4,6 +4,7 @@
   import { desktop } from "./lib/desktop.js";
   import KitEditor from "./lib/KitEditor.svelte";
   import CopyDialog from "./lib/CopyDialog.svelte";
+  import ResetDialog from "./lib/ResetDialog.svelte";
   import KitTransferDialog from "./lib/KitTransferDialog.svelte";
   import BulkEditDialog from "./lib/BulkEditDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
@@ -19,6 +20,7 @@
   let notice = $state("");
   let picking = $state(null); // "wave_a" | "wave_b" | null
   let copyFrom = $state(null); // emplacement source de la recopie
+  let resetFrom = $state(null); // emplacement présélectionné pour « Valeurs par défaut »
   let transferring = $state(false); // fenêtre « Déplacer / copier le kit »
   let bulkFrom = $state(null); // emplacement d'où part la modification groupée
   let savePath = $state("");
@@ -88,6 +90,21 @@
     if (skipped.length) {
       const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
       notice += ` Champs illisibles dans ce kit, non copiés : ${list}.`;
+    }
+  }
+
+  async function resetSlots(request) {
+    await flush();
+    const { kit: updated, skipped } = await api.resetSlots(currentNum, request);
+    lastSynced = JSON.stringify(updated);
+    kit = updated;
+    session.dirty = true;
+    resetFrom = null;
+    const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
+    notice = `Valeurs par défaut remises sur ${dest}.`;
+    if (skipped.length) {
+      const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
+      notice += ` Champs illisibles dans ce kit, non modifiés : ${list}.`;
     }
   }
 
@@ -312,7 +329,7 @@
     </aside>
     <section class="content">
       {#if kit}
-        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} onclear={clearKit} empty={session.kits.find((k) => k.num === currentNum)?.empty} onbulk={(n) => (bulkFrom = n)} />
+        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} onreset={(n) => (resetFrom = n)} ontransfer={() => (transferring = true)} onclear={clearKit} empty={session.kits.find((k) => k.num === currentNum)?.empty} onbulk={(n) => (bulkFrom = n)} />
       {/if}
     </section>
   </main>
@@ -326,6 +343,9 @@
   </main>
 {/if}
 
+{#if resetFrom && kit}
+  <ResetDialog {kit} {meta} source={resetFrom} onreset={resetSlots} onclose={() => (resetFrom = null)} />
+{/if}
 {#if copyFrom && kit}
   <CopyDialog {kit} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
 {/if}

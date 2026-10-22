@@ -422,6 +422,38 @@ def set_slots_value(kit, targets, field, value):
     return skipped
 
 
+def reset_slot_settings(kit, targets, fields):
+    """Remet les champs `fields` (« section.clé », voir slot_field_names) des
+    emplacements `targets` du JSON `kit` aux valeurs du kit vide de l'appareil,
+    propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).
+
+    Retourne les champs absents, donc non modifiés : [(emplacement, champ)].
+    """
+    unknown = sorted(set(fields) - set(slot_field_names()))
+    if unknown:
+        raise StrikeError("champs inconnus : %s" % ", ".join(unknown))
+    if not fields:
+        raise StrikeError("aucun champ choisi")
+    if not targets:
+        raise StrikeError("aucun emplacement choisi")
+    for n in targets:
+        if not isinstance(n, int) or not 1 <= n <= SLOT_COUNT:
+            raise StrikeError("emplacement %r inexistant (1 à %d)" % (n, SLOT_COUNT))
+    empty = decode_kit(EMPTY_KIT)["slots"]
+    skipped = []
+    for n in targets:
+        for field in fields:
+            *path, key = field.split(".")
+            src, dst = empty[n - 1], kit["slots"][n - 1]
+            for part in path:
+                src, dst = src[part], dst[part]
+            if key in dst and key in src:
+                dst[key] = src[key]
+            else:
+                skipped.append((n, field))
+    return skipped
+
+
 # --------------------------------------------------------------------------
 # WAV
 # --------------------------------------------------------------------------
@@ -944,6 +976,11 @@ class Backup:
                 self._set_raw(num, kit)
                 self.dirty = True
         return skipped
+
+    def reset_slots(self, num, targets, fields):
+        kit = self.decode(num)
+        skipped = reset_slot_settings(kit, targets, fields)
+        return self.update(num, kit), skipped
 
     def copy_slot(self, num, source, targets, parts, include_midi_note=False):
         kit = self.decode(num)

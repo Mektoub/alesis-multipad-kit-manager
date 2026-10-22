@@ -56,6 +56,7 @@ export const api = {
   kit: (num) => request("GET", `/api/kits/${num}`),
   saveKit: (num, kit) => request("PUT", `/api/kits/${num}`, kit),
   copySlot: (num, body) => request("POST", `/api/kits/${num}/copy`, body),
+  resetSlots: (num, body) => request("POST", `/api/kits/${num}/reset`, body),
   setSlots: (num, body) => request("POST", `/api/kits/${num}/set`, body),
   setSlotsInKits: (body) => request("POST", "/api/kits/set", body),
   transferKit: (num, body) => request("POST", `/api/kits/${num}/transfer`, body),
