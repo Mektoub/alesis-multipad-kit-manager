@@ -222,6 +222,23 @@
     }
   }
 
+  // Recharger : relit le fichier ouvert et abandonne les modifications non
+  // enregistrées (après confirmation) ; le kit affiché reste le même.
+  async function reload() {
+    if (session.dirty && !confirm("Abandonner toutes les modifications non enregistrées et relire le fichier ?")) return;
+    clearTimeout(timer); // une modification en attente ne doit pas être renvoyée
+    error = notice = "";
+    try {
+      const num = currentNum;
+      session = await api.open(session.path, true);
+      samples = await api.samples();
+      await loadKit(session.kits.some((k) => k.num === num) ? num : session.kits[0].num, false);
+      notice = "Fichier rechargé : modifications non enregistrées abandonnées.";
+    } catch (err) {
+      error = err.message;
+    }
+  }
+
   // `path` null : « Enregistrer » dans le fichier ouvert (copie .bak du fichier
   // d'origine faite par le serveur) ; sinon « Enregistrer sous ».
   async function save(path = null, overwrite = false) {
@@ -337,6 +354,7 @@
       <span class="status" class:dirty={session.dirty}>
         {syncing ? "Synchronisation…" : session.dirty ? "Modifications non enregistrées" : "À jour"}
       </span>
+      <button onclick={reload} disabled={saving} title="Relire le fichier ouvert et annuler toutes les modifications non enregistrées">Recharger</button>
       {#if !desktop}<input type="text" bind:value={savePath} aria-label="Fichier de destination" />{/if}
       <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
       {#if desktop}

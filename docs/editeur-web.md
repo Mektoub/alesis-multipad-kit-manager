@@ -165,6 +165,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    rien n'est perdu. **Enregistrer sous** écrit dans un autre fichier (le nom
    suivant est proposé, `Backup003.bkf` après `Backup002.bkf`), qui devient le
    fichier ouvert ; si ce fichier existe, une confirmation est demandée.
+   **Recharger** relit le fichier ouvert et abandonne toutes les modifications non
+   enregistrées, après confirmation s'il y en a ; le kit affiché reste le même.
 
 Chaque modification est envoyée au serveur et validée aussitôt. Une valeur refusée
 (hors plage, par exemple) affiche un message et le kit revient à son dernier état
