@@ -21,6 +21,8 @@
   let picking = $state(null); // "wave_a" | "wave_b" | null
   let copyFrom = $state(null); // emplacement source de la recopie
   let resetFrom = $state(null); // emplacement présélectionné pour « Valeurs par défaut »
+  let dragKit = $state(null); // kit glissé par sa poignée dans la liste
+  let dropKit = $state(null); // kit survolé pendant le glisser
   let transferring = $state(false); // fenêtre « Déplacer / copier le kit »
   let bulkFrom = $state(null); // emplacement d'où part la modification groupée
   let savePath = $state("");
@@ -132,6 +134,47 @@
     else if (before === "Empty") notice = `Kit ${source} déplacé en ${target}.`;
     else notice = `Kits ${source} et ${target} échangés.`;
     await loadKit(target);
+  }
+
+  // Glisser-déposer dans la liste : le kit prend la place du kit visé, ceux
+  // d'entre les deux se décalent d'un cran ; le kit affiché suit son numéro.
+  async function moveKit(source, target) {
+    if (source === target) return;
+    await flush();
+    const nums = session.kits.map((k) => k.num);
+    const [i, j, c] = [source, target, currentNum].map((n) => nums.indexOf(n));
+    let shown = c;
+    if (c === i) shown = j;
+    else if (j < i && j <= c && c < i) shown = c + 1;
+    else if (i < j && i < c && c <= j) shown = c - 1;
+    session = await api.moveKit(source, { target });
+    notice = `Kit ${source} déplacé en ${target}.`;
+    await loadKit(nums[shown], false);
+  }
+
+  function dragStart(e, num) {
+    dragKit = num;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", num);
+  }
+
+  function dragOver(e, num) {
+    if (dragKit == null) return; // fichier ou autre contenu glissé
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    dropKit = num;
+  }
+
+  function drop(e, num) {
+    if (dragKit == null) return;
+    e.preventDefault();
+    const source = dragKit;
+    dragEnd();
+    moveKit(source, num).catch((err) => (error = err.message));
+  }
+
+  function dragEnd() {
+    dragKit = dropKit = null;
   }
 
   // Supprimer = remplacer par le kit vide de l'appareil, après confirmation.
@@ -318,11 +361,30 @@
       <p class="muted info">{session.path} · {session.kind} · {session.user_samples} sample(s) perso</p>
       <ul>
         {#each visibleKits as k (k.num)}
-          <li>
+          <li
+            class:dragged={dragKit === k.num}
+            class:drop-before={dropKit === k.num && dragKit !== k.num && k.num < dragKit}
+            class:drop-after={dropKit === k.num && dragKit !== k.num && k.num > dragKit}
+            ondragover={(e) => dragOver(e, k.num)}
+            ondragleave={() => dropKit === k.num && (dropKit = null)}
+            ondrop={(e) => drop(e, k.num)}
+          >
             <button class:active={k.num === currentNum} onclick={() => loadKit(k.num)}>
               <span class="num">{k.num}</span>
               <span class="kname" class:empty={k.name === "Empty"}>{k.name}</span>
             </button>
+            {#if !k.empty}
+              <span
+                class="grip"
+                role="button"
+                tabindex="-1"
+                draggable="true"
+                title="Glisser pour déplacer le kit (les kits suivants se décalent)"
+                aria-label="Déplacer le kit {k.num}"
+                ondragstart={(e) => dragStart(e, k.num)}
+                ondragend={dragEnd}
+              >⠿</span>
+            {/if}
           </li>
         {/each}
       </ul>
@@ -469,8 +531,37 @@
     margin: 0;
     padding: 0;
   }
+  aside li {
+    display: flex;
+    align-items: center;
+    border-block: 2px solid transparent;
+  }
+  aside li.drop-before {
+    border-top-color: var(--accent);
+  }
+  aside li.drop-after {
+    border-bottom-color: var(--accent);
+  }
+  aside li.dragged {
+    opacity: 0.5;
+  }
+  .grip {
+    padding: 0 6px;
+    color: var(--muted);
+    cursor: grab;
+    user-select: none;
+    opacity: 0;
+  }
+  aside li:hover .grip,
+  aside li.dragged .grip {
+    opacity: 1;
+  }
+  .grip:active {
+    cursor: grabbing;
+  }
   aside li button {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     display: flex;
     gap: 10px;
     border: 0;

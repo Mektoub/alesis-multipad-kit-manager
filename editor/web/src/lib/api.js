@@ -61,6 +61,7 @@ export const api = {
   setSlotsInKits: (body) => request("POST", "/api/kits/set", body),
   transferKit: (num, body) => request("POST", `/api/kits/${num}/transfer`, body),
   clearKit: (num) => request("POST", `/api/kits/${num}/clear`),
+  moveKit: (num, body) => request("POST", `/api/kits/${num}/move`, body),
   samples: () => request("GET", "/api/samples"),
   addSample: (file) => {
     const form = new FormData();

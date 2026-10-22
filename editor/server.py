@@ -69,6 +69,10 @@ class ResetRequest(BaseModel):
     fields: list[str]
 
 
+class MoveRequest(BaseModel):
+    target: str
+
+
 class TransferRequest(BaseModel):
     target: str
     mode: Literal["copy", "swap"]
@@ -269,6 +273,14 @@ def create_app(token, open_file=None, allow=()):
             b = kit_or_404(num)
             kit, skipped = strike_errors(lambda: b.reset_slots(num, req.targets, req.fields))
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+
+    @app.post("/api/kits/{num}/move")
+    def move_kit(num: str, req: MoveRequest):
+        """Déplace le kit au numéro `target` ; les kits entre les deux se décalent."""
+        with s.lock:
+            b = kit_or_404(num)
+            strike_errors(lambda: b.move_kit(num, req.target))
+            return s.state()
 
     @app.post("/api/kits/{num}/transfer")
     def transfer_kit(num: str, req: TransferRequest):

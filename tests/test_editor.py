@@ -196,6 +196,15 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.post("/api/kits/031/reset", json=bad).status_code, 400)
         self.assertEqual(self.client.post("/api/kits/999/reset", json=body).status_code, 404)
 
+    def test_deplacement_de_kit(self):
+        r = self.client.post("/api/kits/040/move", json={"target": "032"})
+        self.assertEqual(r.status_code, 200, r.text)
+        names = {k["num"]: k["name"] for k in r.json()["kits"]}
+        self.assertEqual((names["031"], names["032"], names["033"]), ("WhereIs", "Ham & Beans", "CrazyInLove"))
+        self.assertTrue(r.json()["dirty"])
+        self.assertEqual(self.client.post("/api/kits/040/move", json={"target": "200"}).status_code, 400)
+        self.assertEqual(self.client.post("/api/kits/999/move", json={"target": "031"}).status_code, 404)
+
     def test_modification_multi_kits(self):
         body = {"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}
         r = self.client.post("/api/kits/set", json=body)

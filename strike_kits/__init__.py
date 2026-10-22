@@ -941,6 +941,24 @@ class Backup:
         self._set_raw(b, raw_a)
         self.dirty = True
 
+    def move_kit(self, source, target):
+        """Déplace le kit `source` au numéro `target`, comme dans une liste : il y
+        prend place et les kits entre les deux numéros se décalent d'un cran."""
+        nums = self.kit_numbers()
+        for n in (source, target):
+            if n not in nums:
+                raise StrikeError("kit %s absent de la sauvegarde" % n)
+        i, j = nums.index(source), nums.index(target)
+        if i == j:
+            return
+        span = nums[min(i, j) : max(i, j) + 1]
+        raws = [self.get_raw(n) for n in span]
+        # vers un numéro plus petit : le kit passe en tête de la plage ; sinon en fin
+        raws = [raws[-1], *raws[:-1]] if j < i else [*raws[1:], raws[0]]
+        for n, raw in zip(span, raws, strict=True):
+            self._set_raw(n, raw)
+        self.dirty = True
+
     def clear_kit(self, num):
         """Supprime le kit `num` : le remplace par le kit vide de l'appareil. Les
         samples utilisateur qu'il référençait restent dans la sauvegarde."""
