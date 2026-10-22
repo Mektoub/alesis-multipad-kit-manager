@@ -14,10 +14,12 @@ Ligne de commande : python3 -m strike_kits export|import … (strike_kits/__main
 """
 
 import argparse
+import base64
 import json
 import re
 import struct
 import sys
+import zlib
 from pathlib import Path
 
 KIT_SIZE = 0x2660
@@ -28,6 +30,20 @@ SLOT_SIZE = 0x180
 NAME_OFF, NAME_LEN = 0xC0, 16
 LEVEL_OFF = 0x0C
 TEMPO_OFF = 0x10
+
+# Kit vide écrit par l'appareil (« Empty », KITH, volume 100, 120 BPM, réglages
+# par défaut, aucun sample), identique dans les .bkf et le .fac : sert à
+# supprimer un kit. Compressé (zlib) et encodé en base64.
+EMPTY_KIT = zlib.decompress(
+    base64.b64decode(
+        "eNrt1stKw0AUBuB/YmynonZqvcQLmIW1UVvxggsfQDB025UrF9kqLtwI6vhIPppvEI8QMQsjWCEHyz8whEly/pDvhCSjdHwZXOf5"
+        "LbpRhgzhqxnMvRlMNuquw+zFzd39w28q5gE7U7pe+JlUWpti/bFtFPsbf73D4YSVffznMUrHqXn5arMTe2u+UbxCFrSxbXfgW9IF"
+        "aZNbTODa0gkH+I4z8VKIuAs0l4GFFUlbTeDX5JxcyitnDl/Kj1tFXiSH1g3MBpBtytwCgh9zlPJr9+/RX9V/l/6q/gn9Vf336K/q"
+        "v09/Vf9BhX9E/1r8h/RX9T+kv6r/Ad///P5Or78tZqV/n/6q/kf0V/U/pr+q/wn9Vf1P6a/qz/9PXf/HCn9L/1r8n+iv6v9Mf1V/"
+        "T39V/zP6q/qf05/P//T4vwOOdeep"
+    )
+)
+assert len(EMPTY_KIT) == KIT_SIZE
 
 # Enregistrements (id, valeur, min, max), dans l'ordre fixe où ils apparaissent
 # dans tous les kits. Dans les 8 premiers emplacements des kits KITC, seuls les
@@ -192,6 +208,11 @@ def wave_header_readable(kit, w):
 
 def slot_label(index):
     return "P%d" % (index + 1) if index < 9 else "slot %d" % (index + 1)
+
+
+def is_empty_kit(kit):
+    """Vrai si `kit` est exactement le kit vide de l'appareil."""
+    return bytes(kit) == EMPTY_KIT
 
 
 def kit_format(kit):
@@ -886,6 +907,14 @@ class Backup:
         raw_a, raw_b = self._two_kits(a, b)
         self._set_raw(a, raw_b)
         self._set_raw(b, raw_a)
+        self.dirty = True
+
+    def clear_kit(self, num):
+        """Supprime le kit `num` : le remplace par le kit vide de l'appareil. Les
+        samples utilisateur qu'il référençait restent dans la sauvegarde."""
+        if is_empty_kit(self.get_raw(num)):
+            return
+        self._set_raw(num, EMPTY_KIT)
         self.dirty = True
 
     def set_slots(self, num, targets, field, value):

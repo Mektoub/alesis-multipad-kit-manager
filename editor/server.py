@@ -138,7 +138,14 @@ class Session:
         kits = []
         for num in b.kit_numbers():
             raw = b.get_raw(num)
-            kits.append({"num": num, "format": sk.kit_format(raw), "name": sk.decode_kit(raw)["name"]})
+            kits.append(
+                {
+                    "num": num,
+                    "format": sk.kit_format(raw),
+                    "name": sk.decode_kit(raw)["name"],
+                    "empty": sk.is_empty_kit(raw),
+                }
+            )
         return {
             "path": str(self.file),
             "kind": b.kind,
@@ -257,6 +264,13 @@ def create_app(token, open_file=None, allow=()):
             b = kit_or_404(num)
             op = b.copy_kit if req.mode == "copy" else b.swap_kits
             strike_errors(lambda: op(num, req.target))
+            return s.state()
+
+    @app.post("/api/kits/{num}/clear")
+    def clear_kit(num: str):
+        """Supprime le kit : le remplace par le kit vide de l'appareil."""
+        with s.lock:
+            kit_or_404(num).clear_kit(num)
             return s.state()
 
     @app.get("/api/samples")
