@@ -3,6 +3,7 @@
 ## 0.4.0 — en cours
 
 - Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
+- Éditeur web : sections du pad disposées en colonnes, chacune juste sous la précédente (plus d'espace vide sous les sections courtes, Group ne descend plus au bas de Light).
 
 ## 0.3.3 — Corrections
 

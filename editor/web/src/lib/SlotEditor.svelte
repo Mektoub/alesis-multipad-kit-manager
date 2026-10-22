@@ -67,14 +67,20 @@
 </div>
 
 <style>
-  .slot,
+  /* sections du pad en colonnes : chacune suit la précédente, sans l'espace
+     qu'une grille laisse sous les sections plus courtes d'une même rangée */
+  .slot {
+    columns: 300px;
+    column-gap: 20px;
+  }
+  .slot section {
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
   .waves {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
-  }
-  .waves {
-    margin-top: 20px;
   }
   section {
     display: flex;
