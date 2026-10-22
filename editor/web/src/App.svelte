@@ -117,6 +117,16 @@
     await loadKit(target);
   }
 
+  // Supprimer = remplacer par le kit vide de l'appareil, après confirmation.
+  async function clearKit() {
+    const num = currentNum;
+    if (!confirm(`Supprimer le kit ${num} « ${kit.name} » ? Il sera remplacé par un kit vide.`)) return;
+    await flush();
+    session = await api.clearKit(num);
+    notice = `Kit ${num} supprimé.`;
+    await loadKit(num);
+  }
+
   async function loadKit(num, resetSlot = true) {
     const data = await api.kit(num);
     lastSynced = JSON.stringify(data);
@@ -302,7 +312,7 @@
     </aside>
     <section class="content">
       {#if kit}
-        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} onbulk={(n) => (bulkFrom = n)} />
+        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} onclear={clearKit} empty={session.kits.find((k) => k.num === currentNum)?.empty} onbulk={(n) => (bulkFrom = n)} />
       {/if}
     </section>
   </main>

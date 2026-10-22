@@ -3,7 +3,7 @@
   import SlotEditor from "./SlotEditor.svelte";
   import { tooltip } from "./format.js";
 
-  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer, onbulk } = $props();
+  let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, ontransfer, onclear, empty, onbulk } = $props();
 
   // Disposition de l'appareil : 7-8-9 en haut (pads deux fois moins hauts),
   // 4-5-6 au milieu, 1-2-3 en bas.
@@ -46,6 +46,7 @@
     </label>
     <span class="format muted" title="KITC : format écrit par l'appareil quand on enregistre un kit">{kit.format}</span>
     <button onclick={ontransfer}>Déplacer / copier le kit…</button>
+    <button onclick={onclear} disabled={empty} title={empty ? "Ce kit est déjà vide" : "Remplacer ce kit par un kit vide (les samples restent dans la sauvegarde)"}>Supprimer le kit…</button>
   </div>
 
   <div class="pads">

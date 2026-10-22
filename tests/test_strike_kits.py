@@ -655,5 +655,45 @@ class CopieKit(unittest.TestCase):
         self.assertFalse(self.b.dirty)
 
 
+class SuppressionKit(unittest.TestCase):
+    """Supprimer un kit : le remplacer par le kit vide écrit par l'appareil."""
+
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+
+    def test_kit_vide_de_l_appareil(self):
+        # identique aux kits vides de la référence (.bkf et .fac)
+        self.assertEqual(sk.EMPTY_KIT, self.b.get_raw("041"))
+        self.assertEqual(sk.EMPTY_KIT, sk.Backup(ref_fac()).get_raw("070"))
+        kit = sk.decode_kit(sk.EMPTY_KIT)
+        self.assertEqual((kit["format"], kit["name"], kit["level"], kit["tempo"]), ("KITH", "Empty", 100, 120.0))
+        self.assertTrue(sk.is_empty_kit(self.b.get_raw("041")))
+        self.assertFalse(sk.is_empty_kit(self.b.get_raw("031")))
+
+    def test_suppression(self):
+        others = {n: self.b.get_raw(n) for n in self.b.kit_numbers() if n != "031"}
+        self.b.clear_kit("031")
+        self.assertEqual(self.b.get_raw("031"), sk.EMPTY_KIT)
+        self.assertEqual({n: self.b.get_raw(n) for n in others}, others)
+        self.assertTrue(self.b.dirty)
+        out = sk.Backup(self.b.serialize())  # conteneur valide
+        self.assertEqual(out.decode("031")["name"], "Empty")
+        self.assertIn(8071, out.user_sample_ids())  # les samples restent dans la sauvegarde
+
+    def test_kit_deja_vide(self):
+        self.b.clear_kit("041")
+        self.assertFalse(self.b.dirty)
+
+    def test_fac(self):
+        b = sk.Backup(ref_fac())
+        b.clear_kit("001")
+        self.assertEqual(sk.Backup(b.serialize()).get_raw("001"), sk.EMPTY_KIT)
+
+    def test_kit_inexistant(self):
+        with self.assertRaises(sk.StrikeError):
+            self.b.clear_kit("999")
+        self.assertFalse(self.b.dirty)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -76,7 +76,7 @@ class Api(unittest.TestCase):
 
     def test_etat_apres_ouverture(self):
         self.assertEqual((self.state["kind"], self.state["dirty"], len(self.state["kits"])), ("bkf", False, 70))
-        self.assertIn({"num": "032", "name": "CrazyInLove", "format": "KITC"}, self.state["kits"])
+        self.assertIn({"num": "032", "name": "CrazyInLove", "format": "KITC", "empty": False}, self.state["kits"])
 
     def test_ouverture_avec_modifications_non_enregistrees(self):
         kit = self.client.get("/api/kits/033").json()
@@ -105,7 +105,7 @@ class Api(unittest.TestCase):
         self.assertEqual((r.json()["name"], r.json()["slots"][0]["params"]["midi_note"]), ("Via API", 60))
         state = self.client.get("/api/state").json()
         self.assertTrue(state["dirty"])
-        self.assertIn({"num": "033", "name": "Via API", "format": "KITH"}, state["kits"])
+        self.assertIn({"num": "033", "name": "Via API", "format": "KITH", "empty": False}, state["kits"])
 
     def test_modification_invalide(self):
         kit = self.client.get("/api/kits/033").json()
@@ -170,6 +170,17 @@ class Api(unittest.TestCase):
         self.assertEqual(
             self.client.post("/api/kits/032/transfer", json={"target": "040", "mode": "move"}).status_code, 422
         )
+
+    def test_suppression_de_kit(self):
+        kits = {k["num"]: k for k in self.state["kits"]}
+        self.assertEqual((kits["031"]["empty"], kits["041"]["empty"]), (False, True))
+        r = self.client.post("/api/kits/031/clear")
+        self.assertEqual(r.status_code, 200, r.text)
+        kits = {k["num"]: k for k in r.json()["kits"]}
+        self.assertEqual((kits["031"]["name"], kits["031"]["empty"]), ("Empty", True))
+        self.assertTrue(r.json()["dirty"])
+        self.assertEqual(self.client.get("/api/kits/031").json()["name"], "Empty")
+        self.assertEqual(self.client.post("/api/kits/999/clear").status_code, 404)
 
     def test_modification_multi_kits(self):
         body = {"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}

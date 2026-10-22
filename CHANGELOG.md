@@ -1,9 +1,10 @@
 # Changelog
 
-## 0.4.0 — en cours
+## 0.4.0 — Améliorations visuelles
 
 - Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
 - Éditeur web : sections du pad disposées en colonnes, chacune juste sous la précédente (plus d'espace vide sous les sections courtes, Group ne descend plus au bas de Light).
+- Éditeur web : *Supprimer le kit…* remplace le kit choisi, après confirmation, par le kit vide de l'appareil (« Empty », réglages par défaut) ; les samples utilisateur restent dans la sauvegarde. API : `POST /api/kits/{num}/clear` ; l'état indique les kits vides (`empty`). `strike_kits` : `Backup.clear_kit`, `EMPTY_KIT`.
 
 ## 0.3.3 — Corrections
 
