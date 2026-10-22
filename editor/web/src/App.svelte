@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
   import { api } from "./lib/api.js";
   import { desktop } from "./lib/desktop.js";
   import KitEditor from "./lib/KitEditor.svelte";
@@ -35,6 +36,14 @@
   let visibleKits = $derived(
     (session?.kits ?? []).filter((k) => !hideEmpty || k.name !== "Empty" || k.num === currentNum),
   );
+
+  // Les confirmations (toasts verts) disparaissent seules ; les erreurs restent.
+  const NOTICE_MS = 6000;
+  $effect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => (notice = ""), NOTICE_MS);
+    return () => clearTimeout(t);
+  });
 
   // Mode bureau : l'application est tenue informée des modifications non
   // enregistrées, pour confirmer la fermeture de la fenêtre.
@@ -366,8 +375,20 @@
   {/if}
 </header>
 
-{#if error}<div class="banner error" role="alert">{error}<button onclick={() => (error = "")} aria-label="Fermer">✕</button></div>{/if}
-{#if notice}<div class="banner ok" role="status">{notice}<button onclick={() => (notice = "")} aria-label="Fermer">✕</button></div>{/if}
+<!-- Messages en toasts (en haut, au milieu, au-dessus des fenêtres) : les erreurs
+     restent jusqu'à leur fermeture, les confirmations disparaissent seules. -->
+<div class="toasts">
+  {#if error}
+    <div class="toast error" role="alert" transition:fly={{ y: -16, duration: 150 }}>
+      <span>{error}</span><button onclick={() => (error = "")} aria-label="Fermer">✕</button>
+    </div>
+  {/if}
+  {#if notice}
+    <div class="toast ok" role="status" transition:fly={{ y: -16, duration: 150 }}>
+      <span>{notice}</span><button onclick={() => (notice = "")} aria-label="Fermer">✕</button>
+    </div>
+  {/if}
+</div>
 
 {#if session?.path && meta}
   <main class="layout">
@@ -498,24 +519,49 @@
   .status.dirty {
     color: var(--accent);
   }
-  .banner {
+  .toasts {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
+    gap: 8px;
+    max-width: min(440px, calc(100vw - 32px));
+    pointer-events: none;
   }
-  .banner button {
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px 10px 14px;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+    pointer-events: auto;
+  }
+  .toast span {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+  .toast button {
     border: 0;
     background: transparent;
+    padding: 0 2px;
+    color: var(--muted);
   }
-  .banner.error {
+  .toast.error {
+    border-left-color: var(--danger);
     background: var(--danger-bg);
     color: var(--danger);
   }
-  .banner.ok {
-    background: var(--panel-2);
-    color: var(--ok);
+  .toast.ok {
+    border-left-color: var(--ok);
   }
   .layout {
     display: grid;
