@@ -144,7 +144,9 @@ function run() {
         sandbox: true,
       },
     });
-    win.once("ready-to-show", () => win.show());
+    // ouverte maximisée (maximize() affiche aussi la fenêtre) ; Restaurer la
+    // ramène à 1400×900
+    win.once("ready-to-show", () => win.maximize());
 
     // Navigation limitée au serveur local ; les liens externes s'ouvrent dans le navigateur.
     const external = (url) => {

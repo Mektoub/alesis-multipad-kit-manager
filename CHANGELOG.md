@@ -2,6 +2,7 @@
 
 ## 0.4.0 — Améliorations UI
 
+- Application de bureau : la fenêtre s'ouvre maximisée (*Restaurer* la ramène à 1400×900).
 - Éditeur web : messages affichés en toasts (en haut, au milieu, au-dessus des fenêtres) au lieu de bandeaux dans la page ; les confirmations disparaissent seules après 6 s, les erreurs restent jusqu'à leur fermeture.
 - Éditeur web : bouton *Recharger* (à côté d'*Enregistrer*) : relit le fichier ouvert et abandonne les modifications non enregistrées, après confirmation ; le kit affiché reste le même.
 - Éditeur web : réorganisation des kits par glisser-déposer dans la liste, par la poignée ⠿ en bout de ligne (visible au survol) : le kit prend la place du kit visé, ceux d'entre les deux se décalent d'un cran. API : `POST /api/kits/{num}/move` ; `strike_kits` : `Backup.move_kit`.

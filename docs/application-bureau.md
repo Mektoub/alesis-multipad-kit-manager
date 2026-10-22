@@ -284,6 +284,7 @@ Les dossiers autorisés par défaut dépendent du système (voir
   s'arrête (puis `SIGTERM`, `SIGKILL` au besoin). Si l'application plante,
   l'entrée standard se ferme aussi : le serveur ne lui survit pas. S'il s'arrête
   de lui-même, l'application le signale et se ferme.
+- **Fenêtre** : ouverte maximisée ; *Restaurer* la ramène à 1400×900.
 - **Une seule instance** : relancer l'application avec un fichier l'ouvre dans la
   fenêtre existante.
 - **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
@@ -361,7 +362,7 @@ copie d'une sauvegarde.
 
 | Vérification | Résultat attendu |
 |---|---|
-| Installation, puis lancement depuis le menu des applications (raccourci « Alesis Kit Manager », Launchpad) | fenêtre ouverte, écran d'accueil ; icône de l'application |
+| Installation, puis lancement depuis le menu des applications (raccourci « Alesis Kit Manager », Launchpad) | fenêtre ouverte maximisée, écran d'accueil ; icône de l'application ; *Restaurer* la ramène à 1400×900 |
 | `--version` (Linux, macOS : `"/Applications/Alesis Kit Manager.app/Contents/MacOS/Alesis Kit Manager" --version`) | `alesis-kit-manager X.Y.Z`, sans fenêtre |
 | *Aide › À propos* ; version à côté du titre | version du paquet |
 | Double-clic sur un `.bkf` dans le gestionnaire de fichiers (Explorateur, Finder) | l'application s'ouvre sur ce fichier |
