@@ -118,7 +118,9 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+    width: 100%;
     max-width: 560px;
+    margin-inline: auto;
   }
   .pad {
     position: relative;
@@ -130,9 +132,9 @@
     border-radius: 10px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
+    justify-content: flex-end;
+    align-items: flex-start;
+    text-align: left;
     gap: 2px;
     padding: 10px;
     overflow: hidden;
@@ -140,13 +142,15 @@
   }
   .pad.small {
     aspect-ratio: 3.2;
-    padding: 4px 10px 6px;
   }
   .pad.selected {
     background: var(--pad-selected);
     border-color: var(--pad-selected-border);
   }
   .label {
+    position: absolute;
+    top: 8px;
+    left: 10px;
     font-weight: 700;
   }
   .control {
