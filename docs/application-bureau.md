@@ -324,11 +324,60 @@ Les dossiers autorisés par défaut dépendent du système (voir
 | `desktop/server.js` | choix et lancement du serveur, sans dépendance à Electron |
 | `desktop/server.spec`, `desktop/server_entry.py` | recette PyInstaller du serveur figé et son point d'entrée |
 | `desktop/test/` | tests `node:test` (`npm test`) ; un faux serveur simule les cas d'erreur |
+| `desktop/e2e/` | test de bout en bout (Playwright, `npm run e2e`) |
 
 `npm test` vérifie la lecture de la ligne « prêt », les arguments, les échecs
 (serveur arrêté, muet, introuvable) et l'arrêt ; un test de fumée lance le vrai
 serveur sur la sauvegarde de référence quand `.venv` existe, et le serveur figé
 quand `KITMANAGER_SERVER` le désigne (`./dev.sh freeze`).
+
+## Test de bout en bout
+
+`./dev.sh e2e` prépare le venv et l'interface, puis lance `npm run e2e` dans
+`desktop/` : Playwright (`playwright-core`, sans navigateur téléchargé) pilote
+l'Electron du dépôt, avec un dossier personnel temporaire qui reçoit une copie
+de `tests/ressources/Backup001.bkf`.
+
+- La sauvegarde est passée en argument. Le test renomme le kit 031, enregistre
+  par *Fichier › Enregistrer*, vérifie la copie `.bak` de l'original, puis
+  relance l'application sur le fichier et relit le nouveau nom.
+- Fermeture avec des modifications non enregistrées : *Annuler* garde la
+  fenêtre ouverte, *Quitter sans enregistrer* ferme l'application sans toucher
+  au fichier. La boîte de dialogue native est remplacée dans le processus
+  principal (aucune fenêtre système à cliquer).
+
+Le test ouvre de vraies fenêtres, quelques secondes : sous Linux sans affichage,
+`xvfb-run -a ./dev.sh e2e`. Il a besoin, comme `npm start`, du
+[profil AppArmor](#ubuntu-2404-et-suivants--profil-apparmor) ; avec
+`KITMANAGER_SERVER`, il utilise le serveur figé. La CI le lance sous Ubuntu
+24.04 seulement ; sous Windows et macOS, les paquets se vérifient à la main.
+
+## Vérifications manuelles
+
+Ce que le test de bout en bout ne couvre pas : son, glisser-déposer, boîtes de
+dialogue natives et intégration au système. À faire sur chaque système avant de
+publier une release (paquet installé : `.deb`, installateur NSIS, `.dmg`), sur une
+copie d'une sauvegarde.
+
+| Vérification | Résultat attendu |
+|---|---|
+| Installation, puis lancement depuis le menu des applications (raccourci « Alesis Kit Manager », Launchpad) | fenêtre ouverte, écran d'accueil ; icône de l'application |
+| `--version` (Linux, macOS : `"/Applications/Alesis Kit Manager.app/Contents/MacOS/Alesis Kit Manager" --version`) | `alesis-kit-manager X.Y.Z`, sans fenêtre |
+| *Aide › À propos* ; version à côté du titre | version du paquet |
+| Double-clic sur un `.bkf` dans le gestionnaire de fichiers (Explorateur, Finder) | l'application s'ouvre sur ce fichier |
+| Double-clic sur un deuxième fichier, l'application ouverte | ouvert dans la même fenêtre |
+| *Fichier › Ouvrir…* (`Ctrl+O`, `Cmd+O` sur Mac) | boîte du système, filtre `.bkf` / `.fac` |
+| Ouvrir un fichier sur une clé USB (`/media`, `/Volumes`, autre lecteur sous Windows) | ouvert ; un fichier hors des [dossiers autorisés](editeur-web.md#dossiers-autorisés) est refusé avec un message |
+| Écouter un sample utilisateur (lecture du WAV) | son audible, sans erreur |
+| Ajouter un sample par glisser-déposer d'un `.wav` dans le choix du sample | sample ajouté, nombre de samples perso incrémenté |
+| Modifier un kit, *Enregistrer* (`Ctrl+S`) | « À jour » ; copie `<fichier>.1.bak` de l'original |
+| *Enregistrer sous…* sur un fichier existant | confirmation d'écrasement par la boîte du système |
+| Fermer la fenêtre avec des modifications : *Annuler*, puis *Enregistrer* | la fenêtre reste ouverte, puis le fichier est enregistré et l'application se ferme |
+| Après fermeture, processus restants (`ps`, Gestionnaire des tâches, Moniteur d'activité) | aucun `alesis-kit-manager-server` |
+| Désinstallation (`sudo apt remove`, Paramètres › Applications, corbeille) | application retirée ; les sauvegardes ne sont pas touchées |
+
+Sous Windows et macOS, vérifier aussi l'avertissement au premier lancement
+(SmartScreen, Gatekeeper : voir [Paquets Windows et macOS](#paquets-windows-et-macos)).
 
 ## Dépannage
 

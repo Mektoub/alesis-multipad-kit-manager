@@ -14,6 +14,9 @@
 #   ./apparmor.sh | sudo tee /etc/apparmor.d/alesis-kit-manager-dev
 #   sudo apparmor_parser -r /etc/apparmor.d/alesis-kit-manager-dev
 # (nom du profil : <id>-dev, l'identifiant de ../app-names.json)
+#
+# Syntaxe d'AppArmor 4.0 (abi/4.0, sans @{exec_path}) : comprise par Ubuntu
+# 24.04, dont le runner de la CI, comme par les versions plus récentes.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,12 +47,11 @@ cat <<PROFILE
 # Comme les profils de Chrome ou VS Code : aucune restriction (unconfined) ;
 # le profil sert à autoriser les user namespaces de la sandbox de Chromium.
 
-abi <abi/5.0>,
+abi <abi/4.0>,
 include <tunables/global>
 
 profile $ID-dev "$ELECTRON" flags=(unconfined) {
   userns,
-  @{exec_path} mr,
 
   include if exists <local/$ID-dev>
 }
