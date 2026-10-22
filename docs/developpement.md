@@ -40,6 +40,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh lint --fix` | corrige ce qui peut l'être et reformate (ruff, ESLint) |
 | `./dev.sh test` | tous les tests, Python et interface |
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
+| `./dev.sh e2e` | test de bout en bout de l'application de bureau (voir [Application de bureau](application-bureau.md#test-de-bout-en-bout)) |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]` | éditeur dans le navigateur sur cette sauvegarde |
 | `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](application-bureau.md#paquet-deb)) |
@@ -59,6 +60,7 @@ python3 -m unittest -v tests.test_strike_kits                 # sans dépendance
 .venv/bin/python -m unittest discover -s tests -t .           # tout
 cd editor/web && npm test                                     # interface (Vitest)
 cd desktop && npm test                                        # application de bureau (node:test)
+cd desktop && npm run e2e                                     # bout en bout (Playwright ; venv et interface prêts)
 ```
 
 ## Analyse du code
@@ -77,13 +79,14 @@ activée.
 ## Intégration continue
 
 `.github/workflows/ci.yml` (GitHub Actions) se déclenche à chaque push sur `main`
-et sur chaque pull request. Quatre jobs, sous Ubuntu :
+et sur chaque pull request. Cinq jobs, sous Ubuntu :
 
 | Job | Étapes |
 |---|---|
 | Python (3.14) | `ruff check`, `ruff format --check`, tous les tests |
 | Interface (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (Vitest), `npm run build` |
 | Application de bureau (Node 24) | `npm ci`, `npm run lint` (ESLint), `npm test` (node:test ; sans `.venv`, le test du serveur réel est ignoré) |
+| Application de bureau, bout en bout (Ubuntu 24.04) | profil AppArmor de l'Electron de développement, puis `xvfb-run -a ./dev.sh e2e` |
 | Serveur figé (Python 3.14, Node 24) | workflow `build.yml` appelé sous Ubuntu 24.04, sans paquet : build de l'interface, PyInstaller, test de fumée |
 
 Avant de pousser, les mêmes commandes peuvent être lancées en local (voir
