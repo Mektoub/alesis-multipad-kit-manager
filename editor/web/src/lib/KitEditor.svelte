@@ -21,7 +21,7 @@
   function controlBadge(s) {
     const c = s.params.control;
     if (!c) return "";
-    return c === CLICK ? "Click" : (controlLabels[c] ?? `Control ${c}`);
+    return c === CLICK ? "Click" : (controlLabels[c] ?? `Mode ${c}`);
   }
   function sampleName(id) {
     if (id == null) return "";
@@ -56,7 +56,7 @@
         <span class="sample">{sampleName(s.wave_a.sample)}</span>
         {#if s.wave_b.sample != null}<span class="sample b">{sampleName(s.wave_b.sample)}</span>{/if}
         {#if controlBadge(s)}
-          <span class="control" class:click={s.params.control === CLICK} title="Control : {controlBadge(s)}">{controlBadge(s)}</span>
+          <span class="control" class:click={s.params.control === CLICK} title="Mode : {controlBadge(s)}">{controlBadge(s)}</span>
         {/if}
       </button>
     {/each}

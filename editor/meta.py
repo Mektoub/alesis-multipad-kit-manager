@@ -23,6 +23,7 @@ COLORS = [
 ]
 PLAY_MODES = ["Off", "Trigger", "Audio Meter", "Audio Breath", "Fill", "BPM Pulse", "BPM Pong"]
 STOP_MODES = ["Off", "Solid Dim", "Solid Medium", "Solid Bright", "BPM Pulse", "BPM Pong"]
+BEATS = ["1/2", "1/4", "1/8", "1/16"]
 
 # Libellés des valeurs, dans l'ordre du manuel. `verified` : confirmé sur l'appareil.
 LABELS = {
@@ -44,19 +45,45 @@ LABELS = {
         True,
     ),
     "audio_output": (["Main+Phone", "FX1", "FX2", "FX3", "Aux+Phone", "Phone Only"], True),
+    "curve": (["Normal", "Exp1", "Exp2", "Log1", "Log2", "Loud"], True),
+    "sync_mode": (["Mute", "Cycle", "Random", "Together", "HiHat"], False),
     "priority": (["Low", "Medium", "High"], False),
+    # FS4 = 9 vérifié ; FS1–FS3 supposés juste avant, la valeur 5 reste inconnue
+    "playback_mode": (["Oneshot", "Alter", "Loop", "RoundRobin", "Hi-hat", None, "FS1", "FS2", "FS3", "FS4"], False),
+    "poly_mono": (["Mono", "Poly"], True),
+}
+LIGHT_LABELS = {
+    "play_color": [n for n, _ in COLORS],
+    "play_mode": PLAY_MODES,
+    "play_beat": BEATS,
+    "stop_color": [n for n, _ in COLORS],
+    "stop_mode": STOP_MODES,
+    "stop_beat": BEATS,
 }
 TITLES = {
     "volume": "Volume",
     "pan": "Pan",
-    "midi_note": "Note MIDI",
+    "midi_note": "MIDI Note Output",
     "sync_group": "Sync Group",
+    "sync_mode": "Sync Mode",
     "audio_output": "Audio Output",
+    "kit_fx_level": "Kit FX Level",
     "fixed_level": "Fixed Level",
     "sensitivity": "Sensitivity",
+    "curve": "Curve",
     "threshold": "Threshold",
-    "control": "Control",
+    "control": "Mode",
     "sound": "Sound",
+    "playback_mode": "Playback Mode",
+    "poly_mono": "Poly/Mono",
+    "play_color": "Play Color",
+    "play_mode": "Play Mode",
+    "play_beat": "Play Beat",
+    "stop_color": "Stop Color",
+    "stop_mode": "Stop Mode",
+    "stop_beat": "Stop Beat",
+    "velocity_low": "Velocity Low",
+    "velocity_high": "Velocity High",
     "fade_in": "Fade In",
     "fade_out": "Fade Out",
     "priority": "Priority",
@@ -83,8 +110,10 @@ PAD_DESCRIPTIONS = {
     "control": "Fonction de commande déclenchée par la frappe : kit suivant ou précédent, "
     "Click On/Off, Tap Tempo, Panic, Looper, activation des effets… Off : aucune.",
     "sound": "Indique si la frappe joue le son du pad (On/Off ; correspondance des valeurs non vérifiée).",
-    "p09": "Paramètre non identifié (plage 0 à 4). Piste : Sync Mode (Mute, Cycle, Random, Together, Hihat).",
-    "p16": "Paramètre non identifié (plage 0 à 127). Piste : Kit FX Level.",
+    "curve": "Courbe de réponse à la force de frappe : Normal, Exp1, Exp2, Log1, Log2, Loud.",
+    "kit_fx_level": "Niveau envoyé aux effets du kit (0 à 127).",
+    "sync_mode": "Comportement des pads du même Sync Group : Mute (le dernier frappé coupe les autres), "
+    "Cycle, Random, Together (jouent ensemble) ou HiHat.",
 }
 WAVE_DESCRIPTIONS = {
     "volume": "Volume de la couche (0 à 100).",
@@ -93,8 +122,9 @@ WAVE_DESCRIPTIONS = {
     "fade_out": "Fondu de sortie appliqué au son (Off, 1 à 100 %).",
     "priority": "Priorité dans la polyphonie (32 voix mono / 16 stéréo) : une voix Low est coupée en "
     "premier quand la limite est atteinte, une voix High en dernier.",
-    "p09": "Paramètre non identifié (plage 0 à 5). Piste : Playback Mode (OneShot, Alter, Loop, RoundRobin…).",
-    "p19": "Paramètre non identifié (plage 0 à 1). Piste : Poly/Mono.",
+    "playback_mode": "Mode de lecture : Oneshot, Alter, Loop, RoundRobin, Hi-hat, ou pilotage par "
+    "une pédale FS1 à FS4 (valeurs de FS1 à FS3 supposées).",
+    "poly_mono": "Poly : une nouvelle frappe laisse sonner la précédente ; Mono : elle la coupe.",
 }
 HELP = {
     "name": "Nom du kit (16 caractères au plus).",
@@ -105,6 +135,8 @@ HELP = {
     "Audio Meter, Audio Breath, Fill, BPM Pulse, BPM Pong.",
     "stop_color": "Couleur des LED du pad au repos.",
     "stop_mode": "Comportement des LED au repos : éteintes, couleur fixe (pâle, moyenne, vive), BPM Pulse ou BPM Pong.",
+    "play_beat": "Rythme des LED quand un son est joué, en modes BPM : 1/2 à 1/16 de temps.",
+    "stop_beat": "Rythme des LED au repos, en modes BPM : 1/2 à 1/16 de temps.",
     "sample": "Sample joué par cette couche (Wave A ou Wave B).",
     "velocity_low": "Velocity Low (0 à 126) : une frappe plus faible ne déclenche pas cette couche.",
     "velocity_high": "Velocity High (1 à 127) : une frappe plus forte ne déclenche pas cette couche. "
@@ -148,14 +180,15 @@ DEFAULT_PAD = {
     "pan": 15,
     "p09": 0,
     "sync_group": 0,
+    "sync_mode": 0,
     "p0e": 40,
     "audio_output": 0,
     "fixed_level": 0,
     "threshold": 4,
-    "p13": 0,
+    "curve": 0,
     "control": 0,
     "sound": 0,
-    "p16": 40,
+    "kit_fx_level": 40,
     "p17": 40,
 }
 DEFAULT_WAVE = {
@@ -164,10 +197,10 @@ DEFAULT_WAVE = {
     "params": {
         "volume": 90,
         "pan": 15,
-        "p09": 0,
+        "playback_mode": 0,
         "p10": 0,
         "p18": 0,
-        "p19": 1,
+        "poly_mono": 1,
         "fade_in": 0,
         "fade_out": 0,
         "priority": 0,
@@ -177,8 +210,10 @@ DEFAULT_WAVE = {
 
 def default_slot(index):
     pad = dict(DEFAULT_PAD, midi_note=DEFAULT_MIDI_NOTES[index], sensitivity=DEFAULT_SENSITIVITY[index])
-    params = {sk.param_name(sk.PAD_PARAMS, rid): pad[sk.param_name(sk.PAD_PARAMS, rid)] for rid, _, _ in sk.PAD_LAYOUT}
-    play = (16, 3) if index < 11 else (8, 1)  # White / Audio Breath, sinon Sky Blue / Trigger
+    names = [sk.param_name(sk.PAD_PARAMS, rid) for rid, _, _ in sk.PAD_LAYOUT] + list(sk.PAD_FIELDS)
+    params = {name: pad[name] for name in names}
+    # White / Audio Breath au 1/4, sinon Sky Blue / Trigger au 1/2
+    play, beat = ((16, 3), 1) if index < 11 else ((8, 1), 0)
     wave = {
         "velocity_low": DEFAULT_WAVE["velocity_low"],
         "velocity_high": DEFAULT_WAVE["velocity_high"],
@@ -186,7 +221,14 @@ def default_slot(index):
     }
     return {
         "params": params,
-        "light": {"play_color": play[0], "play_mode": play[1], "stop_color": 8, "stop_mode": 1},
+        "light": {
+            "play_color": play[0],
+            "play_mode": play[1],
+            "play_beat": beat,
+            "stop_color": 8,
+            "stop_mode": 1,
+            "stop_beat": beat,
+        },
         "wave_a": wave,
         "wave_b": {**wave, "params": dict(wave["params"])},
     }
@@ -202,35 +244,71 @@ def describe(name, lo, hi, descriptions):
     return "Paramètre non identifié (plage %d à %d)." % (lo, hi)
 
 
-def params(layout, table, descriptions):
-    out = []
-    for rid, lo, hi in layout:
-        name = sk.param_name(table, rid)
+def param(name, lo, hi, known, descriptions, labels=None, verified=False):
+    if labels is None:
         labels, verified = LABELS.get(name, (None, False))
-        out.append(
-            {
-                "name": name,
-                "title": TITLES.get(name, name),
-                "min": lo,
-                "max": hi,
-                "known": rid in table,
-                "labels": labels,
-                "verified": verified,
-                "description": describe(name, lo, hi, descriptions),
-            }
-        )
-    return out
+    return {
+        "name": name,
+        "title": TITLES.get(name, name),
+        "min": lo,
+        "max": sk.VALUE_MAX.get(name, hi),
+        "known": known,
+        "labels": labels,
+        "verified": verified,
+        "description": describe(name, lo, hi, descriptions),
+    }
+
+
+def params(layout, table, descriptions, fixed=None):
+    out = [param(sk.param_name(table, rid), lo, hi, rid in table, descriptions) for rid, lo, hi in layout]
+    return out + [param(name, 0, hi, True, descriptions) for name, (_, hi) in (fixed or {}).items()]
+
+
+# Sections de l'éditeur, comme dans les menus de l'appareil : champs au format
+# « section.clé » du JSON d'un emplacement (pad) ou d'une wave. Les paramètres non
+# identifiés n'y figurent pas.
+PAD_SECTIONS = [
+    ("Feel", ["params.sensitivity", "params.curve", "params.threshold", "params.fixed_level"]),
+    ("Control", ["params.control", "params.sound"]),
+    ("Output", ["params.audio_output", "params.kit_fx_level", "params.midi_note", "params.volume", "params.pan"]),
+    ("Light", ["light." + k for k in ("play_color", "play_mode", "play_beat", "stop_color", "stop_mode", "stop_beat")]),
+    ("Group", ["params.sync_group", "params.sync_mode"]),
+]
+WAVE_SECTIONS = [
+    ("Mode", ["params.playback_mode", "params.poly_mono"]),
+    (
+        "Mix",
+        [
+            "params.volume",
+            "params.pan",
+            "params.fade_in",
+            "params.fade_out",
+            "velocity_high",
+            "velocity_low",
+            "params.priority",
+        ],
+    ),
+]
+
+
+def sections(table):
+    return [{"title": title, "fields": fields} for title, fields in table]
 
 
 def meta():
     return {
-        "pad_params": params(sk.PAD_LAYOUT, sk.PAD_PARAMS, PAD_DESCRIPTIONS),
+        "pad_params": params(sk.PAD_LAYOUT, sk.PAD_PARAMS, PAD_DESCRIPTIONS, sk.PAD_FIELDS),
         "wave_params": params(sk.WAVE_LAYOUT, sk.WAVE_PARAMS, WAVE_DESCRIPTIONS),
+        "light_params": [param(k, 0, hi, True, HELP, LIGHT_LABELS[k], True) for k, (_, hi) in sk.LIGHT_FIELDS.items()],
+        "velocity_params": [
+            param("velocity_low", 0, 126, True, HELP),
+            param("velocity_high", 1, 127, True, HELP),
+        ],
+        "pad_sections": sections(PAD_SECTIONS),
+        "wave_sections": sections(WAVE_SECTIONS),
         "help": HELP,
         "defaults": defaults(),
         "colors": [{"name": n, "css": c} for n, c in COLORS],
-        "play_modes": PLAY_MODES,
-        "stop_modes": STOP_MODES,
         "slots": [{"slot": i + 1, "label": sk.slot_label(i)} for i in range(sk.SLOT_COUNT)],
         "kit_name_max": sk.NAME_LEN,
     }

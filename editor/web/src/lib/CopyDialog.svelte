@@ -5,10 +5,10 @@
   let { kit, source, oncopy, onclose } = $props();
 
   const PARTS = [
-    { key: "params", label: "Pad (volume, pan, Control, sortie…)" },
-    { key: "light", label: "Éclairage" },
-    { key: "wave_a", label: "Wave A (sample, vélocité, mixage)" },
-    { key: "wave_b", label: "Wave B (sample, vélocité, mixage)" },
+    { key: "params", label: "Pad : Feel, Control, Output, Group" },
+    { key: "light", label: "Light" },
+    { key: "wave_a", label: "Wave A : sample, Mode, Mix" },
+    { key: "wave_b", label: "Wave B : sample, Mode, Mix" },
   ];
   // même disposition que la grille de l'éditeur
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];

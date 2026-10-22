@@ -71,18 +71,34 @@ PAD_PARAMS = {
     0x10: "fixed_level",
     0x11: "sensitivity",
     0x12: "threshold",
+    0x13: "curve",
     0x14: "control",
     0x15: "sound",
+    0x16: "kit_fx_level",
 }
 WAVE_PARAMS = {
     0x00: "volume",
     0x02: "pan",
+    0x09: "playback_mode",
+    0x19: "poly_mono",
     0x1A: "fade_in",
     0x1B: "fade_out",
     0x1C: "priority",
 }
-# Éclairage : octet à offset fixe dans l'emplacement -> valeur max.
-LIGHT_FIELDS = {"play_color": (0x10, 16), "play_mode": (0x11, 6), "stop_color": (0x14, 16), "stop_mode": (0x15, 6)}
+# Maximum réel quand l'appareil écrit plus que le max de l'enregistrement :
+# Playback Mode annonce 0–5, mais FS4 vaut 9 (vérifié).
+VALUE_MAX = {"playback_mode": 9}
+# Champs à offset fixe dans l'emplacement : nom -> (offset, valeur max).
+# Éclairage (`light`) ; Sync Mode, rangé avec les paramètres du pad (`params`).
+LIGHT_FIELDS = {
+    "play_color": (0x10, 16),
+    "play_mode": (0x11, 6),
+    "play_beat": (0x12, 3),
+    "stop_color": (0x14, 16),
+    "stop_mode": (0x15, 6),
+    "stop_beat": (0x16, 3),
+}
+PAD_FIELDS = {"sync_mode": (0x19, 4)}
 
 PAD_RECORDS = 0x28
 WAVES = {"wave_a": 0x80, "wave_b": 0xE0}
@@ -147,9 +163,27 @@ def encode_params(kit, start, layout, table, params, where, masked=False):
             raise StrikeError("%s : %s non modifiable dans ce kit" % (where, name))
         if kit[off + 1] == value:
             continue
+        hi = VALUE_MAX.get(name, hi)
         if not isinstance(value, int) or not lo <= value <= hi:
             raise StrikeError("%s : %s=%r hors plage [%d, %d]" % (where, name, value, lo, hi))
         kit[off + 1] = value
+
+
+def decode_fixed(kit, base, fields):
+    """Champs à offset fixe lisibles (valeur dans la plage) de l'emplacement `base`."""
+    return {k: kit[base + o] for k, (o, hi) in fields.items() if kit[base + o] <= hi}
+
+
+def encode_fixed(kit, base, fields, values, where, section):
+    for key, value in values.items():
+        off, limit = fields[key]
+        if kit[base + off] == value:
+            continue
+        if kit[base + off] > limit:
+            raise StrikeError("%s : %s.%s non modifiable dans ce kit" % (where, section, key))
+        if not isinstance(value, int) or not 0 <= value <= limit:
+            raise StrikeError("%s : %s.%s=%r hors plage [0, %d]" % (where, section, key, value, limit))
+        kit[base + off] = value
 
 
 def wave_header_readable(kit, w):
@@ -179,9 +213,10 @@ def decode_kit(kit, samples=None):
     for i in range(SLOT_COUNT):
         base = SLOT_BASE + i * SLOT_SIZE
         slot = {"slot": i + 1, "_label": slot_label(i)}
-        slot["light"] = {k: kit[base + o] for k, (o, hi) in LIGHT_FIELDS.items() if kit[base + o] <= hi}
+        slot["light"] = decode_fixed(kit, base, LIGHT_FIELDS)
         masked = is_masked(kit, i)
         slot["params"] = decode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS, masked)
+        slot["params"].update(decode_fixed(kit, base, PAD_FIELDS))
         for wave, woff in WAVES.items():
             w = base + woff
             entry = {}
@@ -245,19 +280,16 @@ def encode_kit(raw, data, samples=None):
         if not 0 <= i < SLOT_COUNT:
             raise StrikeError("%s inexistant" % where)
         base = SLOT_BASE + i * SLOT_SIZE
-        for key, value in slot.get("light", {}).items():
+        light = slot.get("light", {})
+        for key in light:
             if key not in LIGHT_FIELDS:
                 raise StrikeError("%s : champ light inconnu %s" % (where, key))
-            off, limit = LIGHT_FIELDS[key]
-            if kit[base + off] == value:
-                continue
-            if kit[base + off] > limit:
-                raise StrikeError("%s : light.%s non modifiable dans ce kit" % (where, key))
-            if not isinstance(value, int) or not 0 <= value <= limit:
-                raise StrikeError("%s : light.%s=%r hors plage [0, %d]" % (where, key, value, limit))
-            kit[base + off] = value
+        encode_fixed(kit, base, LIGHT_FIELDS, light, where, "light")
+        params = slot.get("params", {})
+        encode_fixed(kit, base, PAD_FIELDS, {k: v for k, v in params.items() if k in PAD_FIELDS}, where, "params")
+        records = {k: v for k, v in params.items() if k not in PAD_FIELDS}
         masked = is_masked(kit, i)
-        encode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS, slot.get("params", {}), where, masked)
+        encode_params(kit, base + PAD_RECORDS, PAD_LAYOUT, PAD_PARAMS, records, where, masked)
         for wave, woff in WAVES.items():
             if wave not in slot:
                 continue
@@ -334,7 +366,7 @@ def copy_slot_settings(kit, source, targets, parts, include_midi_note=False):
 
 def slot_field_names():
     """Champs modifiables en groupe, au format « section.clé »."""
-    pad = [param_name(PAD_PARAMS, r) for r, _, _ in PAD_LAYOUT]
+    pad = [param_name(PAD_PARAMS, r) for r, _, _ in PAD_LAYOUT] + list(PAD_FIELDS)
     wave = [param_name(WAVE_PARAMS, r) for r, _, _ in WAVE_LAYOUT]
     names = ["params." + n for n in pad] + ["light." + n for n in LIGHT_FIELDS]
     for w in WAVES:
