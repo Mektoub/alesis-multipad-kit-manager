@@ -130,9 +130,9 @@
     border-radius: 10px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-start;
-    text-align: left;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
     gap: 2px;
     padding: 10px;
     overflow: hidden;
@@ -140,14 +140,13 @@
   }
   .pad.small {
     aspect-ratio: 3.2;
+    padding: 4px 10px 6px;
   }
   .pad.selected {
-    border-color: var(--accent);
+    background: var(--pad-selected);
+    border-color: var(--pad-selected-border);
   }
   .label {
-    position: absolute;
-    top: 8px;
-    left: 10px;
     font-weight: 700;
   }
   .control {
@@ -167,6 +166,10 @@
   .control.click {
     background: var(--accent);
     color: var(--accent-text);
+  }
+  .pad.selected .control.click {
+    background: var(--accent-text);
+    color: var(--accent);
   }
   .editor-head {
     display: flex;
