@@ -23,7 +23,7 @@ Rangés par sections, comme dans le menu Pad de l'appareil et dans l'éditeur.
 | Feel | `threshold` | Threshold (4 par défaut) | 0–32 |
 | Feel | `fixed_level` | Fixed Level, 0 = Off | 0–127 |
 | Control | `control` | Mode (voir ci-dessous) | 0–13 |
-| Control | `sound` | Sound : 0 = Off (par défaut), 1 = On | 0–1 |
+| Control | `sound` | Sound : 0 = On (par défaut, vérifié), 1 = Off | 0–1 |
 | Output | `audio_output` | Audio Output (voir ci-dessous) | 0–5 |
 | Output | `kit_fx_level` | Kit FX Level (vérifié ; 40 par défaut) | 0–127 |
 | Output | `midi_note` | MIDI Note Output (vérifié : 36, 37, 38… sur P1, P2, P3…) | 0–127 |
@@ -86,8 +86,8 @@ Les kits d'usine utilisent les vélocités pour superposer des couches (wave A
 | Emplacements | Rôle |
 |---|---|
 | 1–9 | pads P1–P9 (certain) |
-| 10–17 | déclencheurs externes, probablement T1–T5, HH… |
-| 18–21 | probablement les pédales FS1–FS4 |
+| 10–17 | déclencheurs externes : **15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH** (vérifiés) ; Trigger In 2/3 pas encore localisé |
+| 18–21 | pédales : **18 = FootSwitch 1/2, 20 = FootSwitch 3/4** (vérifiés) ; 19 et 21 inconnus (deuxième contact des entrées doubles ?) |
 | 22–24 | inconnu |
 
 ## Paramètres non identifiés

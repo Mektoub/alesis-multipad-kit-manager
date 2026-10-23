@@ -51,7 +51,7 @@ LABELS = {
     # FS4 = 9 vérifié ; FS1–FS3 supposés juste avant, la valeur 5 reste inconnue
     "playback_mode": (["Oneshot", "Alter", "Loop", "RoundRobin", "Hi-hat", None, "FS1", "FS2", "FS3", "FS4"], False),
     "poly_mono": (["Mono", "Poly"], True),
-    "sound": (["Off", "On"], True),
+    "sound": (["On", "Off"], True),
 }
 LIGHT_LABELS = {
     "play_color": [n for n, _ in COLORS],
@@ -311,5 +311,6 @@ def meta():
         "defaults": defaults(),
         "colors": [{"name": n, "css": c} for n, c in COLORS],
         "slots": [{"slot": i + 1, "label": sk.slot_label(i)} for i in range(sk.SLOT_COUNT)],
+        "inputs": list(sk.SLOT_NAMES),  # entrées identifiées, ordre de l'arrière de l'appareil
         "kit_name_max": sk.NAME_LEN,
     }

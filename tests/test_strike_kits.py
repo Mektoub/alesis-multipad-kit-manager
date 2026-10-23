@@ -656,6 +656,38 @@ class CopieKit(unittest.TestCase):
         self.assertFalse(self.b.dirty)
 
 
+class EntreesExternes(unittest.TestCase):
+    """Emplacements des entrées de l'arrière de l'appareil, localisés en réglant
+    Control/Mode = Click On/Off sur l'appareil (seul octet changé, avec la somme
+    de contrôle)."""
+
+    DEVICE = {
+        ("031.kit", 18): {0x08: 78, 0x1C35: 3},  # FootSwitch 1/2
+        ("032.kit", 16): {0x08: 51, 0x1935: 3},  # Trigger In 1
+        ("032.kit", 20): {0x08: 51, 0x1F35: 3},  # FootSwitch 3/4
+    }
+    # Kits vides (KITH) réécrits en KITC par l'appareil : seule la valeur décodée
+    # du Control/Mode change (Trigger In 4/5 en 15, Trigger In HH en 17).
+
+    def test_click_comme_l_appareil(self):
+        kits = kits_of(REF.read_bytes())
+        for (name, slot), want in self.DEVICE.items():
+            raw = kits[name]
+            data = sk.decode_kit(raw)
+            data["slots"][slot - 1]["params"]["control"] = 3
+            new = sk.encode_kit(raw, data)
+            self.assertEqual({i: new[i] for i in range(len(raw)) if raw[i] != new[i]}, want, (name, slot))
+
+    def test_libelles(self):
+        labels = [s["_label"] for s in sk.decode_kit(kits_of(REF.read_bytes())["031.kit"])["slots"]]
+        self.assertEqual(labels[:9], ["P%d" % n for n in range(1, 10)])
+        self.assertEqual(
+            labels[14:20],
+            ["Trigger In 4/5", "Trigger In 1", "Trigger In HH", "FootSwitch 1/2", "slot 19", "FootSwitch 3/4"],
+        )
+        self.assertEqual(labels[9], "slot 10")  # pas encore localisé
+
+
 class DeplacementKit(unittest.TestCase):
     """Déplacer un kit à un autre numéro : il y prend place, les kits entre les
     deux numéros se décalent d'un cran (comme dans une liste)."""
