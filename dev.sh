@@ -66,6 +66,10 @@ python_deps() {
     wanted="$(cat "$PROJECT/requirements.txt" "$PROJECT/requirements-dev.txt" | sha256sum | cut -d' ' -f1)"
     if [[ ! -f "$stamp" || "$(cat "$stamp")" != "$wanted" ]]; then
         info "Installation des dépendances Python (requirements-dev.txt)"
+        # pip >= 26.2.2 : son certifi interne ne fait plus confiance à la racine emSign
+        # compromise (incident eMudhra, octobre 2026)
+        "$VENV/bin/python" -m pip install --quiet --disable-pip-version-check --upgrade "pip>=26.2.2" \
+            || die "mise à jour de pip impossible"
         "$VENV/bin/python" -m pip install --quiet --disable-pip-version-check -r "$PROJECT/requirements-dev.txt" \
             || die "installation des dépendances Python impossible"
         echo "$wanted" > "$stamp"

@@ -24,7 +24,11 @@ runs:
     - if: inputs.python == 'true'
       name: Dépendances Python
       shell: bash
-      run: pip install -r requirements-dev.txt
+      # pip >= 26.2.2 : son certifi interne ne fait plus confiance à la racine emSign
+      # compromise (incident eMudhra, octobre 2026)
+      run: |
+        python -m pip install --upgrade "pip>=26.2.2"
+        pip install -r requirements-dev.txt
     - if: inputs.node-lockfiles != ''
       uses: actions/setup-node@v7
       with:

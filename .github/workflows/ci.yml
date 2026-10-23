@@ -46,6 +46,10 @@ jobs:
           python: "false"
           node-lockfiles: editor/web/package-lock.json
       - name: Dépendances
+        # racines du système plutôt que celles de Node, qui font encore confiance à
+        # emSign ECC Root CA - G3 (incident eMudhra, octobre 2026)
+        env:
+          NODE_USE_SYSTEM_CA: "1"
         run: npm ci
       - name: Analyse (ESLint)
         run: npm run lint
@@ -67,6 +71,10 @@ jobs:
           python: "false"
           node-lockfiles: desktop/package-lock.json
       - name: Dépendances
+        # racines du système plutôt que celles de Node, qui font encore confiance à
+        # emSign ECC Root CA - G3 (incident eMudhra, octobre 2026)
+        env:
+          NODE_USE_SYSTEM_CA: "1"
         run: npm ci
       - name: Analyse (ESLint)
         run: npm run lint
@@ -92,12 +100,19 @@ jobs:
       # Ubuntu 24.04 : la sandbox de Chromium a besoin du profil AppArmor (voir
       # docs/application-bureau.md)
       - name: Profil AppArmor de l'Electron de développement
+        # racines du système plutôt que celles de Node, qui font encore confiance à
+        # emSign ECC Root CA - G3 (incident eMudhra, octobre 2026)
+        env:
+          NODE_USE_SYSTEM_CA: "1"
         run: |
           npm ci --prefix desktop --no-audit --no-fund
           profile="/etc/apparmor.d/$(jq -r .id app-names.json)-dev"
           desktop/apparmor.sh | sudo tee "$profile" >/dev/null
           sudo apparmor_parser -r "$profile"
       - name: Test de bout en bout (venv, interface, Playwright sous xvfb)
+        # ./dev.sh peut lancer npm ci (interface) : mêmes racines que ci-dessus
+        env:
+          NODE_USE_SYSTEM_CA: "1"
         run: xvfb-run -a ./dev.sh e2e
 
   frozen:
