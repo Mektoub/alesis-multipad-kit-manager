@@ -185,6 +185,47 @@ class Historique(unittest.TestCase):
         self.h.redo(self.b)
         self.assertTrue(self.h.dirty)
 
+    def test_valeurs_avant_apres(self):
+        self.put("032", set_volume(50))
+        self.clock.t = 10
+        self.put("032", lambda k: k["slots"][0]["params"].update(curve=2))
+        self.clock.t = 20
+        self.put("032", lambda k: k["slots"][0]["wave_a"].update(sample=8071))
+        self.clock.t = 30
+        self.put("032", lambda k: k.update(name="Nom"))
+        self.clock.t = 40
+        self.put("032", lambda k: k["slots"][0]["wave_b"]["params"].update(volume=3, pan=2))
+        details = [e["detail"] for e in self.h.entries()["entries"]]
+        self.assertEqual(details, ["90 → 50", "Normal → Exp2", "— → SnareUF", "« CrazyInLove » → « Nom »", ""])
+
+    def test_liste(self):
+        self.assertEqual(self.h.entries(), {"entries": [], "base": 0, "position": 0, "saved": 0})
+        for t, v in ((0, 10), (10, 20), (20, 30)):
+            self.clock.t = t
+            self.put("032", set_volume(v))
+        self.h.mark_saved()
+        self.h.undo(self.b)
+        listing = self.h.entries()
+        self.assertEqual([e["done"] for e in listing["entries"]], [True, True, False])
+        ids = [e["id"] for e in listing["entries"]]
+        self.assertEqual((listing["position"], listing["saved"]), (ids[1], ids[2]))
+        self.assertEqual(listing["entries"][0]["label"], "Kit 032 · P1 · Volume")
+
+    def test_aller_a_une_etape(self):
+        for t, (num, v) in enumerate((("032", 10), ("033", 20), ("032", 30))):
+            self.clock.t = 10 * t
+            self.put(num, set_volume(v))
+        ids = [e["id"] for e in self.h.entries()["entries"]]
+        self.assertEqual(self.h.goto(self.b, ids[0]), ["032", "033"])  # deux étapes annulées
+        self.assertEqual((self.volume("032"), self.b.get_raw("033")), (10, self.raw["033"]))
+        self.assertEqual(self.h.goto(self.b, self.h.entries()["base"]), ["032"])
+        self.assertEqual(self.b.get_raw("032"), self.raw["032"])
+        self.assertEqual(self.h.goto(self.b, ids[2]), ["032", "033"])
+        self.assertEqual((self.volume("032"), self.volume("033")), (30, 20))
+        self.assertEqual(self.h.goto(self.b, ids[2]), [])  # déjà à cette étape
+        with self.assertRaises(KeyError):
+            self.h.goto(self.b, 999)
+
     def test_echec_sans_etape(self):
         with self.assertRaises(sk.StrikeError):
             self.h.track(self.b, ["032"], lambda: self.b.set_slots("032", [1], "params.volume", 999))

@@ -10,6 +10,7 @@
   import BulkEditDialog from "./lib/BulkEditDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
   import HistoryAlert from "./lib/HistoryAlert.svelte";
+  import HistoryMenu from "./lib/HistoryMenu.svelte";
   import { SHORTCUTS, isTextField, shortcut } from "./lib/shortcuts.js";
 
   let meta = $state(null);
@@ -32,6 +33,7 @@
   let saving = $state(false);
   let syncing = $state(false);
   let openPath = $state(""); // chemin absolu de la sauvegarde à ouvrir
+  let historyList = $state(null); // liste déroulante de l'historique (GET /api/history), ouverte
   let historyAlert = $state(null); // { question, resolve } : alerte avant une action hors historique
 
   let fileName = $derived(session?.path?.split(/[\\/]/).pop() ?? "");
@@ -236,14 +238,49 @@
     error = "";
     try {
       await flush(); // la modification en attente devient une étape
-      const { done, changed, ...state } = await api[name]();
-      session = state;
-      const num = changed.length === 1 && !changed.includes(currentNum) ? changed[0] : currentNum;
-      await loadKit(num, num !== currentNum);
-      notice = `${name === "undo" ? "Annulé" : "Rétabli"} : ${done}`;
+      const { done, detail, changed, ...state } = await api[name]();
+      await applied(state, changed);
+      notice = `${name === "undo" ? "Annulé" : "Rétabli"} : ${done}${detail ? ` (${detail})` : ""}`;
     } catch (err) {
       if (err.status !== 409) error = err.message;
       session = await api.state(); // rien à annuler : l'interface se remet à jour
+    }
+  }
+
+  // Après annuler / rétablir : nouvel état, kit affiché relu ; si seul un autre
+  // kit a changé, c'est lui qui est affiché.
+  async function applied(state, changed) {
+    session = state;
+    const num = changed.length === 1 && !changed.includes(currentNum) ? changed[0] : currentNum;
+    await loadKit(num, num !== currentNum);
+  }
+
+  async function toggleHistory() {
+    if (historyList) {
+      historyList = null;
+      return;
+    }
+    try {
+      await flush(); // la modification en attente figure dans la liste
+      historyList = await api.history();
+    } catch (err) {
+      error = err.message;
+    }
+  }
+
+  // Liste de l'historique : revenir à une étape (annuler ou rétablir celles
+  // d'entre les deux), `message` : confirmation à afficher.
+  async function gotoStep({ id, message }) {
+    historyList = null;
+    error = "";
+    try {
+      await flush();
+      const { changed, ...state } = await api.historyGoto(id);
+      await applied(state, changed);
+      notice = message;
+    } catch (err) {
+      error = err.message;
+      session = await api.state();
     }
   }
 
@@ -254,7 +291,7 @@
     const name = shortcut(e);
     if (!name || isTextField(document.activeElement)) return;
     if (desktop && e.metaKey && e.key.toLowerCase() === "z") return;
-    if (copyFrom || resetFrom || bulkFrom || transferring || picking || historyAlert) return;
+    if (copyFrom || resetFrom || bulkFrom || transferring || picking || historyAlert || historyList) return;
     e.preventDefault();
     step(name);
   }
@@ -435,6 +472,13 @@
         title={`Annuler${canUndo ? ` : ${session.history.undo}` : ""} (${SHORTCUTS.undo})`}>↶</button>
       <button class="icon" onclick={() => step("redo")} disabled={saving || !canRedo} aria-label="Rétablir"
         title={`Rétablir${canRedo ? ` : ${session.history.redo}` : ""} (${SHORTCUTS.redo})`}>↷</button>
+      <span class="history">
+        <button class="icon chevron" onclick={toggleHistory} disabled={saving || (!canUndo && !canRedo)}
+          aria-label="Historique" aria-expanded={Boolean(historyList)} title="Historique des modifications">▾</button>
+        {#if historyList}
+          <HistoryMenu listing={historyList} onselect={gotoStep} onclose={() => (historyList = null)} />
+        {/if}
+      </span>
       <button onclick={reload} disabled={saving} title="Relire le fichier ouvert et annuler toutes les modifications non enregistrées">Recharger</button>
       {#if !desktop}<input type="text" bind:value={savePath} aria-label="Fichier de destination" />{/if}
       <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
@@ -594,6 +638,13 @@
   }
   .status.dirty {
     color: var(--accent);
+  }
+  .history {
+    position: relative;
+  }
+  .chevron {
+    margin-left: -6px;
+    padding-inline: 4px;
   }
   .icon {
     font-size: 16px;
