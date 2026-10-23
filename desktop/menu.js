@@ -37,8 +37,17 @@ export function menuTemplate({ platform, appName, about, send }) {
     {
       label: "É&dition",
       submenu: [
-        { label: "Annuler", role: "undo" },
-        { label: "Rétablir", role: "redo" },
+        // Annuler / Rétablir : modifications de la sauvegarde, ou frappe dans un
+        // champ de saisie (l'interface choisit). Hors macOS, le raccourci n'est
+        // qu'affiché : l'interface le reçoit et gère aussi Ctrl+Maj+Z ; sous
+        // macOS, le menu reçoit les touches avant la page.
+        { label: "Annuler", accelerator: "CmdOrCtrl+Z", registerAccelerator: mac, click: send("undo") },
+        {
+          label: "Rétablir",
+          accelerator: mac ? "Cmd+Shift+Z" : "Ctrl+Y",
+          registerAccelerator: mac,
+          click: send("redo"),
+        },
         { type: "separator" },
         { label: "Couper", role: "cut" },
         { label: "Copier", role: "copy" },

@@ -27,7 +27,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import strike_kits as sk
-from editor.meta import meta
+from editor.history import History
+from editor.meta import TITLES, meta
 
 WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
 # noms et version de l'application (à la racine du dépôt ; à côté du paquet editor/ une fois figé)
@@ -114,6 +115,7 @@ class Session:
         self.file = None  # fichier ouvert (chemin absolu)
         self.original = False  # le fichier ouvert n'a pas été écrit par l'éditeur
         self.backed_up = False  # copie .bak déjà faite pour cette session
+        self.history = History()  # annuler / rétablir (editor/history.py)
         self.lock = threading.Lock()
 
     def resolve(self, path):
@@ -139,6 +141,7 @@ class Session:
 
     def set_opened(self, backup, path):
         self.backup, self.file, self.original, self.backed_up = backup, path, True, False
+        self.history = History()
 
     def state(self):
         if self.backup is None:
@@ -161,6 +164,7 @@ class Session:
             "dirty": b.dirty,
             "kits": kits,
             "user_samples": len(b.user_sample_ids()),
+            "history": self.history.summary(),
         }
 
 
@@ -176,6 +180,12 @@ def load_backup(path, roots=None):
     if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
         raise sk.StrikeError("sauvegarde introuvable : %s" % path)
     return sk.Backup.open(path)
+
+
+def field_title(field):
+    """« params.sensitivity » → « Sensitivity »."""
+    name = field.rsplit(".", 1)[-1]
+    return TITLES.get(name, name)
 
 
 def strike_errors(fn):
@@ -230,6 +240,9 @@ def create_app(token, open_file=None, allow=()):
             raise HTTPException(404, "kit %s inexistant" % num)
         return b
 
+    def kit_result(kit, skipped):
+        return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped], "history": s.history.summary()}
+
     @app.get("/api/kits/{num}")
     def get_kit(num: str):
         with s.lock:
@@ -239,23 +252,34 @@ def create_app(token, open_file=None, allow=()):
     def put_kit(num: str, kit: dict):
         with s.lock:
             b = kit_or_404(num)
-            return strike_errors(lambda: b.update(num, kit))
+            return strike_errors(lambda: s.history.track(b, [num], lambda: b.update(num, kit), merge=True))
 
     @app.post("/api/kits/{num}/copy")
     def copy_slot(num: str, req: CopyRequest):
         with s.lock:
             b = kit_or_404(num)
+            label = "Copie des réglages de %s" % sk.slot_label(req.source - 1)
             kit, skipped = strike_errors(
-                lambda: b.copy_slot(num, req.source, req.targets, req.parts, req.include_midi_note)
+                lambda: s.history.track(
+                    b, [num], lambda: b.copy_slot(num, req.source, req.targets, req.parts, req.include_midi_note), label
+                )
             )
-            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+            return kit_result(kit, skipped)
 
     @app.post("/api/kits/set")
     def set_slots_in_kits(req: MultiSetRequest):
         """Même valeur, mêmes emplacements, dans plusieurs kits (tout ou rien)."""
         with s.lock:
             b = s.require()
-            skipped = strike_errors(lambda: b.set_slots_in_kits(req.kits, req.targets, req.field, req.value))
+            nums = [n for n in dict.fromkeys(req.kits) if n in b.kit_numbers()]
+            skipped = strike_errors(
+                lambda: s.history.track(
+                    b,
+                    nums,
+                    lambda: b.set_slots_in_kits(req.kits, req.targets, req.field, req.value),
+                    field_title(req.field),
+                )
+            )
             return dict(s.state(), skipped=[{"kit": k, "slot": n, "field": f} for k, n, f in skipped])
 
     @app.post("/api/kits/{num}/set")
@@ -263,16 +287,24 @@ def create_app(token, open_file=None, allow=()):
         """Applique une même valeur à un champ de plusieurs emplacements."""
         with s.lock:
             b = kit_or_404(num)
-            kit, skipped = strike_errors(lambda: b.set_slots(num, req.targets, req.field, req.value))
-            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+            kit, skipped = strike_errors(
+                lambda: s.history.track(
+                    b, [num], lambda: b.set_slots(num, req.targets, req.field, req.value), field_title(req.field)
+                )
+            )
+            return kit_result(kit, skipped)
 
     @app.post("/api/kits/{num}/reset")
     def reset_slots(num: str, req: ResetRequest):
         """Remet des champs d'emplacements aux valeurs du kit vide de l'appareil."""
         with s.lock:
             b = kit_or_404(num)
-            kit, skipped = strike_errors(lambda: b.reset_slots(num, req.targets, req.fields))
-            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+            kit, skipped = strike_errors(
+                lambda: s.history.track(
+                    b, [num], lambda: b.reset_slots(num, req.targets, req.fields), "Valeurs par défaut"
+                )
+            )
+            return kit_result(kit, skipped)
 
     @app.post("/api/kits/{num}/move")
     def move_kit(num: str, req: MoveRequest):
@@ -280,6 +312,7 @@ def create_app(token, open_file=None, allow=()):
         with s.lock:
             b = kit_or_404(num)
             strike_errors(lambda: b.move_kit(num, req.target))
+            s.history.clear()  # kits entiers remplacés : hors historique
             return s.state()
 
     @app.post("/api/kits/{num}/transfer")
@@ -289,6 +322,7 @@ def create_app(token, open_file=None, allow=()):
             b = kit_or_404(num)
             op = b.copy_kit if req.mode == "copy" else b.swap_kits
             strike_errors(lambda: op(num, req.target))
+            s.history.clear()
             return s.state()
 
     @app.post("/api/kits/{num}/clear")
@@ -296,6 +330,7 @@ def create_app(token, open_file=None, allow=()):
         """Supprime le kit : le remplace par le kit vide de l'appareil."""
         with s.lock:
             kit_or_404(num).clear_kit(num)
+            s.history.clear()
             return s.state()
 
     @app.get("/api/samples")
@@ -320,6 +355,7 @@ def create_app(token, open_file=None, allow=()):
         with s.lock:
             b = s.require()
             sid = strike_errors(lambda: b.add_sample(name, content))
+            s.history.untracked()  # l'ajout d'un sample ne s'annule pas
             return {"id": sid, "name": name, "user": True}
 
     @app.post("/api/save")
@@ -344,7 +380,27 @@ def create_app(token, open_file=None, allow=()):
             if not same:
                 s.file, s.original = path, False
             b.dirty = False
+            s.history.mark_saved()
             return s.state()
+
+    def step(name):
+        with s.lock:
+            b = s.require()
+            entry = getattr(s.history, name)(b)
+            if entry is None:
+                raise HTTPException(409, "rien à %s" % ("annuler" if name == "undo" else "rétablir"))
+            return dict(s.state(), done=entry.label, changed=entry.kits)
+
+    @app.post("/api/undo")
+    def undo():
+        """Annule la dernière modification de paramètres ; `done` : son libellé,
+        `changed` : les kits modifiés."""
+        return step("undo")
+
+    @app.post("/api/redo")
+    def redo():
+        """Rétablit la dernière modification annulée."""
+        return step("redo")
 
     if WEB_DIST.is_dir():
         app.mount("/assets", StaticFiles(directory=WEB_DIST / "assets"), name="assets")
