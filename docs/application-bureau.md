@@ -289,7 +289,9 @@ Les dossiers autorisés par défaut dépendent du système (voir
   fenêtre existante.
 - **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
   actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
-  sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition*, *Affichage* (zoom, outils de
+  sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition* (Annuler `Ctrl+Z`, Rétablir
+  `Ctrl+Y`, voir [Annuler / Rétablir](editeur-web.md#annuler--rétablir) ; couper,
+  copier, coller), *Affichage* (zoom, outils de
   développement), *Aide* (À propos : nom et version). Sous macOS, un menu de
   l'application vient en tête, comme pour toute application Mac : À propos,
   Masquer, Masquer les autres, Tout afficher, Quitter (`Cmd+Q`) ; Quitter n'est
