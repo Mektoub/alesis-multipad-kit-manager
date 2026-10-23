@@ -1,5 +1,7 @@
 # Développement : dépendances de l'éditeur et des tests, plus l'analyse de code.
 -r requirements.txt
+# certifi sans la racine emSign compromise (incident eMudhra, octobre 2026) ; httpx en dépend
+certifi>=2026.10.19
 ruff==0.17.1
 # Serveur figé de l'application de bureau (./dev.sh freeze)
 pyinstaller==6.22.3

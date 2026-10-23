@@ -55,6 +55,10 @@ jobs:
         run: python scripts/verifier-version.py
       - name: Interface (build)
         working-directory: editor/web
+        # racines du système plutôt que celles de Node, qui font encore confiance à
+        # emSign ECC Root CA - G3 (incident eMudhra, octobre 2026)
+        env:
+          NODE_USE_SYSTEM_CA: "1"
         run: npm ci && npm run build
       - name: Serveur figé (PyInstaller)
         run: >
@@ -62,6 +66,10 @@ jobs:
           --distpath desktop/build --workpath desktop/build/.work desktop/server.spec
       - name: Dépendances de l'application de bureau
         working-directory: desktop
+        # racines du système plutôt que celles de Node, qui font encore confiance à
+        # emSign ECC Root CA - G3 (incident eMudhra, octobre 2026)
+        env:
+          NODE_USE_SYSTEM_CA: "1"
         run: npm ci
       - name: Test de fumée du serveur figé
         working-directory: desktop
