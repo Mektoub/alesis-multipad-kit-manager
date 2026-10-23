@@ -295,6 +295,18 @@ class Api(unittest.TestCase):
         self.assertIn({"num": "033", "name": "Via API", "format": "KITH", "empty": False}, body["kits"])
         self.assertEqual(self.client.post("/api/redo").status_code, 409)
 
+    def test_liste_et_saut_dans_l_historique(self):
+        self.assertEqual(self.client.get("/api/history").json()["entries"], [])
+        for v in (20, 30):
+            self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": v})
+        listing = self.client.get("/api/history").json()
+        self.assertEqual([e["detail"] for e in listing["entries"]], ["90 → 20", "20 → 30"])
+        r = self.client.post("/api/history/goto", json={"id": listing["base"]})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual((r.json()["changed"], r.json()["dirty"]), (["033"], False))
+        self.assertEqual(r.json()["history"], {"undo": None, "redo": "Kit 033 · P1 · Volume"})
+        self.assertEqual(self.client.post("/api/history/goto", json={"id": 999}).status_code, 404)
+
     def test_historique_des_actions(self):
         body = {"targets": [1, 2], "field": "params.sensitivity", "value": 20}
         r = self.client.post("/api/kits/033/set", json=body)
