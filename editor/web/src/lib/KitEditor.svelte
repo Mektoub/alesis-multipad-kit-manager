@@ -10,7 +10,12 @@
   const PAD_ORDER = [6, 7, 8, 3, 4, 5, 0, 1, 2];
 
   let slot = $derived(kit.slots[selected]);
-  let others = $derived(kit.slots.slice(9));
+  // Emplacements 10 à 24 : entrées identifiées (ordre de l'arrière de l'appareil),
+  // les autres masqués par défaut.
+  let inputs = $derived(meta.inputs.map((n) => kit.slots[n - 1]));
+  let unknown = $derived(kit.slots.slice(9).filter((s) => !meta.inputs.includes(s.slot)));
+  let showUnknown = $state(false);
+  const used = (s) => s.wave_a.sample != null || s.wave_b.sample != null;
 
   function color(s) {
     return meta.colors[s.light.play_color]?.css ?? "transparent";
@@ -64,12 +69,26 @@
   </div>
 
   <div class="others">
-    <span class="muted">Autres entrées (déclencheurs, pédales… correspondance non vérifiée) :</span>
-    {#each others as s, i (s.slot)}
-      <button class="chip" class:selected={selected === i + 9} class:used={s.wave_a.sample != null || s.wave_b.sample != null} onclick={() => (selected = i + 9)}>
-        {s.slot}
-      </button>
-    {/each}
+    <div class="chips">
+      <span class="muted">Entrées :</span>
+      {#each inputs as s (s.slot)}
+        <button class="chip" class:selected={selected === s.slot - 1} class:used={used(s)} onclick={() => (selected = s.slot - 1)}>
+          {s._label}
+        </button>
+      {/each}
+    </div>
+    <button class="link" onclick={() => (showUnknown = !showUnknown)}>
+      {showUnknown ? "masquer" : "afficher"} les {unknown.length} emplacements non identifiés
+    </button>
+    {#if showUnknown}
+      <div class="chips">
+        {#each unknown as s (s.slot)}
+          <button class="chip" class:selected={selected === s.slot - 1} class:used={used(s)} onclick={() => (selected = s.slot - 1)}>
+            {s.slot}
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <div class="editor">
@@ -198,11 +217,26 @@
   .sample.b {
     opacity: 0.65;
   }
+  .link {
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    padding: 2px 4px;
+    font-size: 13px;
+  }
+  /* entrées centrées sous la grille, lien et emplacements non identifiés dessous */
   .others {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
     align-items: center;
+    gap: 6px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
   }
   .chip {
     min-width: 34px;

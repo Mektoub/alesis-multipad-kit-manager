@@ -206,8 +206,23 @@ def wave_header_readable(kit, w):
     return kit[w + 2] <= kit[w + 3] <= 127
 
 
+# Entrées de l'arrière de l'appareil (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1,
+# 2/3, 4/5, HH) localisées par une sauvegarde de l'appareil (Control/Mode réglé sur
+# l'entrée) : numéro d'emplacement -> nom affiché par l'appareil, dans l'ordre de
+# l'arrière de l'appareil. Reste Trigger In 2/3.
+SLOT_NAMES = {
+    18: "FootSwitch 1/2",
+    20: "FootSwitch 3/4",
+    16: "Trigger In 1",
+    15: "Trigger In 4/5",
+    17: "Trigger In HH",
+}
+
+
 def slot_label(index):
-    return "P%d" % (index + 1) if index < 9 else "slot %d" % (index + 1)
+    if index < 9:
+        return "P%d" % (index + 1)
+    return SLOT_NAMES.get(index + 1, "slot %d" % (index + 1))
 
 
 def is_empty_kit(kit):
