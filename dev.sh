@@ -213,7 +213,7 @@ deb_outdated() {
     deb="$(ls "$DESKTOP"/dist/*.deb 2>/dev/null | head -1)"
     [[ -z "$deb" ]] && return 0
     frozen_outdated && return 0
-    [[ -n "$(find "$DESKTOP/main.js" "$DESKTOP/preload.cjs" "$DESKTOP/server.js" "$DESKTOP/package.json" \
+    [[ -n "$(find "$DESKTOP/main.js" "$DESKTOP/menu.js" "$DESKTOP/preload.cjs" "$DESKTOP/server.js" "$DESKTOP/package.json" \
                "$DESKTOP/electron-builder.config.mjs" "$PROJECT/app-names.json" \
                "$DESKTOP/build-resources" "$FROZEN_EXE" -newer "$deb" -print -quit)" ]]
 }
