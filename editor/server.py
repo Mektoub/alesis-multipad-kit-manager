@@ -74,6 +74,10 @@ class MoveRequest(BaseModel):
     target: str
 
 
+class GotoRequest(BaseModel):
+    id: int
+
+
 class TransferRequest(BaseModel):
     target: str
     mode: Literal["copy", "swap"]
@@ -389,7 +393,25 @@ def create_app(token, open_file=None, allow=()):
             entry = getattr(s.history, name)(b)
             if entry is None:
                 raise HTTPException(409, "rien à %s" % ("annuler" if name == "undo" else "rétablir"))
-            return dict(s.state(), done=entry.label, changed=entry.kits)
+            return dict(s.state(), done=entry.label, detail=entry.detail, changed=entry.kits)
+
+    @app.get("/api/history")
+    def history():
+        """Étapes de l'historique, de la plus ancienne à la plus récente."""
+        with s.lock:
+            s.require()
+            return s.history.entries()
+
+    @app.post("/api/history/goto")
+    def history_goto(req: GotoRequest):
+        """Annule ou rétablit jusqu'à l'étape `id` (`base` : avant la plus ancienne)."""
+        with s.lock:
+            b = s.require()
+            try:
+                changed = s.history.goto(b, req.id)
+            except KeyError:
+                raise HTTPException(404, "étape %s absente de l'historique" % req.id) from None
+            return dict(s.state(), changed=changed)
 
     @app.post("/api/undo")
     def undo():

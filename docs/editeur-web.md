@@ -170,7 +170,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    fichier ouvert ; si ce fichier existe, une confirmation est demandée.
    **Recharger** relit le fichier ouvert et abandonne toutes les modifications non
    enregistrées, après confirmation s'il y en a ; le kit affiché reste le même.
-11. **Annuler / Rétablir** : boutons ↶ ↷ de l'en-tête (voir ci-dessous).
+11. **Annuler / Rétablir** : boutons ↶ ↷ et liste ▾ de l'en-tête (voir ci-dessous).
 
 Chaque modification est envoyée au serveur et validée aussitôt. Une valeur refusée
 (hors plage, par exemple) affiche un message et le kit revient à son dernier état
@@ -185,6 +185,15 @@ Charger ensuite le fichier produit sur l'appareil comme décrit dans
 Les boutons ↶ et ↷ de l'en-tête annulent et rétablissent les modifications de
 paramètres, une action à la fois ; leur infobulle et le message affiché nomment
 l'action (« Kit 032 · P1 · Volume », « Sensitivity · 3 kits »).
+
+Le chevron ▾ à côté affiche l'**historique** : les actions de la plus récente à
+la plus ancienne, avec l'ancienne et la nouvelle valeur quand une action ne
+modifie qu'un paramètre (« 90 → 50 », « Normal → Exp2 »). La position actuelle
+est marquée ; les actions annulées, encore rétablissables, sont grisées au-dessus ;
+le repère *Enregistré* indique l'état du dernier enregistrement. Un clic sur une
+ligne y revient en une fois (en annulant ou en rétablissant les actions d'entre
+les deux) ; la dernière ligne, *Ouverture du fichier* (ou *Début de
+l'historique* quand l'historique a été vidé), annule tout.
 
 - **Raccourcis** : `Ctrl+Z` annule, `Ctrl+Y` ou `Ctrl+Maj+Z` rétablit (`Cmd` sous
   macOS) ; dans l'application de bureau, aussi *Édition › Annuler / Rétablir*.
@@ -227,7 +236,9 @@ porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
-| POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
+| POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action), `detail` (« 90 → 50 », vide si l'action modifie plusieurs paramètres) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
+| GET | `/api/history` | actions de l'historique, de la plus ancienne à la plus récente (`entries` : `id`, `label`, `detail`, `done` faite ou annulée) ; `base` : id de l'état avant la plus ancienne, `position` : dernière action faite, `saved` : action du dernier enregistrement (`null` si l'état enregistré n'est plus atteignable) |
+| POST | `/api/history/goto` | revenir à une action (`{"id": 12}`, ou `base` pour tout annuler) ; renvoie l'état et `changed` ; 404 si l'action n'est pas dans l'historique |
 | POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (403 hors des dossiers autorisés ; 409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses
