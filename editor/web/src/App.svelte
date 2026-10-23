@@ -9,6 +9,8 @@
   import KitTransferDialog from "./lib/KitTransferDialog.svelte";
   import BulkEditDialog from "./lib/BulkEditDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
+  import HistoryAlert from "./lib/HistoryAlert.svelte";
+  import { SHORTCUTS, isTextField, shortcut } from "./lib/shortcuts.js";
 
   let meta = $state(null);
   let session = $state(null); // état renvoyé par /api/state
@@ -30,8 +32,12 @@
   let saving = $state(false);
   let syncing = $state(false);
   let openPath = $state(""); // chemin absolu de la sauvegarde à ouvrir
+  let historyAlert = $state(null); // { question, resolve } : alerte avant une action hors historique
 
   let fileName = $derived(session?.path?.split(/[\\/]/).pop() ?? "");
+  // libellés des dernières étapes à annuler et à rétablir (editor/history.py)
+  let canUndo = $derived(Boolean(session?.history?.undo));
+  let canRedo = $derived(Boolean(session?.history?.redo));
   let sampleIndex = $derived(new Map(samples.map((s) => [s.id, s])));
   let visibleKits = $derived(
     (session?.kits ?? []).filter((k) => !hideEmpty || k.name !== "Empty" || k.num === currentNum),
@@ -71,7 +77,7 @@
       if (num !== currentNum) return;
       lastSynced = JSON.stringify(saved);
       if (JSON.stringify(kit) === snapshot) kit = saved;
-      session.dirty = true;
+      edited();
       const entry = session.kits.find((k) => k.num === num);
       if (entry) entry.name = saved.name;
     } catch (err) {
@@ -80,6 +86,13 @@
     } finally {
       syncing = false;
     }
+  }
+
+  // Après une modification de paramètres faite par l'éditeur (PUT, qui ne
+  // renvoie que le kit) : une étape de plus à annuler, plus rien à rétablir.
+  function edited(history = { undo: "dernière modification", redo: null }) {
+    session.dirty = true;
+    session.history = history;
   }
 
   // Envoie tout de suite une modification encore en attente.
@@ -91,10 +104,10 @@
 
   async function copySlot(request) {
     await flush();
-    const { kit: updated, skipped } = await api.copySlot(currentNum, request);
+    const { kit: updated, skipped, history } = await api.copySlot(currentNum, request);
     lastSynced = JSON.stringify(updated);
     kit = updated;
-    session.dirty = true;
+    edited(history);
     copyFrom = null;
     const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
     notice = `Réglages de ${updated.slots[request.source - 1]._label} copiés vers ${dest}.`;
@@ -106,10 +119,10 @@
 
   async function resetSlots(request) {
     await flush();
-    const { kit: updated, skipped } = await api.resetSlots(currentNum, request);
+    const { kit: updated, skipped, history } = await api.resetSlots(currentNum, request);
     lastSynced = JSON.stringify(updated);
     kit = updated;
-    session.dirty = true;
+    edited(history);
     resetFrom = null;
     const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
     notice = `Valeurs par défaut remises sur ${dest}.`;
@@ -137,6 +150,10 @@
     await flush();
     const source = currentNum;
     const before = session.kits.find((k) => k.num === target)?.name;
+    let question = `Déplacer le kit ${source} en ${target} ?`;
+    if (mode === "copy") question = `Copier le kit ${source} en ${target} ?`;
+    else if (before !== "Empty") question = `Échanger les kits ${source} et ${target} ?`;
+    if (!(await outsideHistory(question))) return; // la fenêtre reste ouverte
     session = await api.transferKit(source, { target, mode });
     transferring = false;
     if (mode === "copy") notice = `Kit ${source} copié en ${target}.`;
@@ -156,6 +173,7 @@
     if (c === i) shown = j;
     else if (j < i && j <= c && c < i) shown = c + 1;
     else if (i < j && i < c && c <= j) shown = c - 1;
+    if (!(await outsideHistory(`Déplacer le kit ${source} en ${target} ?`))) return;
     session = await api.moveKit(source, { target });
     notice = `Kit ${source} déplacé en ${target}.`;
     await loadKit(nums[shown], false);
@@ -189,11 +207,56 @@
   // Supprimer = remplacer par le kit vide de l'appareil, après confirmation.
   async function clearKit() {
     const num = currentNum;
-    if (!confirm(`Supprimer le kit ${num} « ${kit.name} » ? Il sera remplacé par un kit vide.`)) return;
+    const question = `Supprimer le kit ${num} « ${kit.name} » ? Il sera remplacé par un kit vide.`;
     await flush();
+    if (canUndo || canRedo ? !(await outsideHistory(question)) : !confirm(question)) return;
     session = await api.clearKit(num);
     notice = `Kit ${num} supprimé.`;
     await loadKit(num);
+  }
+
+  // Déplacer, transférer ou supprimer un kit vide l'historique : s'il reste des
+  // modifications à annuler ou à rétablir, l'utilisateur choisit d'abandonner
+  // l'action, d'enregistrer avant, ou de continuer. Vrai si l'action peut se faire.
+  async function outsideHistory(question) {
+    if (!canUndo && !canRedo) return true;
+    const choice = await new Promise((resolve) => (historyAlert = { question, resolve }));
+    historyAlert = null;
+    if (choice === "save") {
+      await save();
+      return !session.dirty;
+    }
+    return choice === "continue";
+  }
+
+  // Annuler / Rétablir : `name` = "undo" | "redo". Le kit affiché est relu ;
+  // si l'étape ne concerne qu'un autre kit, celui-ci est affiché.
+  async function step(name) {
+    if (!session?.path || saving) return;
+    error = "";
+    try {
+      await flush(); // la modification en attente devient une étape
+      const { done, changed, ...state } = await api[name]();
+      session = state;
+      const num = changed.length === 1 && !changed.includes(currentNum) ? changed[0] : currentNum;
+      await loadKit(num, num !== currentNum);
+      notice = `${name === "undo" ? "Annulé" : "Rétabli"} : ${done}`;
+    } catch (err) {
+      if (err.status !== 409) error = err.message;
+      session = await api.state(); // rien à annuler : l'interface se remet à jour
+    }
+  }
+
+  // Raccourcis clavier, hors champs de saisie (qui gardent leur propre annulation)
+  // et hors fenêtres de dialogue. Sous macOS, le menu de l'application de bureau
+  // reçoit lui-même ⌘Z et ⌘⇧Z (commandes undo / redo).
+  function keydown(e) {
+    const name = shortcut(e);
+    if (!name || isTextField(document.activeElement)) return;
+    if (desktop && e.metaKey && e.key.toLowerCase() === "z") return;
+    if (copyFrom || resetFrom || bulkFrom || transferring || picking || historyAlert) return;
+    e.preventDefault();
+    step(name);
   }
 
   async function loadKit(num, resetSlot = true) {
@@ -292,6 +355,12 @@
       case "save-as":
         if (session?.path) await saveAsDialog();
         return null;
+      case "undo":
+      case "redo":
+        // menu Édition : dans un champ de saisie, annulation de la frappe
+        if (isTextField(document.activeElement)) document.execCommand(command);
+        else await step(command);
+        return null;
       case "prepare-close":
         await flush();
         return { dirty: Boolean(session?.dirty) };
@@ -306,8 +375,7 @@
   async function uploadSample(file) {
     const added = await api.addSample(file);
     samples = await api.samples();
-    session.dirty = true;
-    session.user_samples += 1;
+    session = await api.state(); // ajout hors historique (editor/history.py)
     return added;
   }
 
@@ -345,7 +413,7 @@
   });
 </script>
 
-<svelte:window onbeforeunload={beforeunload} />
+<svelte:window onbeforeunload={beforeunload} onkeydown={keydown} />
 
 <header class="top">
   <h1>{__APP_NAMES__.long} <span class="version">v{__APP_NAMES__.version}</span></h1>
@@ -363,6 +431,10 @@
       <span class="status" class:dirty={session.dirty}>
         {syncing ? "Synchronisation…" : session.dirty ? "Modifications non enregistrées" : "À jour"}
       </span>
+      <button class="icon" onclick={() => step("undo")} disabled={saving || !canUndo} aria-label="Annuler"
+        title={`Annuler${canUndo ? ` : ${session.history.undo}` : ""} (${SHORTCUTS.undo})`}>↶</button>
+      <button class="icon" onclick={() => step("redo")} disabled={saving || !canRedo} aria-label="Rétablir"
+        title={`Rétablir${canRedo ? ` : ${session.history.redo}` : ""} (${SHORTCUTS.redo})`}>↷</button>
       <button onclick={reload} disabled={saving} title="Relire le fichier ouvert et annuler toutes les modifications non enregistrées">Recharger</button>
       {#if !desktop}<input type="text" bind:value={savePath} aria-label="Fichier de destination" />{/if}
       <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
@@ -459,6 +531,10 @@
   <KitTransferDialog kits={session.kits} source={currentNum} ontransfer={transferKit} onclose={() => (transferring = false)} />
 {/if}
 
+{#if historyAlert}
+  <HistoryAlert question={historyAlert.question} onchoose={historyAlert.resolve} />
+{/if}
+
 {#if picking && kit}
   <SamplePicker
     {samples}
@@ -518,6 +594,11 @@
   }
   .status.dirty {
     color: var(--accent);
+  }
+  .icon {
+    font-size: 16px;
+    line-height: 1;
+    padding-inline: 8px;
   }
   .toasts {
     position: fixed;

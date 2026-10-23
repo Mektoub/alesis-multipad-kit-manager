@@ -36,6 +36,20 @@ describe("menu de l'application", () => {
     assert.equal(file.length, 3);
   });
 
+  it("Annuler / Rétablir passent par `send` ; raccourcis affichés, gérés par l'interface hors macOS", () => {
+    for (const [platform, redo, registered] of [
+      ["linux", "Ctrl+Y", false],
+      ["win32", "Ctrl+Y", false],
+      ["darwin", "Cmd+Shift+Z", true],
+    ]) {
+      const [undoItem, redoItem] = items(template(platform), "É&dition");
+      assert.deepEqual([undoItem.click(), redoItem.click()], ["undo", "redo"], platform);
+      assert.deepEqual([undoItem.accelerator, redoItem.accelerator], ["CmdOrCtrl+Z", redo], platform);
+      assert.deepEqual([undoItem.registerAccelerator, redoItem.registerAccelerator], [registered, registered]);
+      assert.ok(!undoItem.role && !redoItem.role, platform);
+    }
+  });
+
   it("les commandes de Fichier passent par `send`", () => {
     const file = items(template("linux"), "&Fichier");
     assert.deepEqual(

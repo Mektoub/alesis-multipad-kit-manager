@@ -25,7 +25,8 @@
       await ontransfer({ target, mode });
     } catch (err) {
       error = err.message;
-      busy = false;
+    } finally {
+      busy = false; // transfert abandonné (alerte de l'historique) ou refusé
     }
   }
 

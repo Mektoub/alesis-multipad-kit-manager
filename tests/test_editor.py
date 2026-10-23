@@ -276,6 +276,69 @@ class Api(unittest.TestCase):
         known = ["params." + p["name"] for p in meta["wave_params"] if p["known"]]
         self.assertCountEqual(wave, known + [p["name"] for p in meta["velocity_params"]])
 
+    def test_annuler_retablir(self):
+        self.assertEqual(self.state["history"], {"undo": None, "redo": None})
+        self.assertEqual(self.client.post("/api/undo").status_code, 409)  # rien à annuler
+        kit = self.client.get("/api/kits/033").json()
+        kit["name"] = "Via API"
+        self.client.put("/api/kits/033", json=kit)
+        state = self.client.get("/api/state").json()
+        self.assertEqual((state["history"]["undo"], state["dirty"]), ("Kit 033 · Nom du kit", True))
+        r = self.client.post("/api/undo")
+        self.assertEqual(r.status_code, 200, r.text)
+        body = r.json()
+        self.assertEqual((body["done"], body["changed"], body["dirty"]), ("Kit 033 · Nom du kit", ["033"], False))
+        self.assertEqual(body["history"], {"undo": None, "redo": "Kit 033 · Nom du kit"})
+        self.assertEqual(self.client.get("/api/kits/033").json()["name"], "Empty")
+        body = self.client.post("/api/redo").json()
+        self.assertEqual((body["done"], body["dirty"]), ("Kit 033 · Nom du kit", True))
+        self.assertIn({"num": "033", "name": "Via API", "format": "KITH", "empty": False}, body["kits"])
+        self.assertEqual(self.client.post("/api/redo").status_code, 409)
+
+    def test_historique_des_actions(self):
+        body = {"targets": [1, 2], "field": "params.sensitivity", "value": 20}
+        r = self.client.post("/api/kits/033/set", json=body)
+        self.assertEqual(r.json()["history"]["undo"], "Kit 033 · Sensitivity")
+        body.update(kits=["031", "033"], value=25)
+        r = self.client.post("/api/kits/set", json=body)
+        self.assertEqual(r.json()["history"]["undo"], "Sensitivity · 2 kits")
+        r = self.client.post("/api/kits/032/copy", json={"source": 5, "targets": [1, 2], "parts": ["wave_a"]})
+        self.assertEqual(r.json()["history"]["undo"], "Kit 032 · Copie des réglages de P5")
+        r = self.client.post("/api/kits/031/reset", json={"targets": [1, 2], "fields": ["params.sensitivity"]})
+        self.assertEqual(r.json()["history"]["undo"], "Kit 031 · Valeurs par défaut")
+        for _ in range(4):
+            self.assertEqual(self.client.post("/api/undo").status_code, 200)
+        self.assertFalse(self.client.get("/api/state").json()["dirty"])
+
+    def test_historique_vide_apres_un_kit_deplace_transfere_ou_supprime(self):
+        actions = (
+            ("/api/kits/040/move", {"target": "032"}),
+            ("/api/kits/032/transfer", {"target": "041", "mode": "copy"}),
+            ("/api/kits/031/clear", None),
+        )
+        for url, body in actions:
+            self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": 20})
+            r = self.client.post(url, json=body)
+            self.assertEqual((r.status_code, r.json()["history"]), (200, {"undo": None, "redo": None}), url)
+
+    def test_ajout_sample_hors_historique(self):
+        self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": 20})
+        self.client.post("/api/save", json={"path": str(self.root / "Historique1.bkf"), "overwrite": True})
+        self.client.post("/api/samples", files={"file": ("Bip.wav", wav_bytes(), "audio/wav")})
+        state = self.client.get("/api/state").json()
+        self.assertEqual((state["history"]["undo"], state["dirty"]), ("Kit 033 · P1 · Volume", True))
+        self.client.post("/api/undo")
+        self.assertTrue(self.client.post("/api/redo").json()["dirty"])  # le sample reste ajouté
+
+    def test_ouverture_et_enregistrement(self):
+        self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": 20})
+        target = self.root / "Historique2.bkf"
+        self.assertFalse(self.client.post("/api/save", json={"path": str(target), "overwrite": True}).json()["dirty"])
+        self.assertTrue(self.client.post("/api/undo").json()["dirty"])
+        self.assertFalse(self.client.post("/api/redo").json()["dirty"])  # retour à l'état enregistré
+        r = self.client.post("/api/open", json={"path": str(target)})
+        self.assertEqual(r.json()["history"], {"undo": None, "redo": None})
+
 
 class SansSauvegarde(unittest.TestCase):
     def test_version_de_l_application(self):
