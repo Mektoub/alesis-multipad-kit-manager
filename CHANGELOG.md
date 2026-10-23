@@ -2,6 +2,8 @@
 
 ## 0.4.0 — Améliorations UI
 
+- Éditeur web : liste de l'historique (chevron ▾ à côté de ↶ ↷), de la plus récente action à la plus ancienne, avec l'ancienne et la nouvelle valeur (« 90 → 50 », « Normal → Exp2 »), la position actuelle et le repère *Enregistré* ; un clic revient à l'action choisie. API : `GET /api/history`, `POST /api/history/goto` ; `detail` dans la réponse de `/api/undo` et `/api/redo`.
+
 - Éditeur web : *Annuler / Rétablir* (boutons ↶ ↷ de l'en-tête, `Ctrl+Z`, `Ctrl+Y` ou `Ctrl+Maj+Z`, menu *Édition* de l'application de bureau) sur les modifications de paramètres, une étape par action, 100 au plus. Déplacer, transférer ou supprimer un kit vide l'historique, après une alerte (*Annuler*, *Enregistrer et continuer*, *Continuer*) ; l'ajout d'un sample ne s'annule pas. API : `POST /api/undo`, `/api/redo`, `history` dans l'état (`editor/history.py`).
 
 - Éditeur web : kits vides masqués par défaut dans la liste (*masquer les vides* coché à l'ouverture).
