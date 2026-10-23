@@ -2,6 +2,7 @@
 
 ## 0.4.0 — Améliorations UI
 
+- Éditeur web : kits vides masqués par défaut dans la liste (*masquer les vides* coché à l'ouverture).
 - Entrées de l'arrière localisées par des sauvegardes de l'appareil : 15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH, 18 = FootSwitch 1/2, 20 = FootSwitch 3/4 ; ces noms remplacent « slot N » dans l'éditeur (`strike_kits.SLOT_NAMES`).
 - Application de bureau : la fenêtre s'ouvre maximisée (*Restaurer* la ramène à 1400×900).
 - Éditeur web : messages affichés en toasts (en haut, au milieu, au-dessus des fenêtres) au lieu de bandeaux dans la page ; les confirmations disparaissent seules après 6 s, les erreurs restent jusqu'à leur fermeture.

@@ -16,7 +16,7 @@
   let currentNum = $state(null);
   let kit = $state(null);
   let selected = $state(0);
-  let hideEmpty = $state(false);
+  let hideEmpty = $state(true); // kits vides masqués par défaut (le kit affiché reste visible)
   let error = $state("");
   let notice = $state("");
   let picking = $state(null); // "wave_a" | "wave_b" | null
