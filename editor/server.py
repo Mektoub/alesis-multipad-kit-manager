@@ -64,6 +64,15 @@ class MultiSetRequest(SetRequest):
     kits: list[str]
 
 
+class ResetRequest(BaseModel):
+    targets: list[int]
+    fields: list[str]
+
+
+class MoveRequest(BaseModel):
+    target: str
+
+
 class TransferRequest(BaseModel):
     target: str
     mode: Literal["copy", "swap"]
@@ -138,7 +147,14 @@ class Session:
         kits = []
         for num in b.kit_numbers():
             raw = b.get_raw(num)
-            kits.append({"num": num, "format": sk.kit_format(raw), "name": sk.decode_kit(raw)["name"]})
+            kits.append(
+                {
+                    "num": num,
+                    "format": sk.kit_format(raw),
+                    "name": sk.decode_kit(raw)["name"],
+                    "empty": sk.is_empty_kit(raw),
+                }
+            )
         return {
             "path": str(self.file),
             "kind": b.kind,
@@ -250,6 +266,22 @@ def create_app(token, open_file=None, allow=()):
             kit, skipped = strike_errors(lambda: b.set_slots(num, req.targets, req.field, req.value))
             return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
 
+    @app.post("/api/kits/{num}/reset")
+    def reset_slots(num: str, req: ResetRequest):
+        """Remet des champs d'emplacements aux valeurs du kit vide de l'appareil."""
+        with s.lock:
+            b = kit_or_404(num)
+            kit, skipped = strike_errors(lambda: b.reset_slots(num, req.targets, req.fields))
+            return {"kit": kit, "skipped": [{"slot": n, "field": f} for n, f in skipped]}
+
+    @app.post("/api/kits/{num}/move")
+    def move_kit(num: str, req: MoveRequest):
+        """Déplace le kit au numéro `target` ; les kits entre les deux se décalent."""
+        with s.lock:
+            b = kit_or_404(num)
+            strike_errors(lambda: b.move_kit(num, req.target))
+            return s.state()
+
     @app.post("/api/kits/{num}/transfer")
     def transfer_kit(num: str, req: TransferRequest):
         """Copie le kit `num` vers `target`, ou échange les deux kits."""
@@ -257,6 +289,13 @@ def create_app(token, open_file=None, allow=()):
             b = kit_or_404(num)
             op = b.copy_kit if req.mode == "copy" else b.swap_kits
             strike_errors(lambda: op(num, req.target))
+            return s.state()
+
+    @app.post("/api/kits/{num}/clear")
+    def clear_kit(num: str):
+        """Supprime le kit : le remplace par le kit vide de l'appareil."""
+        with s.lock:
+            kit_or_404(num).clear_kit(num)
             return s.state()
 
     @app.get("/api/samples")

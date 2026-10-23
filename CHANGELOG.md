@@ -1,12 +1,26 @@
 # Changelog
 
-## 0.3.3 — en cours
+## 0.4.0 — Améliorations UI
+
+- Éditeur web : kits vides masqués par défaut dans la liste (*masquer les vides* coché à l'ouverture).
+- Entrées de l'arrière localisées par des sauvegardes de l'appareil : 15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH, 18 = FootSwitch 1/2, 20 = FootSwitch 3/4 ; ces noms remplacent « slot N » dans l'éditeur (`strike_kits.SLOT_NAMES`).
+- Application de bureau : la fenêtre s'ouvre maximisée (*Restaurer* la ramène à 1400×900).
+- Éditeur web : messages affichés en toasts (en haut, au milieu, au-dessus des fenêtres) au lieu de bandeaux dans la page ; les confirmations disparaissent seules après 6 s, les erreurs restent jusqu'à leur fermeture.
+- Éditeur web : bouton *Recharger* (à côté d'*Enregistrer*) : relit le fichier ouvert et abandonne les modifications non enregistrées, après confirmation ; le kit affiché reste le même.
+- Éditeur web : réorganisation des kits par glisser-déposer dans la liste, par la poignée ⠿ en bout de ligne (visible au survol) : le kit prend la place du kit visé, ceux d'entre les deux se décalent d'un cran. API : `POST /api/kits/{num}/move` ; `strike_kits` : `Backup.move_kit`.
+- Éditeur web : *Valeurs par défaut…* remet les réglages des emplacements choisis aux valeurs du kit vide de l'appareil (propres à chaque emplacement), par sections (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix, et sample sur demande ; aucune cochée au départ, lien *toutes les sections*). API : `POST /api/kits/{num}/reset` ; `strike_kits` : `Backup.reset_slots`.
+- Éditeur web : Sound (section Control) affiché On / Off (0 = On par défaut, 1 = Off).
+- Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
+- Éditeur web : sections du pad disposées en colonnes, chacune juste sous la précédente (plus d'espace vide sous les sections courtes, Group ne descend plus au bas de Light).
+- Éditeur web : *Supprimer le kit…* remplace le kit choisi, après confirmation, par le kit vide de l'appareil (« Empty », réglages par défaut) ; les samples utilisateur restent dans la sauvegarde. API : `POST /api/kits/{num}/clear` ; l'état indique les kits vides (`empty`). `strike_kits` : `Backup.clear_kit`, `EMPTY_KIT`.
+- Application de bureau, macOS : menu de l'application en tête (À propos, Masquer, Masquer les autres, Tout afficher, Quitter `Cmd+Q`) ; Quitter retiré de *Fichier* et menu *Aide* supprimé, pour éviter les doublons. Rien ne change sous Linux et Windows (`desktop/menu.js`).
+
+## 0.3.3 — Corrections
 
 - Paramètres identifiés en comparant deux sauvegardes de l'appareil : Curve, Kit FX Level, Sync Mode (`params.sync_mode`, octet fixe de l'emplacement), Play Beat et Stop Beat (`light.play_beat` / `stop_beat`), Playback Mode (0–9, FS4 = 9 au-delà du max déclaré) et Poly/Mono des waves. Les clés JSON `p13`, `p16`, wave `p09` et `p19` deviennent `curve`, `kit_fx_level`, `playback_mode` et `poly_mono`.
 - Éditeur web : réglages rangés par sections, comme sur l'appareil (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix), aussi dans *Modifier plusieurs pads* ; « Control » s'appelle « Mode ».
 - Test de bout en bout de l'application de bureau (Playwright, `desktop/e2e/`, `./dev.sh e2e`, inclus dans `./dev.sh all`) : ouverture d'une copie de la sauvegarde de référence, modification, enregistrement par le menu et relecture, confirmation de fermeture avec des modifications non enregistrées. Lancé par la CI sous Ubuntu 24.04 (xvfb).
 - Liste de vérifications manuelles par système avant une release (`docs/application-bureau.md`).
-- Profil AppArmor de développement (`desktop/apparmor.sh`) en syntaxe AppArmor 4.0 (`abi/4.0`, sans `@{exec_path}`) : refusé auparavant par Ubuntu 24.04, dont le runner de la CI.
 
 ## 0.3.2 — Gestion des versions / releases
 

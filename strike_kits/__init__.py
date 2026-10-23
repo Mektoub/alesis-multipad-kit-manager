@@ -14,10 +14,12 @@ Ligne de commande : python3 -m strike_kits export|import … (strike_kits/__main
 """
 
 import argparse
+import base64
 import json
 import re
 import struct
 import sys
+import zlib
 from pathlib import Path
 
 KIT_SIZE = 0x2660
@@ -28,6 +30,20 @@ SLOT_SIZE = 0x180
 NAME_OFF, NAME_LEN = 0xC0, 16
 LEVEL_OFF = 0x0C
 TEMPO_OFF = 0x10
+
+# Kit vide écrit par l'appareil (« Empty », KITH, volume 100, 120 BPM, réglages
+# par défaut, aucun sample), identique dans les .bkf et le .fac : sert à
+# supprimer un kit. Compressé (zlib) et encodé en base64.
+EMPTY_KIT = zlib.decompress(
+    base64.b64decode(
+        "eNrt1stKw0AUBuB/YmynonZqvcQLmIW1UVvxggsfQDB025UrF9kqLtwI6vhIPppvEI8QMQsjWCEHyz8whEly/pDvhCSjdHwZXOf5"
+        "LbpRhgzhqxnMvRlMNuquw+zFzd39w28q5gE7U7pe+JlUWpti/bFtFPsbf73D4YSVffznMUrHqXn5arMTe2u+UbxCFrSxbXfgW9IF"
+        "aZNbTODa0gkH+I4z8VKIuAs0l4GFFUlbTeDX5JxcyitnDl/Kj1tFXiSH1g3MBpBtytwCgh9zlPJr9+/RX9V/l/6q/gn9Vf336K/q"
+        "v09/Vf9BhX9E/1r8h/RX9T+kv6r/Ad///P5Or78tZqV/n/6q/kf0V/U/pr+q/wn9Vf1P6a/qz/9PXf/HCn9L/1r8n+iv6v9Mf1V/"
+        "T39V/zP6q/qf05/P//T4vwOOdeep"
+    )
+)
+assert len(EMPTY_KIT) == KIT_SIZE
 
 # Enregistrements (id, valeur, min, max), dans l'ordre fixe où ils apparaissent
 # dans tous les kits. Dans les 8 premiers emplacements des kits KITC, seuls les
@@ -190,8 +206,28 @@ def wave_header_readable(kit, w):
     return kit[w + 2] <= kit[w + 3] <= 127
 
 
+# Entrées de l'arrière de l'appareil (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1,
+# 2/3, 4/5, HH) localisées par une sauvegarde de l'appareil (Control/Mode réglé sur
+# l'entrée) : numéro d'emplacement -> nom affiché par l'appareil, dans l'ordre de
+# l'arrière de l'appareil. Reste Trigger In 2/3.
+SLOT_NAMES = {
+    18: "FootSwitch 1/2",
+    20: "FootSwitch 3/4",
+    16: "Trigger In 1",
+    15: "Trigger In 4/5",
+    17: "Trigger In HH",
+}
+
+
 def slot_label(index):
-    return "P%d" % (index + 1) if index < 9 else "slot %d" % (index + 1)
+    if index < 9:
+        return "P%d" % (index + 1)
+    return SLOT_NAMES.get(index + 1, "slot %d" % (index + 1))
+
+
+def is_empty_kit(kit):
+    """Vrai si `kit` est exactement le kit vide de l'appareil."""
+    return bytes(kit) == EMPTY_KIT
 
 
 def kit_format(kit):
@@ -398,6 +434,38 @@ def set_slots_value(kit, targets, field, value):
             node[key] = value
         else:
             skipped.append((n, field))
+    return skipped
+
+
+def reset_slot_settings(kit, targets, fields):
+    """Remet les champs `fields` (« section.clé », voir slot_field_names) des
+    emplacements `targets` du JSON `kit` aux valeurs du kit vide de l'appareil,
+    propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).
+
+    Retourne les champs absents, donc non modifiés : [(emplacement, champ)].
+    """
+    unknown = sorted(set(fields) - set(slot_field_names()))
+    if unknown:
+        raise StrikeError("champs inconnus : %s" % ", ".join(unknown))
+    if not fields:
+        raise StrikeError("aucun champ choisi")
+    if not targets:
+        raise StrikeError("aucun emplacement choisi")
+    for n in targets:
+        if not isinstance(n, int) or not 1 <= n <= SLOT_COUNT:
+            raise StrikeError("emplacement %r inexistant (1 à %d)" % (n, SLOT_COUNT))
+    empty = decode_kit(EMPTY_KIT)["slots"]
+    skipped = []
+    for n in targets:
+        for field in fields:
+            *path, key = field.split(".")
+            src, dst = empty[n - 1], kit["slots"][n - 1]
+            for part in path:
+                src, dst = src[part], dst[part]
+            if key in dst and key in src:
+                dst[key] = src[key]
+            else:
+                skipped.append((n, field))
     return skipped
 
 
@@ -888,6 +956,32 @@ class Backup:
         self._set_raw(b, raw_a)
         self.dirty = True
 
+    def move_kit(self, source, target):
+        """Déplace le kit `source` au numéro `target`, comme dans une liste : il y
+        prend place et les kits entre les deux numéros se décalent d'un cran."""
+        nums = self.kit_numbers()
+        for n in (source, target):
+            if n not in nums:
+                raise StrikeError("kit %s absent de la sauvegarde" % n)
+        i, j = nums.index(source), nums.index(target)
+        if i == j:
+            return
+        span = nums[min(i, j) : max(i, j) + 1]
+        raws = [self.get_raw(n) for n in span]
+        # vers un numéro plus petit : le kit passe en tête de la plage ; sinon en fin
+        raws = [raws[-1], *raws[:-1]] if j < i else [*raws[1:], raws[0]]
+        for n, raw in zip(span, raws, strict=True):
+            self._set_raw(n, raw)
+        self.dirty = True
+
+    def clear_kit(self, num):
+        """Supprime le kit `num` : le remplace par le kit vide de l'appareil. Les
+        samples utilisateur qu'il référençait restent dans la sauvegarde."""
+        if is_empty_kit(self.get_raw(num)):
+            return
+        self._set_raw(num, EMPTY_KIT)
+        self.dirty = True
+
     def set_slots(self, num, targets, field, value):
         kit = self.decode(num)
         skipped = set_slots_value(kit, targets, field, value)
@@ -915,6 +1009,11 @@ class Backup:
                 self._set_raw(num, kit)
                 self.dirty = True
         return skipped
+
+    def reset_slots(self, num, targets, fields):
+        kit = self.decode(num)
+        skipped = reset_slot_settings(kit, targets, fields)
+        return self.update(num, kit), skipped
 
     def copy_slot(self, num, source, targets, parts, include_midi_note=False):
         kit = self.decode(num)

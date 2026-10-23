@@ -8,6 +8,7 @@ Contenu de la référence (voir construire_reference.py) :
 """
 
 import json
+import re
 import struct
 import tempfile
 import unittest
@@ -652,6 +653,181 @@ class CopieKit(unittest.TestCase):
             for op in (self.b.copy_kit, self.b.swap_kits):
                 with self.assertRaises(sk.StrikeError):
                     op(a, b)
+        self.assertFalse(self.b.dirty)
+
+
+class EntreesExternes(unittest.TestCase):
+    """Emplacements des entrées de l'arrière de l'appareil, localisés en réglant
+    Control/Mode = Click On/Off sur l'appareil (seul octet changé, avec la somme
+    de contrôle)."""
+
+    DEVICE = {
+        ("031.kit", 18): {0x08: 78, 0x1C35: 3},  # FootSwitch 1/2
+        ("032.kit", 16): {0x08: 51, 0x1935: 3},  # Trigger In 1
+        ("032.kit", 20): {0x08: 51, 0x1F35: 3},  # FootSwitch 3/4
+    }
+    # Kits vides (KITH) réécrits en KITC par l'appareil : seule la valeur décodée
+    # du Control/Mode change (Trigger In 4/5 en 15, Trigger In HH en 17).
+
+    def test_click_comme_l_appareil(self):
+        kits = kits_of(REF.read_bytes())
+        for (name, slot), want in self.DEVICE.items():
+            raw = kits[name]
+            data = sk.decode_kit(raw)
+            data["slots"][slot - 1]["params"]["control"] = 3
+            new = sk.encode_kit(raw, data)
+            self.assertEqual({i: new[i] for i in range(len(raw)) if raw[i] != new[i]}, want, (name, slot))
+
+    def test_libelles(self):
+        labels = [s["_label"] for s in sk.decode_kit(kits_of(REF.read_bytes())["031.kit"])["slots"]]
+        self.assertEqual(labels[:9], ["P%d" % n for n in range(1, 10)])
+        self.assertEqual(
+            labels[14:20],
+            ["Trigger In 4/5", "Trigger In 1", "Trigger In HH", "FootSwitch 1/2", "slot 19", "FootSwitch 3/4"],
+        )
+        self.assertEqual(labels[9], "slot 10")  # pas encore localisé
+
+
+class DeplacementKit(unittest.TestCase):
+    """Déplacer un kit à un autre numéro : il y prend place, les kits entre les
+    deux numéros se décalent d'un cran (comme dans une liste)."""
+
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+        self.raw = {n: self.b.get_raw(n) for n in self.b.kit_numbers()}
+
+    def nums(self, first, last):
+        return ["%03d" % n for n in range(first, last + 1)]
+
+    def test_vers_le_haut(self):
+        self.b.move_kit("040", "033")  # Ham & Beans en 033, 033…039 -> 034…040
+        self.assertEqual(self.b.get_raw("033"), self.raw["040"])
+        for old, new in zip(self.nums(33, 39), self.nums(34, 40), strict=True):
+            self.assertEqual(self.b.get_raw(new), self.raw[old], new)
+        for n in self.raw:
+            if not "033" <= n <= "040":
+                self.assertEqual(self.b.get_raw(n), self.raw[n], n)
+        self.assertTrue(self.b.dirty)
+        self.assertEqual(sk.Backup(self.b.serialize()).decode("033")["name"], "Ham & Beans")
+
+    def test_vers_le_bas(self):
+        self.b.move_kit("031", "035")  # WhereIs en 035, 032…035 -> 031…034
+        self.assertEqual(self.b.get_raw("035"), self.raw["031"])
+        for old, new in zip(self.nums(32, 35), self.nums(31, 34), strict=True):
+            self.assertEqual(self.b.get_raw(new), self.raw[old], new)
+        self.assertEqual(self.b.get_raw("036"), self.raw["036"])
+
+    def test_meme_numero(self):
+        self.b.move_kit("031", "031")
+        self.assertFalse(self.b.dirty)
+
+    def test_fac(self):
+        b = sk.Backup(ref_fac())
+        first = b.get_raw("001")
+        b.move_kit("001", "003")
+        out = sk.Backup(b.serialize())
+        self.assertEqual(out.get_raw("003"), first)
+        self.assertEqual(out.decode("001")["name"], "CrazyInLove")
+
+    def test_kits_invalides(self):
+        for a, b in (("031", "101"), ("999", "040")):
+            with self.assertRaises(sk.StrikeError):
+                self.b.move_kit(a, b)
+        self.assertFalse(self.b.dirty)
+
+
+class SuppressionKit(unittest.TestCase):
+    """Supprimer un kit : le remplacer par le kit vide écrit par l'appareil."""
+
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+
+    def test_kit_vide_de_l_appareil(self):
+        # identique aux kits vides de la référence (.bkf et .fac)
+        self.assertEqual(sk.EMPTY_KIT, self.b.get_raw("041"))
+        self.assertEqual(sk.EMPTY_KIT, sk.Backup(ref_fac()).get_raw("070"))
+        kit = sk.decode_kit(sk.EMPTY_KIT)
+        self.assertEqual((kit["format"], kit["name"], kit["level"], kit["tempo"]), ("KITH", "Empty", 100, 120.0))
+        self.assertTrue(sk.is_empty_kit(self.b.get_raw("041")))
+        self.assertFalse(sk.is_empty_kit(self.b.get_raw("031")))
+
+    def test_suppression(self):
+        others = {n: self.b.get_raw(n) for n in self.b.kit_numbers() if n != "031"}
+        self.b.clear_kit("031")
+        self.assertEqual(self.b.get_raw("031"), sk.EMPTY_KIT)
+        self.assertEqual({n: self.b.get_raw(n) for n in others}, others)
+        self.assertTrue(self.b.dirty)
+        out = sk.Backup(self.b.serialize())  # conteneur valide
+        self.assertEqual(out.decode("031")["name"], "Empty")
+        self.assertIn(8071, out.user_sample_ids())  # les samples restent dans la sauvegarde
+
+    def test_kit_deja_vide(self):
+        self.b.clear_kit("041")
+        self.assertFalse(self.b.dirty)
+
+    def test_fac(self):
+        b = sk.Backup(ref_fac())
+        b.clear_kit("001")
+        self.assertEqual(sk.Backup(b.serialize()).get_raw("001"), sk.EMPTY_KIT)
+
+    def test_kit_inexistant(self):
+        with self.assertRaises(sk.StrikeError):
+            self.b.clear_kit("999")
+        self.assertFalse(self.b.dirty)
+
+
+class ReinitialisationEmplacements(unittest.TestCase):
+    """Remettre des réglages d'emplacements aux valeurs du kit vide de l'appareil."""
+
+    def setUp(self):
+        self.b = sk.Backup.open(REF)
+        self.empty = sk.decode_kit(sk.EMPTY_KIT)["slots"]
+
+    def test_champs_choisis(self):
+        kit = self.b.decode("031")
+        p1 = kit["slots"][0]
+        p1["params"]["curve"], p1["light"]["play_beat"], p1["wave_a"]["params"]["volume"] = 5, 3, 50
+        p1["params"]["threshold"] = 10
+        self.b.update("031", kit)
+        before = self.b.decode("031")
+        fields = ["params.curve", "light.play_beat", "wave_a.params.volume"]
+        kit, skipped = self.b.reset_slots("031", [1], fields)
+        self.assertEqual(skipped, [])
+        p1, e1 = kit["slots"][0], self.empty[0]
+        self.assertEqual(p1["params"]["curve"], e1["params"]["curve"])
+        self.assertEqual(p1["light"]["play_beat"], e1["light"]["play_beat"])
+        self.assertEqual(p1["wave_a"]["params"]["volume"], e1["wave_a"]["params"]["volume"])
+        self.assertEqual(p1["params"]["threshold"], 10)  # champ non choisi
+        self.assertEqual(p1["wave_a"]["sample"], 8071)  # sample conservé
+        self.assertEqual(kit["slots"][1:], before["slots"][1:])  # autres emplacements intacts
+        self.assertTrue(self.b.dirty)
+
+    def test_valeurs_propres_a_chaque_emplacement(self):
+        # kit d'usine : tous les champs identifiés de tous les emplacements -> ceux du kit vide
+        # (les paramètres non identifiés, que l'interface ne propose pas, sont laissés de côté :
+        # le kit vide y a des valeurs au-delà du max déclaré, refusées à l'encodage)
+        def known(field):
+            return not re.fullmatch(r"p[0-9a-f]{2}", field.split(".")[-1])
+
+        fields = [f for f in sk.slot_field_names() if known(f)]
+        kit, _ = self.b.reset_slots("040", list(range(1, 25)), fields)
+        for got, want in zip(kit["slots"], self.empty, strict=True):
+            for field in fields:
+                g, w = got, want
+                for key in field.split("."):
+                    g, w = g[key], w[key]
+                self.assertEqual(g, w, (got["slot"], field))
+
+    def test_sample_retire_sur_demande(self):
+        kit, _ = self.b.reset_slots("031", [1], ["wave_a.sample"])
+        self.assertIsNone(kit["slots"][0]["wave_a"]["sample"])
+
+    def test_demandes_invalides(self):
+        raw = self.b.get_raw("031")
+        for targets, fields in (([1], ["params.inconnu"]), ([25], ["params.curve"]), ([], ["params.curve"]), ([1], [])):
+            with self.assertRaises(sk.StrikeError, msg=(targets, fields)):
+                self.b.reset_slots("031", targets, fields)
+        self.assertEqual(self.b.get_raw("031"), raw)
         self.assertFalse(self.b.dirty)
 
 
