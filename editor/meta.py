@@ -51,6 +51,7 @@ LABELS = {
     # FS4 = 9 vérifié ; FS1–FS3 supposés juste avant, la valeur 5 reste inconnue
     "playback_mode": (["Oneshot", "Alter", "Loop", "RoundRobin", "Hi-hat", None, "FS1", "FS2", "FS3", "FS4"], False),
     "poly_mono": (["Mono", "Poly"], True),
+    "sound": (["On", "Off"], True),
 }
 LIGHT_LABELS = {
     "play_color": [n for n, _ in COLORS],
@@ -109,7 +110,7 @@ PAD_DESCRIPTIONS = {
     "(vibrations, basses d'une enceinte proche).",
     "control": "Fonction de commande déclenchée par la frappe : kit suivant ou précédent, "
     "Click On/Off, Tap Tempo, Panic, Looper, activation des effets… Off : aucune.",
-    "sound": "Indique si la frappe joue le son du pad (On/Off ; correspondance des valeurs non vérifiée).",
+    "sound": "Indique si la frappe joue le son du pad (On/Off).",
     "curve": "Courbe de réponse à la force de frappe : Normal, Exp1, Exp2, Log1, Log2, Loud.",
     "kit_fx_level": "Niveau envoyé aux effets du kit (0 à 127).",
     "sync_mode": "Comportement des pads du même Sync Group : Mute (le dernier frappé coupe les autres), "
@@ -310,5 +311,6 @@ def meta():
         "defaults": defaults(),
         "colors": [{"name": n, "css": c} for n, c in COLORS],
         "slots": [{"slot": i + 1, "label": sk.slot_label(i)} for i in range(sk.SLOT_COUNT)],
+        "inputs": list(sk.SLOT_NAMES),  # entrées identifiées, ordre de l'arrière de l'appareil
         "kit_name_max": sk.NAME_LEN,
     }

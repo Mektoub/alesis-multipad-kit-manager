@@ -1,9 +1,11 @@
 <script>
   import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
   import { api } from "./lib/api.js";
   import { desktop } from "./lib/desktop.js";
   import KitEditor from "./lib/KitEditor.svelte";
   import CopyDialog from "./lib/CopyDialog.svelte";
+  import ResetDialog from "./lib/ResetDialog.svelte";
   import KitTransferDialog from "./lib/KitTransferDialog.svelte";
   import BulkEditDialog from "./lib/BulkEditDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
@@ -14,11 +16,14 @@
   let currentNum = $state(null);
   let kit = $state(null);
   let selected = $state(0);
-  let hideEmpty = $state(false);
+  let hideEmpty = $state(true); // kits vides masqués par défaut (le kit affiché reste visible)
   let error = $state("");
   let notice = $state("");
   let picking = $state(null); // "wave_a" | "wave_b" | null
   let copyFrom = $state(null); // emplacement source de la recopie
+  let resetFrom = $state(null); // emplacement présélectionné pour « Valeurs par défaut »
+  let dragKit = $state(null); // kit glissé par sa poignée dans la liste
+  let dropKit = $state(null); // kit survolé pendant le glisser
   let transferring = $state(false); // fenêtre « Déplacer / copier le kit »
   let bulkFrom = $state(null); // emplacement d'où part la modification groupée
   let savePath = $state("");
@@ -31,6 +36,14 @@
   let visibleKits = $derived(
     (session?.kits ?? []).filter((k) => !hideEmpty || k.name !== "Empty" || k.num === currentNum),
   );
+
+  // Les confirmations (toasts verts) disparaissent seules ; les erreurs restent.
+  const NOTICE_MS = 6000;
+  $effect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => (notice = ""), NOTICE_MS);
+    return () => clearTimeout(t);
+  });
 
   // Mode bureau : l'application est tenue informée des modifications non
   // enregistrées, pour confirmer la fermeture de la fenêtre.
@@ -91,6 +104,21 @@
     }
   }
 
+  async function resetSlots(request) {
+    await flush();
+    const { kit: updated, skipped } = await api.resetSlots(currentNum, request);
+    lastSynced = JSON.stringify(updated);
+    kit = updated;
+    session.dirty = true;
+    resetFrom = null;
+    const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
+    notice = `Valeurs par défaut remises sur ${dest}.`;
+    if (skipped.length) {
+      const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
+      notice += ` Champs illisibles dans ce kit, non modifiés : ${list}.`;
+    }
+  }
+
   async function bulkSet({ kits, targets, field, value, title }) {
     await flush();
     const { skipped, ...state } = await api.setSlotsInKits({ kits, targets, field, value });
@@ -115,6 +143,57 @@
     else if (before === "Empty") notice = `Kit ${source} déplacé en ${target}.`;
     else notice = `Kits ${source} et ${target} échangés.`;
     await loadKit(target);
+  }
+
+  // Glisser-déposer dans la liste : le kit prend la place du kit visé, ceux
+  // d'entre les deux se décalent d'un cran ; le kit affiché suit son numéro.
+  async function moveKit(source, target) {
+    if (source === target) return;
+    await flush();
+    const nums = session.kits.map((k) => k.num);
+    const [i, j, c] = [source, target, currentNum].map((n) => nums.indexOf(n));
+    let shown = c;
+    if (c === i) shown = j;
+    else if (j < i && j <= c && c < i) shown = c + 1;
+    else if (i < j && i < c && c <= j) shown = c - 1;
+    session = await api.moveKit(source, { target });
+    notice = `Kit ${source} déplacé en ${target}.`;
+    await loadKit(nums[shown], false);
+  }
+
+  function dragStart(e, num) {
+    dragKit = num;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", num);
+  }
+
+  function dragOver(e, num) {
+    if (dragKit == null) return; // fichier ou autre contenu glissé
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    dropKit = num;
+  }
+
+  function drop(e, num) {
+    if (dragKit == null) return;
+    e.preventDefault();
+    const source = dragKit;
+    dragEnd();
+    moveKit(source, num).catch((err) => (error = err.message));
+  }
+
+  function dragEnd() {
+    dragKit = dropKit = null;
+  }
+
+  // Supprimer = remplacer par le kit vide de l'appareil, après confirmation.
+  async function clearKit() {
+    const num = currentNum;
+    if (!confirm(`Supprimer le kit ${num} « ${kit.name} » ? Il sera remplacé par un kit vide.`)) return;
+    await flush();
+    session = await api.clearKit(num);
+    notice = `Kit ${num} supprimé.`;
+    await loadKit(num);
   }
 
   async function loadKit(num, resetSlot = true) {
@@ -148,6 +227,23 @@
       if (err.status === 409 && confirm("Des modifications ne sont pas enregistrées. Ouvrir quand même ?")) {
         return openBackup(path, true);
       }
+      error = err.message;
+    }
+  }
+
+  // Recharger : relit le fichier ouvert et abandonne les modifications non
+  // enregistrées (après confirmation) ; le kit affiché reste le même.
+  async function reload() {
+    if (session.dirty && !confirm("Abandonner toutes les modifications non enregistrées et relire le fichier ?")) return;
+    clearTimeout(timer); // une modification en attente ne doit pas être renvoyée
+    error = notice = "";
+    try {
+      const num = currentNum;
+      session = await api.open(session.path, true);
+      samples = await api.samples();
+      await loadKit(session.kits.some((k) => k.num === num) ? num : session.kits[0].num, false);
+      notice = "Fichier rechargé : modifications non enregistrées abandonnées.";
+    } catch (err) {
       error = err.message;
     }
   }
@@ -267,6 +363,7 @@
       <span class="status" class:dirty={session.dirty}>
         {syncing ? "Synchronisation…" : session.dirty ? "Modifications non enregistrées" : "À jour"}
       </span>
+      <button onclick={reload} disabled={saving} title="Relire le fichier ouvert et annuler toutes les modifications non enregistrées">Recharger</button>
       {#if !desktop}<input type="text" bind:value={savePath} aria-label="Fichier de destination" />{/if}
       <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
       {#if desktop}
@@ -278,8 +375,20 @@
   {/if}
 </header>
 
-{#if error}<div class="banner error" role="alert">{error}<button onclick={() => (error = "")} aria-label="Fermer">✕</button></div>{/if}
-{#if notice}<div class="banner ok" role="status">{notice}<button onclick={() => (notice = "")} aria-label="Fermer">✕</button></div>{/if}
+<!-- Messages en toasts (en haut, au milieu, au-dessus des fenêtres) : les erreurs
+     restent jusqu'à leur fermeture, les confirmations disparaissent seules. -->
+<div class="toasts">
+  {#if error}
+    <div class="toast error" role="alert" transition:fly={{ y: -16, duration: 150 }}>
+      <span>{error}</span><button onclick={() => (error = "")} aria-label="Fermer">✕</button>
+    </div>
+  {/if}
+  {#if notice}
+    <div class="toast ok" role="status" transition:fly={{ y: -16, duration: 150 }}>
+      <span>{notice}</span><button onclick={() => (notice = "")} aria-label="Fermer">✕</button>
+    </div>
+  {/if}
+</div>
 
 {#if session?.path && meta}
   <main class="layout">
@@ -291,18 +400,37 @@
       <p class="muted info">{session.path} · {session.kind} · {session.user_samples} sample(s) perso</p>
       <ul>
         {#each visibleKits as k (k.num)}
-          <li>
+          <li
+            class:dragged={dragKit === k.num}
+            class:drop-before={dropKit === k.num && dragKit !== k.num && k.num < dragKit}
+            class:drop-after={dropKit === k.num && dragKit !== k.num && k.num > dragKit}
+            ondragover={(e) => dragOver(e, k.num)}
+            ondragleave={() => dropKit === k.num && (dropKit = null)}
+            ondrop={(e) => drop(e, k.num)}
+          >
             <button class:active={k.num === currentNum} onclick={() => loadKit(k.num)}>
               <span class="num">{k.num}</span>
               <span class="kname" class:empty={k.name === "Empty"}>{k.name}</span>
             </button>
+            {#if !k.empty}
+              <span
+                class="grip"
+                role="button"
+                tabindex="-1"
+                draggable="true"
+                title="Glisser pour déplacer le kit (les kits suivants se décalent)"
+                aria-label="Déplacer le kit {k.num}"
+                ondragstart={(e) => dragStart(e, k.num)}
+                ondragend={dragEnd}
+              >⠿</span>
+            {/if}
           </li>
         {/each}
       </ul>
     </aside>
     <section class="content">
       {#if kit}
-        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} ontransfer={() => (transferring = true)} onbulk={(n) => (bulkFrom = n)} />
+        <KitEditor {kit} {meta} {sampleIndex} bind:selected onpick={(w) => (picking = w)} oncopy={(n) => (copyFrom = n)} onreset={(n) => (resetFrom = n)} ontransfer={() => (transferring = true)} onclear={clearKit} empty={session.kits.find((k) => k.num === currentNum)?.empty} onbulk={(n) => (bulkFrom = n)} />
       {/if}
     </section>
   </main>
@@ -316,6 +444,9 @@
   </main>
 {/if}
 
+{#if resetFrom && kit}
+  <ResetDialog {kit} {meta} source={resetFrom} onreset={resetSlots} onclose={() => (resetFrom = null)} />
+{/if}
 {#if copyFrom && kit}
   <CopyDialog {kit} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
 {/if}
@@ -388,24 +519,49 @@
   .status.dirty {
     color: var(--accent);
   }
-  .banner {
+  .toasts {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
+    gap: 8px;
+    max-width: min(440px, calc(100vw - 32px));
+    pointer-events: none;
   }
-  .banner button {
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px 10px 14px;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+    pointer-events: auto;
+  }
+  .toast span {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+  .toast button {
     border: 0;
     background: transparent;
+    padding: 0 2px;
+    color: var(--muted);
   }
-  .banner.error {
+  .toast.error {
+    border-left-color: var(--danger);
     background: var(--danger-bg);
     color: var(--danger);
   }
-  .banner.ok {
-    background: var(--panel-2);
-    color: var(--ok);
+  .toast.ok {
+    border-left-color: var(--ok);
   }
   .layout {
     display: grid;
@@ -439,8 +595,37 @@
     margin: 0;
     padding: 0;
   }
+  aside li {
+    display: flex;
+    align-items: center;
+    border-block: 2px solid transparent;
+  }
+  aside li.drop-before {
+    border-top-color: var(--accent);
+  }
+  aside li.drop-after {
+    border-bottom-color: var(--accent);
+  }
+  aside li.dragged {
+    opacity: 0.5;
+  }
+  .grip {
+    padding: 0 6px;
+    color: var(--muted);
+    cursor: grab;
+    user-select: none;
+    opacity: 0;
+  }
+  aside li:hover .grip,
+  aside li.dragged .grip {
+    opacity: 1;
+  }
+  .grip:active {
+    cursor: grabbing;
+  }
   aside li button {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     display: flex;
     gap: 10px;
     border: 0;

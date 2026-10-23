@@ -284,12 +284,17 @@ Les dossiers autorisés par défaut dépendent du système (voir
   s'arrête (puis `SIGTERM`, `SIGKILL` au besoin). Si l'application plante,
   l'entrée standard se ferme aussi : le serveur ne lui survit pas. S'il s'arrête
   de lui-même, l'application le signale et se ferme.
+- **Fenêtre** : ouverte maximisée ; *Restaurer* la ramène à 1400×900.
 - **Une seule instance** : relancer l'application avec un fichier l'ouvre dans la
   fenêtre existante.
 - **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
   actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
   sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition*, *Affichage* (zoom, outils de
-  développement), *Aide* (À propos : nom et version).
+  développement), *Aide* (À propos : nom et version). Sous macOS, un menu de
+  l'application vient en tête, comme pour toute application Mac : À propos,
+  Masquer, Masquer les autres, Tout afficher, Quitter (`Cmd+Q`) ; Quitter n'est
+  alors plus dans *Fichier*, et le menu *Aide* disparaît. Modèle du menu :
+  `desktop/menu.js`.
 - **Version** : affichée à côté du titre de l'interface et dans *Aide › À
   propos* ; `alesis-kit-manager --version` l'écrit dans le terminal et quitte
   sans ouvrir de fenêtre (`npx electron . --version` en développement ; rien ne
@@ -315,6 +320,7 @@ Les dossiers autorisés par défaut dépendent du système (voir
 | Chemin | Rôle |
 |---|---|
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
+| `desktop/menu.js` | modèle du menu (menu de l'application en tête sous macOS) |
 | `desktop/preload.cjs` | pont `window.kitManagerDesktop` |
 | `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |
 | `desktop/electron-builder.config.mjs` | configuration d'electron-builder : paquet .deb, types de fichier, icône |
@@ -361,9 +367,10 @@ copie d'une sauvegarde.
 
 | Vérification | Résultat attendu |
 |---|---|
-| Installation, puis lancement depuis le menu des applications (raccourci « Alesis Kit Manager », Launchpad) | fenêtre ouverte, écran d'accueil ; icône de l'application |
+| Installation, puis lancement depuis le menu des applications (raccourci « Alesis Kit Manager », Launchpad) | fenêtre ouverte maximisée, écran d'accueil ; icône de l'application ; *Restaurer* la ramène à 1400×900 |
 | `--version` (Linux, macOS : `"/Applications/Alesis Kit Manager.app/Contents/MacOS/Alesis Kit Manager" --version`) | `alesis-kit-manager X.Y.Z`, sans fenêtre |
 | *Aide › À propos* ; version à côté du titre | version du paquet |
+| macOS : menu de l'application (sous son nom) | À propos, Masquer, Masquer les autres, Tout afficher, Quitter (`Cmd+Q`) ; *Fichier* sans Quitter, pas de menu *Aide* |
 | Double-clic sur un `.bkf` dans le gestionnaire de fichiers (Explorateur, Finder) | l'application s'ouvre sur ce fichier |
 | Double-clic sur un deuxième fichier, l'application ouverte | ouvert dans la même fenêtre |
 | *Fichier › Ouvrir…* (`Ctrl+O`, `Cmd+O` sur Mac) | boîte du système, filtre `.bkf` / `.fac` |

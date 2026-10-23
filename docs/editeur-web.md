@@ -95,11 +95,14 @@ cd editor/web && npm ci && npm run build && cd ../..
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
    Dans l'application de bureau, *Ouvrir…* et *Enregistrer sous…* utilisent les
    boîtes de dialogue du système, et seul le nom du fichier ouvert est affiché.
-2. **Choisir un kit** dans la colonne de gauche (*masquer les vides* allège la liste).
+2. **Choisir un kit** dans la colonne de gauche (les kits vides sont masqués par défaut ; décocher *masquer les vides* pour les voir, par exemple pour y déposer un kit).
 3. **Régler le kit** : nom, volume, tempo.
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
    4-5-6 au milieu, 1-2-3 en bas). Elle montre le sample, la couleur de LED et,
-   si le pad a un Mode (Control), un badge (« Click » pour Click On/Off). Les emplacements 10 à 24 sont accessibles sous la grille.
+   si le pad a un Mode (Control), un badge (« Click » pour Click On/Off). Sous la grille,
+   les entrées de l'arrière identifiées (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1,
+   4/5, HH, dans cet ordre) ; les autres emplacements (10 à 24) s'affichent par le
+   lien *afficher les emplacements non identifiés*.
 5. **Régler le pad** :
    - sections du pad, comme sur l'appareil : *Feel* (Sensitivity, Curve, Threshold,
      Fixed Level), *Control* (Mode, Sound), *Output* (Audio Output, Kit FX Level,
@@ -119,6 +122,15 @@ cd editor/web && npm ci && npm run build && cd ../..
    éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
    la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
    message de confirmation.
+
+   *Valeurs par défaut…* (à côté) remet des réglages aux valeurs d'un kit vide de
+   l'appareil, propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).
+   On choisit les emplacements (le pad affiché est présélectionné) et les
+   sections : Feel, Control, Output, Light et Group pour le pad, Mode et Mix pour
+   chaque wave, *Sample (retirer)* pour retirer aussi le sample. Aucune section
+   n'est cochée au départ ; *toutes les sections* les coche toutes, sauf le retrait
+   des samples.
+   Les paramètres non identifiés ne sont pas touchés.
 7. **Modifier plusieurs pads** : *Modifier plusieurs pads…* (en haut des réglages
    du pad) donne une même valeur à un réglage sur une sélection de pads, par
    exemple Sensitivity = 20 sur P1, P3, P5 et P9. On choisit le réglage (pad,
@@ -136,6 +148,16 @@ cd editor/web && npm ci && npm run build && cd ../..
 
    Un kit ne contient pas son propre numéro : l'opération recopie ses octets tels
    quels, samples et réglages compris.
+
+   Dans la liste des kits, la poignée ⠿ en bout de ligne (visible au survol d'un
+   kit non vide) permet aussi de **réorganiser par glisser-déposer** : le kit
+   prend la place du kit sur lequel on le dépose (un trait indique où), et les kits
+   d'entre les deux se décalent d'un cran, comme dans une liste.
+
+   *Supprimer le kit…* (à côté) remplace le kit, après confirmation, par le kit
+   vide écrit par l'appareil : nom « Empty », volume 100, 120 BPM, réglages par
+   défaut, aucun sample. Les samples utilisateur restent dans la sauvegarde. Le
+   bouton est grisé sur un kit déjà vide.
 9. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
    perso (indisponible pour l'instant, voir la limitation ci-dessus). La zone du bas ajoute un WAV par glisser-déposer
@@ -146,6 +168,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    rien n'est perdu. **Enregistrer sous** écrit dans un autre fichier (le nom
    suivant est proposé, `Backup003.bkf` après `Backup002.bkf`), qui devient le
    fichier ouvert ; si ce fichier existe, une confirmation est demandée.
+   **Recharger** relit le fichier ouvert et abandonne toutes les modifications non
+   enregistrées, après confirmation s'il y en a ; le kit affiché reste le même.
 
 Chaque modification est envoyée au serveur et validée aussitôt. Une valeur refusée
 (hors plage, par exemple) affiche un message et le kit revient à son dernier état
@@ -168,6 +192,9 @@ porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
 | POST | `/api/kits/set` | même chose dans plusieurs kits, tout ou rien (`{"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}`) ; renvoie l'état et les champs absents |
 | POST | `/api/kits/{num}/set` | même valeur pour un champ de plusieurs emplacements (`{"targets": [1, 3, 5], "field": "params.sensitivity", "value": 20}` ; champs : `params.*`, `light.*`, `wave_a.*` / `wave_b.*` dont `sample` et les vélocités, `wave_a.params.*` / `wave_b.params.*`) |
+| POST | `/api/kits/{num}/reset` | remettre des champs d'emplacements aux valeurs du kit vide de l'appareil (`{"targets": [1, 2], "fields": ["params.curve", "wave_a.sample"]}`) ; renvoie le kit et les champs non modifiés |
+| POST | `/api/kits/{num}/move` | déplacer le kit au numéro `{"target": "033"}` ; les kits entre les deux numéros se décalent d'un cran ; renvoie l'état |
+| POST | `/api/kits/{num}/clear` | supprimer le kit : le remplacer par le kit vide de l'appareil ; renvoie l'état |
 | POST | `/api/kits/{num}/transfer` | copier le kit vers un autre numéro (`{"target": "040", "mode": "copy"}`) ou échanger les deux kits (`"mode": "swap"`) ; renvoie l'état |
 | POST | `/api/kits/{num}/copy` | recopier un emplacement (`{"source": 9, "targets": [7, 8], "parts": ["params", "light", "wave_a", "wave_b"], "include_midi_note": false}`) |
 | GET | `/api/samples` | catalogue des samples |

@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 
+import { menuTemplate } from "./menu.js";
 import { fileArgument, serverCommand, serverProblem, startServer } from "./server.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -144,7 +145,9 @@ function run() {
         sandbox: true,
       },
     });
-    win.once("ready-to-show", () => win.show());
+    // ouverte maximisée (maximize() affiche aussi la fenêtre) ; Restaurer la
+    // ramène à 1400×900
+    win.once("ready-to-show", () => win.maximize());
 
     // Navigation limitée au serveur local ; les liens externes s'ouvrent dans le navigateur.
     const external = (url) => {
@@ -230,47 +233,7 @@ function run() {
   // --- Menu --------------------------------------------------------------------
   function buildMenu() {
     const send = (name) => () => win && command(name);
-    return Menu.buildFromTemplate([
-      {
-        label: "&Fichier",
-        submenu: [
-          { label: "&Ouvrir…", accelerator: "CmdOrCtrl+O", click: send("open") },
-          { label: "&Enregistrer", accelerator: "CmdOrCtrl+S", click: send("save") },
-          { label: "Enregistrer &sous…", accelerator: "CmdOrCtrl+Shift+S", click: send("save-as") },
-          { type: "separator" },
-          { label: "&Quitter", accelerator: "CmdOrCtrl+Q", role: "quit" },
-        ],
-      },
-      {
-        label: "É&dition",
-        submenu: [
-          { label: "Annuler", role: "undo" },
-          { label: "Rétablir", role: "redo" },
-          { type: "separator" },
-          { label: "Couper", role: "cut" },
-          { label: "Copier", role: "copy" },
-          { label: "Coller", role: "paste" },
-          { label: "Tout sélectionner", role: "selectAll" },
-        ],
-      },
-      {
-        label: "&Affichage",
-        submenu: [
-          { label: "Recharger", role: "reload" },
-          { label: "Outils de développement", role: "toggleDevTools" },
-          { type: "separator" },
-          { label: "Taille réelle", role: "resetZoom" },
-          { label: "Zoom avant", role: "zoomIn" },
-          { label: "Zoom arrière", role: "zoomOut" },
-          { type: "separator" },
-          { label: "Plein écran", role: "togglefullscreen" },
-        ],
-      },
-      {
-        label: "Ai&de",
-        submenu: [{ label: "À &propos", click: about }],
-      },
-    ]);
+    return Menu.buildFromTemplate(menuTemplate({ platform: process.platform, appName: NAMES.short, about, send }));
   }
 
   // --- Cycle de vie --------------------------------------------------------------

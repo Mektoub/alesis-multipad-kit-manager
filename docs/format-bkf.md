@@ -222,8 +222,8 @@ D'après les notes MIDI des kits d'usine :
 | Emplacements | Notes MIDI usine | Rôle |
 |---|---|---|
 | 1–9 | 36–46 | pads P1–P9 (certain) |
-| 10–17 | 39–51 | déclencheurs externes, probablement T1–T5, HH… |
-| 18–21 | 53–57, 124–127 | probablement les pédales FS1–FS4 |
+| 10–17 | 39–51 | déclencheurs externes : **15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH** (vérifiés) ; Trigger In 2/3 pas encore localisé |
+| 18–21 | 53–57, 124–127 | pédales : **18 = FootSwitch 1/2, 20 = FootSwitch 3/4** (vérifiés) ; 19 et 21 inconnus (deuxième contact des entrées doubles ?) |
 | 22–24 | 60–63 | inconnu |
 
 Structure d'un emplacement (offsets relatifs) :
@@ -280,7 +280,7 @@ Paramètres de pad (zone +0x28) :
 | 0x12 | 0–32 | Threshold (défaut 4, comme dans le manuel) |
 | 0x13 | 0–7 | **Curve** : Normal, Exp1, Exp2, Log1, Log2, Loud (vérifié : 5 = Loud) |
 | 0x14 | 0–13 | **Control** (vérifié : 3 = Click On/Off). Ordre probable du manuel : Off, Next Kit, Previous Kit, Click On/Off, Tap Tempo, Panic, Looper Rec, Looper Play/Stop, Kit FX1–3, MST FX ; 14 valeurs possibles, soit 2 de plus que dans le manuel v1.2 |
-| 0x15 | 0–1 | Sound On/Off |
+| 0x15 | 0–1 | **Sound** : 0 = On (par défaut, vérifié), 1 = Off |
 | 0x16 | 0–127 | **Kit FX Level** (vérifié ; 40 par défaut) |
 | 0x17 | 0–16 | ? |
 

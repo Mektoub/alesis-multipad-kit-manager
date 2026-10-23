@@ -12,6 +12,8 @@
   --ok: #1f7a3a;
   --pad: #2a2e36;
   --pad-text: #f2f3f5;
+  --pad-selected: #b3262e;
+  --pad-selected-border: #7a151b;
   --shadow: 0 1px 2px rgb(0 0 0 / 8%);
   --radius: 8px;
   color-scheme: light;
@@ -30,6 +32,8 @@
     --danger: #ff8a80;
     --ok: #6fd28d;
     --pad: #0f1115;
+    --pad-selected: #a3232b;
+    --pad-selected-border: #ff4a52;
     --shadow: none;
     color-scheme: dark;
   }
@@ -47,6 +51,8 @@
   --danger: #ff8a80;
   --ok: #6fd28d;
   --pad: #0f1115;
+  --pad-selected: #a3232b;
+  --pad-selected-border: #ff4a52;
   --shadow: none;
   color-scheme: dark;
 }
