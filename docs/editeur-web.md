@@ -95,7 +95,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
    Dans l'application de bureau, *Ouvrir…* et *Enregistrer sous…* utilisent les
    boîtes de dialogue du système, et seul le nom du fichier ouvert est affiché.
-2. **Choisir un kit** dans la colonne de gauche (*masquer les vides* allège la liste).
+2. **Choisir un kit** dans la colonne de gauche (les kits vides sont masqués par défaut ; décocher *masquer les vides* pour les voir, par exemple pour y déposer un kit).
 3. **Régler le kit** : nom, volume, tempo.
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
    4-5-6 au milieu, 1-2-3 en bas). Elle montre le sample, la couleur de LED et,
