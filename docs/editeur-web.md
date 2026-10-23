@@ -170,6 +170,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    fichier ouvert ; si ce fichier existe, une confirmation est demandée.
    **Recharger** relit le fichier ouvert et abandonne toutes les modifications non
    enregistrées, après confirmation s'il y en a ; le kit affiché reste le même.
+11. **Annuler / Rétablir** : boutons ↶ ↷ de l'en-tête (voir ci-dessous).
 
 Chaque modification est envoyée au serveur et validée aussitôt. Une valeur refusée
 (hors plage, par exemple) affiche un message et le kit revient à son dernier état
@@ -179,6 +180,32 @@ navigateur prévient si l'on quitte la page avec des modifications non enregistr
 Charger ensuite le fichier produit sur l'appareil comme décrit dans
 [Modifier un kit](modifier-un-kit.md#5-charger-sur-lappareil).
 
+### Annuler / Rétablir
+
+Les boutons ↶ et ↷ de l'en-tête annulent et rétablissent les modifications de
+paramètres, une action à la fois ; leur infobulle et le message affiché nomment
+l'action (« Kit 032 · P1 · Volume », « Sensitivity · 3 kits »).
+
+- **Raccourcis** : `Ctrl+Z` annule, `Ctrl+Y` ou `Ctrl+Maj+Z` rétablit (`Cmd` sous
+  macOS) ; dans l'application de bureau, aussi *Édition › Annuler / Rétablir*.
+  Dans un champ de saisie (nom du kit, valeur), ils annulent la frappe, comme
+  partout ; une fois hors du champ, ils annulent les modifications.
+- **Une étape par action** : un réglage modifié, une copie de réglages, des
+  valeurs par défaut, une modification de plusieurs pads ou de plusieurs kits.
+  Les changements rapprochés d'un même réglage (curseur que l'on fait glisser,
+  nom que l'on tape) ne font qu'une étape.
+- **Hors historique** : déplacer, transférer (copier, échanger) ou supprimer un
+  kit remplace des kits entiers et vide l'historique. S'il reste des actions à
+  annuler ou à rétablir, une alerte propose *Annuler* (renoncer à l'action),
+  *Enregistrer et continuer* ou *Continuer* ; les modifications non enregistrées
+  sont conservées dans tous les cas. L'ajout d'un sample ne s'annule pas non plus,
+  mais garde l'historique : le sample reste dans la sauvegarde.
+- **État enregistré** : annuler jusqu'au dernier enregistrement réaffiche « À jour ».
+  Ouvrir un fichier ou *Recharger* vide l'historique.
+- **Taille** : les 100 dernières actions (`LIMIT` dans `editor/history.py`) ; les
+  plus anciennes sont oubliées. Ce réglage pourra devenir une préférence de
+  l'utilisateur, conservée d'un lancement à l'autre, si l'éditeur en gère un jour.
+
 ## API
 
 Le serveur expose une API JSON, utilisable aussi depuis un script ; chaque requête
@@ -187,12 +214,12 @@ porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 | Méthode | Route | Rôle |
 |---|---|---|
 | POST | `/api/open` | ouvrir une sauvegarde (`{"path": "/chemin/absolu", "force": false}`) ; 403 hors des [dossiers autorisés](#dossiers-autorisés) ; 409 si des modifications ne sont pas enregistrées, sauf `force` |
-| GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente |
+| GET | `/api/state` | sauvegarde ouverte, liste des kits, modifications en attente, `history` : libellés des actions à annuler et à rétablir (`{"undo": …, "redo": …}`, `null` s'il n'y en a pas) |
 | GET | `/api/meta` | description des paramètres (plages, libellés, couleurs) |
 | GET / PUT | `/api/kits/{num}` | lire / modifier un kit (même JSON que l'export) |
 | POST | `/api/kits/set` | même chose dans plusieurs kits, tout ou rien (`{"kits": ["031", "032"], "targets": [1, 9], "field": "params.sensitivity", "value": 20}`) ; renvoie l'état et les champs absents |
 | POST | `/api/kits/{num}/set` | même valeur pour un champ de plusieurs emplacements (`{"targets": [1, 3, 5], "field": "params.sensitivity", "value": 20}` ; champs : `params.*`, `light.*`, `wave_a.*` / `wave_b.*` dont `sample` et les vélocités, `wave_a.params.*` / `wave_b.params.*`) |
-| POST | `/api/kits/{num}/reset` | remettre des champs d'emplacements aux valeurs du kit vide de l'appareil (`{"targets": [1, 2], "fields": ["params.curve", "wave_a.sample"]}`) ; renvoie le kit et les champs non modifiés |
+| POST | `/api/kits/{num}/reset` | remettre des champs d'emplacements aux valeurs du kit vide de l'appareil (`{"targets": [1, 2], "fields": ["params.curve", "wave_a.sample"]}`) ; renvoie le kit, les champs non modifiés et `history` (comme `/set` et `/copy`) |
 | POST | `/api/kits/{num}/move` | déplacer le kit au numéro `{"target": "033"}` ; les kits entre les deux numéros se décalent d'un cran ; renvoie l'état |
 | POST | `/api/kits/{num}/clear` | supprimer le kit : le remplacer par le kit vide de l'appareil ; renvoie l'état |
 | POST | `/api/kits/{num}/transfer` | copier le kit vers un autre numéro (`{"target": "040", "mode": "copy"}`) ou échanger les deux kits (`"mode": "swap"`) ; renvoie l'état |
@@ -200,6 +227,7 @@ porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
+| POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
 | POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (403 hors des dossiers autorisés ; 409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses

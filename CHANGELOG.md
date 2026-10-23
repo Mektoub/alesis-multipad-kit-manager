@@ -2,6 +2,8 @@
 
 ## 0.4.0 — Améliorations UI
 
+- Éditeur web : *Annuler / Rétablir* (boutons ↶ ↷ de l'en-tête, `Ctrl+Z`, `Ctrl+Y` ou `Ctrl+Maj+Z`, menu *Édition* de l'application de bureau) sur les modifications de paramètres, une étape par action, 100 au plus. Déplacer, transférer ou supprimer un kit vide l'historique, après une alerte (*Annuler*, *Enregistrer et continuer*, *Continuer*) ; l'ajout d'un sample ne s'annule pas. API : `POST /api/undo`, `/api/redo`, `history` dans l'état (`editor/history.py`).
+
 - Éditeur web : kits vides masqués par défaut dans la liste (*masquer les vides* coché à l'ouverture).
 - Entrées de l'arrière localisées par des sauvegardes de l'appareil : 15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH, 18 = FootSwitch 1/2, 20 = FootSwitch 3/4 ; ces noms remplacent « slot N » dans l'éditeur (`strike_kits.SLOT_NAMES`).
 - Application de bureau : la fenêtre s'ouvre maximisée (*Restaurer* la ramène à 1400×900).
