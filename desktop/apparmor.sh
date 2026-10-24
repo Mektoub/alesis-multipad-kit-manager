@@ -32,7 +32,7 @@ if [[ "${1:-}" == --check ]]; then
         cat >&2 <<MSG
 Attention : AppArmor bloque la sandbox de Chromium sur ce système ; Electron
 risque de s'arrêter au démarrage. Installer une fois le profil (voir
-docs/application-bureau.md) :
+docs/fr/desktop-app.md) :
 
   desktop/apparmor.sh | sudo tee $PROFILE
   sudo apparmor_parser -r $PROFILE

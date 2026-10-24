@@ -34,7 +34,7 @@ def make_fac(kits):
     """Conteneur .fac (SDRH) contenant `kits` : liste de (numéro, octets du kit),
     dans l'ordre de la table (l'appareil ne les range pas forcément par numéro).
 
-    Disposition relevée sur un vrai STRIKE_BACKUP_KIT.fac (docs/format-fac.md) :
+    Disposition relevée sur un vrai STRIKE_BACKUP_KIT.fac (docs/fr/fac-format.md) :
     SDRH, SDCH racine, DIRH « KIT », SDCH du répertoire, une entrée FIEH de 0x60
     octets par kit, puis les données mises bout à bout.
     """

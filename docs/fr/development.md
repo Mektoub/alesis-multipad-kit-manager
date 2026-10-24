@@ -1,5 +1,7 @@
 # Développement
 
+[English](../en/development.md) · **Français**
+
 ## Organisation du code
 
 | Chemin | Rôle |
@@ -9,9 +11,9 @@
 | `editor/history.py` | historique des modifications (annuler / rétablir) |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
-| `app-names.json` | noms de l'application : long, court, identifiant des chemins, dossier de configuration (voir [Application de bureau](application-bureau.md#noms-de-lapplication)) |
+| `app-names.json` | noms de l'application : long, court, identifiant des chemins, dossier de configuration (voir [Application de bureau](desktop-app.md#noms-de-lapplication)) |
 | `dev.sh` | lancement de l'éditeur (navigateur ou application de bureau), avec préparation automatique du venv et de l'interface ; analyse, tests et build en local, comme la CI |
-| `desktop/` | application de bureau Electron (voir [Application de bureau](application-bureau.md)) |
+| `desktop/` | application de bureau Electron (voir [Application de bureau](desktop-app.md)) |
 | `editor/web/` | interface Svelte (Vite) |
 | `editor/web/src/**/*.test.js` | tests de l'interface (Vitest, jsdom) |
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
@@ -20,7 +22,7 @@
 | `tests/outils.py` | outils communs aux tests (sauvegarde de référence, WAV et `.fac` synthétiques) |
 | `tests/ressources/Backup001.bkf` | sauvegarde de référence des tests |
 | `tests/construire_reference.py` | script qui a construit cette sauvegarde |
-| `docs/format-*.md` | ce que l'on sait des formats binaires |
+| `docs/fr/*-format.md` (`docs/en/` en anglais) | ce que l'on sait des formats binaires |
 
 Dans `strike_kits/__init__.py` :
 
@@ -42,13 +44,13 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh lint --fix` | corrige ce qui peut l'être et reformate (ruff, ESLint) |
 | `./dev.sh test` | tous les tests, Python et interface |
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
-| `./dev.sh e2e` | test de bout en bout de l'application de bureau (voir [Application de bureau](application-bureau.md#test-de-bout-en-bout)) |
+| `./dev.sh e2e` | test de bout en bout de l'application de bureau (voir [Application de bureau](desktop-app.md#test-de-bout-en-bout)) |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]` | éditeur dans le navigateur sur cette sauvegarde |
-| `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](application-bureau.md#paquet-deb)) |
-| `./dev.sh test-deb` | installe et teste le .deb dans un conteneur Docker Ubuntu 24.04 (voir [Application de bureau](application-bureau.md#tester-linstallation-dans-un-conteneur)) |
+| `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](desktop-app.md#paquet-deb)) |
+| `./dev.sh test-deb` | installe et teste le .deb dans un conteneur Docker Ubuntu 24.04 (voir [Application de bureau](desktop-app.md#tester-linstallation-dans-un-conteneur)) |
 | `./dev.sh start [--frozen] [FICHIER]` | lance l'application de bureau ; `--frozen` : avec le serveur figé, reconstruit si une source a changé |
-| `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/alesis-kit-manager-server/`, puis son test de fumée (voir [Application de bureau](application-bureau.md#serveur-figé)) |
+| `./dev.sh freeze` | serveur figé (PyInstaller) dans `desktop/build/alesis-kit-manager-server/`, puis son test de fumée (voir [Application de bureau](desktop-app.md#serveur-figé)) |
 | `./dev.sh all [--fix]` | tout ; continue après un échec, affiche un bilan, code de sortie non nul en cas d'échec |
 | `./dev.sh release X.Y.Z` | nouvelle version : met à jour les versions, commite et crée le tag `vX.Y.Z` (voir [Nouvelle version](#nouvelle-version)) |
 
@@ -97,7 +99,7 @@ ci-dessus).
 Le workflow `.github/workflows/build.yml` (« Package ») construit les
 paquets de l'application de bureau sous Linux, Windows et macOS, à la main ou
 appelé par `release.yml` sur un tag `v*` (voir [Nouvelle version](#nouvelle-version)
-et [l'application de bureau](application-bureau.md#paquets-windows-et-macos)).
+et [l'application de bureau](desktop-app.md#paquets-windows-et-macos)).
 `ci.yml` le réutilise pour le job « Serveur figé » (`workflow_call`, entrées `os`
 et `freeze-only`) : les étapes du freeze n'existent qu'à un endroit. `./dev.sh
 freeze` fait la même chose en local, mais la CI ne l'exécute plus.

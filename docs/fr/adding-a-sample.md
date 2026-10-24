@@ -1,5 +1,7 @@
 # Ajouter un sample
 
+[English](../en/adding-a-sample.md) · **Français**
+
 Les samples ne peuvent être ajoutés qu'à une sauvegarde `.bkf`
 (*Save All User Kits*), la seule qui contienne les samples utilisateur.
 
@@ -13,11 +15,11 @@ refusé avec un message qui indique le format reçu.
 
 Dans la fenêtre de choix d'un sample (bouton du sample d'une wave), glisser-déposer
 le fichier dans la zone *Ajouter un WAV* ou cliquer dessus. Le sample est ajouté
-puis choisi pour la wave en cours. Voir [Éditeur web](editeur-web.md).
+puis choisi pour la wave en cours. Voir [Éditeur web](web-editor.md).
 
 ## En ligne de commande
 
-1. Exporter la sauvegarde (voir [Modifier un kit](modifier-un-kit.md)).
+1. Exporter la sauvegarde (voir [Modifier un kit](editing-a-kit.md)).
 2. Déposer le fichier dans le dossier `wav/` de l'export, par exemple
    `mes_kits/wav/Mon Snare.wav`.
 3. Y faire référence par son nom, sans `.wav`, dans un kit :
@@ -46,7 +48,7 @@ python3 -m strike_kits import Backup001.bkf mes_kits -o Backup002.bkf
 - Les règles appliquées (fichiers `.had`, cinq listes d'index, compteurs) ont été
   relevées sur une sauvegarde faite par l'appareil avant et après un import :
   l'outil reproduit ce résultat octet pour octet. Détails :
-  [ajout d'un sample](format-bkf.md#ajout-dun-sample-observé-sur-lappareil).
+  [ajout d'un sample](bkf-format.md#ajout-dun-sample-observé-sur-lappareil).
 
 ## Limites
 

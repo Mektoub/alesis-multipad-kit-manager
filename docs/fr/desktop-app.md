@@ -1,5 +1,7 @@
 # Application de bureau
 
+[English](../en/desktop-app.md) · **Français**
+
 Alesis Strike Multipad Kit Manager (nom court : Alesis Kit Manager) :
 application Electron autour de l'éditeur, la même interface, dans sa propre
 fenêtre, avec les boîtes de dialogue du système. Elle s'installe par un
@@ -8,7 +10,7 @@ Python du `.venv` ou le [serveur figé](#serveur-figé).
 
 ## Lancement (développement)
 
-Prérequis : Python 3 et Node.js, comme pour [l'éditeur web](editeur-web.md).
+Prérequis : Python 3 et Node.js, comme pour [l'éditeur web](web-editor.md).
 
 ```bash
 ./dev.sh start Backups/Backup001.bkf     # depuis la racine du dépôt
@@ -180,7 +182,7 @@ Tous les noms viennent de `app-names.json`, à la racine du dépôt :
 | `short` | Alesis Kit Manager | affichage court : entrée du menu des applications ; sous Windows et macOS, nom de l'application installée (`Alesis Kit Manager.app`, menu Démarrer) |
 | `id` | alesis-kit-manager | chemins : `/opt/<id>`, exécutable, paquet .deb, entrée de menu `<id>.desktop`, profils AppArmor, serveur figé `<id>-server` |
 | `config` | AlesisKitManager | dossier de configuration : `~/.config/<config>` (Windows : `%APPDATA%\<config>`, macOS : `~/Library/Application Support/<config>`) |
-| `version` | 0.3.1 | version de l'application vue par le serveur (`/docs`) ; mise à jour par `./dev.sh release` avec celles des `package.json` (voir [Nouvelle version](developpement.md#nouvelle-version)) |
+| `version` | 0.3.1 | version de l'application vue par le serveur (`/docs`) ; mise à jour par `./dev.sh release` avec celles des `package.json` (voir [Nouvelle version](development.md#nouvelle-version)) |
 
 Ils sont lus par Vite (`editor/web/vite.config.js` : `<title>` et `__APP_NAMES__`),
 PyInstaller (`desktop/server.spec`), electron-builder (`desktop/electron-builder.config.mjs`), `desktop/main.js` (qui
@@ -239,7 +241,7 @@ et macOS, la version du runner ne fixe pas le système minimal des utilisateurs
 
 Le workflow se lance à la main depuis l'onglet Actions (« Run workflow »), ou par
 le workflow « Release » sur un tag `vX.Y.Z`, qui publie ensuite les paquets dans
-une release GitHub en brouillon (voir [Nouvelle version](developpement.md#nouvelle-version)).
+une release GitHub en brouillon (voir [Nouvelle version](development.md#nouvelle-version)).
 Chaque job vérifie la cohérence des versions, construit l'interface, fige le
 serveur, le teste (test de fumée, `--version`), lance `npm run package`, puis
 vérifie que les paquets attendus portent la version de `app-names.json` ; ce
@@ -270,7 +272,7 @@ au premier lancement ; clic droit sur l'application, *Ouvrir*, ou bien
 `xattr -dr com.apple.quarantine "/Applications/Alesis Kit Manager.app"`.
 
 Les dossiers autorisés par défaut dépendent du système (voir
-[l'éditeur web](editeur-web.md#dossiers-autorisés)).
+[l'éditeur web](web-editor.md#dossiers-autorisés)).
 
 ## Fonctionnement
 
@@ -290,7 +292,7 @@ Les dossiers autorisés par défaut dépendent du système (voir
 - **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
   actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
   sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition* (Annuler `Ctrl+Z`, Rétablir
-  `Ctrl+Y`, voir [Annuler / Rétablir](editeur-web.md#annuler--rétablir) ; couper,
+  `Ctrl+Y`, voir [Annuler / Rétablir](web-editor.md#annuler--rétablir) ; couper,
   copier, coller), *Affichage* (zoom, outils de
   développement), *Aide* (À propos : nom et version). Sous macOS, un menu de
   l'application vient en tête, comme pour toute application Mac : À propos,
@@ -308,12 +310,12 @@ Les dossiers autorisés par défaut dépendent du système (voir
   d'envoi au serveur est comptée.
 - **Fichiers** : le serveur n'ouvre et n'enregistre que dans le dossier
   personnel et les supports amovibles de l'utilisateur (voir
-  [Dossiers autorisés](editeur-web.md#dossiers-autorisés)) ; les boîtes de
+  [Dossiers autorisés](web-editor.md#dossiers-autorisés)) ; les boîtes de
   dialogue permettent de parcourir tout le disque, mais un fichier choisi ailleurs
   est refusé, avec un message dans la fenêtre.
 - **Sécurité** : la page n'a pas accès à Node (`contextIsolation`, `sandbox`) ;
   le préchargement (`desktop/preload.cjs`) n'expose que `window.kitManagerDesktop`
-  (voir [Mode bureau](editeur-web.md#mode-bureau)), à la seule page du serveur
+  (voir [Mode bureau](web-editor.md#mode-bureau)), à la seule page du serveur
   local. La navigation est limitée à ce serveur ; les liens externes s'ouvrent
   dans le navigateur.
 
@@ -376,7 +378,7 @@ copie d'une sauvegarde.
 | Double-clic sur un `.bkf` dans le gestionnaire de fichiers (Explorateur, Finder) | l'application s'ouvre sur ce fichier |
 | Double-clic sur un deuxième fichier, l'application ouverte | ouvert dans la même fenêtre |
 | *Fichier › Ouvrir…* (`Ctrl+O`, `Cmd+O` sur Mac) | boîte du système, filtre `.bkf` / `.fac` |
-| Ouvrir un fichier sur une clé USB (`/media`, `/Volumes`, autre lecteur sous Windows) | ouvert ; un fichier hors des [dossiers autorisés](editeur-web.md#dossiers-autorisés) est refusé avec un message |
+| Ouvrir un fichier sur une clé USB (`/media`, `/Volumes`, autre lecteur sous Windows) | ouvert ; un fichier hors des [dossiers autorisés](web-editor.md#dossiers-autorisés) est refusé avec un message |
 | Écouter un sample utilisateur (lecture du WAV) | son audible, sans erreur |
 | Ajouter un sample par glisser-déposer d'un `.wav` dans le choix du sample | sample ajouté, nombre de samples perso incrémenté |
 | Modifier un kit, *Enregistrer* (`Ctrl+S`) | « À jour » ; copie `<fichier>.1.bak` de l'original |

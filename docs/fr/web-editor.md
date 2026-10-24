@@ -1,5 +1,7 @@
 # Éditeur web
 
+[English](../en/web-editor.md) · **Français**
+
 Interface graphique locale (FastAPI + Svelte) pour éditer les kits sans manipuler
 de JSON.
 
@@ -160,8 +162,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    bouton est grisé sur un kit déjà vide.
 9. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
-   perso (indisponible pour l'instant, voir la limitation ci-dessus). La zone du bas ajoute un WAV par glisser-déposer
-   (voir [Ajouter un sample](ajouter-un-sample.md)).
+   perso. La zone du bas ajoute un WAV par glisser-déposer
+   (voir [Ajouter un sample](adding-a-sample.md)).
 10. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
    chaque session sur un fichier d'origine, son état précédent est copié dans
    `<fichier>.N.bak` (`Backup001.bkf.1.bak`, puis `.2.bak` à la session suivante) :
@@ -178,7 +180,7 @@ valide. Les modifications restent en mémoire jusqu'à *Enregistrer*. Le
 navigateur prévient si l'on quitte la page avec des modifications non enregistrées.
 
 Charger ensuite le fichier produit sur l'appareil comme décrit dans
-[Modifier un kit](modifier-un-kit.md#5-charger-sur-lappareil).
+[Modifier un kit](editing-a-kit.md#5-charger-sur-lappareil).
 
 ### Annuler / Rétablir
 
@@ -254,7 +256,7 @@ cd editor/web && npm run dev                        # puis ouvrir http://localho
 ```
 
 Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur est
-à ajouter à l'adresse de Vite. Voir aussi [Développement](developpement.md).
+à ajouter à l'adresse de Vite. Voir aussi [Développement](development.md).
 
 ### Mode bureau
 

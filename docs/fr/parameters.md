@@ -1,6 +1,8 @@
 # Paramètres identifiés
 
-Noms des champs des [JSON de kit](contenu-export.md) et sens connu à ce jour.
+[English](../en/parameters.md) · **Français**
+
+Noms des champs des [JSON de kit](export-contents.md) et sens connu à ce jour.
 « Vérifié » signifie confirmé par une sauvegarde faite sur l'appareil ; les autres
 libellés suivent l'ordre du manuel ou la plage observée.
 

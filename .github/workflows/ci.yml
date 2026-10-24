@@ -98,7 +98,7 @@ jobs:
             editor/web/package-lock.json
             desktop/package-lock.json
       # Ubuntu 24.04 : la sandbox de Chromium a besoin du profil AppArmor (voir
-      # docs/application-bureau.md)
+      # docs/fr/desktop-app.md)
       - name: Profil AppArmor de l'Electron de développement
         # racines du système plutôt que celles de Node, qui font encore confiance à
         # emSign ECC Root CA - G3 (incident eMudhra, octobre 2026)

@@ -1,5 +1,7 @@
 # Format `.fac` (sauvegarde des kits)
 
+[English](../en/fac-format.md) · **Français**
+
 Fichier `Strike/BackUp/BACKUPNNNNN/STRIKE_BACKUP_KIT.fac`, produit par le menu
 *Utility > Backup* de l'appareil. Il contient **uniquement les kits** (pas de
 samples) : 100 kits `001` à `100` dans l'exemple étudié (992 288 octets).
@@ -72,7 +74,7 @@ sa propre somme de contrôle (octet 0x08).
 ## Contenu
 
 Les données sont des kits identiques à ceux du `.bkf` : voir
-[Format d'un kit](format-bkf.md#format-dun-kit-kit). Dans l'exemple étudié :
+[Format d'un kit](bkf-format.md#format-dun-kit-kit). Dans l'exemple étudié :
 
 - 001–030 : kits d'usine (*Power Duel*, *Cash Money Kit*, … *Bells*) ;
 - 031 : *WhereIs* (kit utilisateur, variante `KITC`), identique octet pour octet
