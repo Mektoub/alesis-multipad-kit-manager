@@ -157,21 +157,23 @@
     align-items: flex-start;
     text-align: left;
     gap: 2px;
-    padding: 10px;
+    padding: 8px 10px 10px;
     overflow: hidden;
     box-shadow: inset 0 -4px 0 var(--led);
   }
+  /* petits pads : hauteur selon le contenu (libellé et jusqu'à deux samples) */
   .pad.small {
-    aspect-ratio: 3.2;
+    aspect-ratio: auto;
+    min-height: 56px;
   }
   .pad.selected {
     background: var(--pad-selected);
     border-color: var(--pad-selected-border);
   }
+  /* en tête du pad, dans le flux : les samples, en bas, ne passent jamais dessous */
   .label {
-    position: absolute;
-    top: 8px;
-    left: 10px;
+    margin-bottom: auto;
+    padding-bottom: 4px;
     font-weight: 700;
   }
   .control {

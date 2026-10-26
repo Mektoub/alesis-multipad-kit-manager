@@ -23,6 +23,8 @@
 | `tests/ressources/Backup001.bkf` | the tests' reference backup |
 | `tests/construire_reference.py` | script that built this backup |
 | `docs/en/*-format.md` (French: `docs/fr/`) | what is known about the binary formats |
+| `docs/images/` | screenshots shared by both languages |
+| `desktop/e2e/screenshots.js` | documentation screenshots (`./dev.sh screenshots`) |
 
 In `strike_kits/__init__.py`:
 
@@ -45,6 +47,7 @@ installs `requirements-dev.txt` and the UI packages (`npm ci`).
 | `./dev.sh test` | all tests, Python and UI |
 | `./dev.sh test tests.test_editor.Lancement` | only the given Python tests |
 | `./dev.sh e2e` | end-to-end test of the desktop app (see [Desktop app](desktop-app.md#end-to-end-test)) |
+| `./dev.sh screenshots` | screenshots for the documentation in `docs/images/`, taken in the desktop app on the test reference backup (Playwright, light theme, 1400×900 window); rerun after an interface change; the window shows during the captures: do not type meanwhile |
 | `./dev.sh build` | builds the UI into `editor/web/dist` |
 | `./dev.sh serve FILE [--port N] [--host ADDRESS] [--no-browser]` | editor in the browser on this backup |
 | `./dev.sh package` | .deb package of the app in `desktop/dist/` (see [Desktop app](desktop-app.md#deb-package)) |

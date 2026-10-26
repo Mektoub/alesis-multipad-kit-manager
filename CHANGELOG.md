@@ -3,6 +3,8 @@
 ## 0.5.0 — English documentation
 
 - Documentation in English (`README.md`, `docs/en/`) and in French (`README.fr.md`, `docs/fr/`), with the same English file names in both languages and a language switch at the top of each page. The changelog is now kept in English only.
+- Web editor: on the small pads P7–P9, the sample names no longer overlap the pad label (the pad grows to fit its content).
+- Documentation: screenshots of the web editor (overview, action windows, sample picker, history list and warning) in `docs/images/`, shared by both languages; `./dev.sh screenshots` regenerates them in the desktop app (`desktop/e2e/screenshots.js`, Playwright).
 - Documentation: removed an outdated note saying that playing user samples (▶) was unavailable.
 
 ## 0.4.0 — UI improvements

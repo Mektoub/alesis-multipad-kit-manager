@@ -23,6 +23,8 @@
 | `tests/ressources/Backup001.bkf` | sauvegarde de référence des tests |
 | `tests/construire_reference.py` | script qui a construit cette sauvegarde |
 | `docs/fr/*-format.md` (`docs/en/` en anglais) | ce que l'on sait des formats binaires |
+| `docs/images/` | captures d'écran, communes aux deux langues |
+| `desktop/e2e/screenshots.js` | captures d'écran de la documentation (`./dev.sh screenshots`) |
 
 Dans `strike_kits/__init__.py` :
 
@@ -45,6 +47,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh test` | tous les tests, Python et interface |
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
 | `./dev.sh e2e` | test de bout en bout de l'application de bureau (voir [Application de bureau](desktop-app.md#test-de-bout-en-bout)) |
+| `./dev.sh screenshots` | captures d'écran de la documentation dans `docs/images/`, prises dans l'application de bureau sur la sauvegarde de référence des tests (Playwright, thème clair, fenêtre de 1400×900) ; à relancer après un changement de l'interface ; la fenêtre s'affiche pendant les captures : ne pas taper au clavier |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]` | éditeur dans le navigateur sur cette sauvegarde |
 | `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](desktop-app.md#paquet-deb)) |

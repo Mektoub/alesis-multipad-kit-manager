@@ -93,6 +93,8 @@ cd editor/web && npm ci && npm run build && cd ../..
 
 ## Usage
 
+![Web editor: kit list, grid of the 9 pads and settings of the selected pad](../images/overview.png)
+
 1. **Open**: the backup passed at launch is already open. To open another
    one, enter its full path at the top, then click *Ouvrir* (Open).
    In the desktop app, *Ouvrir…* (Open…) and *Enregistrer sous…* (Save as…) use the
@@ -125,6 +127,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    its own. A field missing from the target is not copied and is listed in the
    confirmation message.
 
+   ![Copier vers… (Copy to…) window](../images/copy-dialog.png)
+
    *Valeurs par défaut…* (Default values…) (next to it) resets settings to the values of an empty kit
    from the device, specific to each slot (MIDI note, Sensitivity, lighting…).
    You choose the slots (the displayed pad is preselected) and the
@@ -133,6 +137,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    is checked initially; *toutes les sections* (all sections) checks them all, except
    sample removal.
    Unidentified parameters are left untouched.
+
+   ![Valeurs par défaut… (Default values…) window](../images/reset-dialog.png)
+
 7. **Edit several pads**: *Modifier plusieurs pads…* (Edit several pads…) (at the top of the
    pad settings) gives the same value to a setting on a selection of pads, for
    example Sensitivity = 20 on P1, P3, P5 and P9. You choose the setting (pad,
@@ -141,6 +148,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    applies the same value to the **same pads in several kits** (current kit
    checked by default, *kits non vides* (non-empty kits) shortcut). The operation is all or nothing:
    if one kit rejects the value, none is modified.
+
+   ![Modifier plusieurs pads… (Edit several pads…) window](../images/bulk-edit-dialog.png)
+
 8. **Move or duplicate a kit**: *Déplacer / copier le kit…* (Move / copy kit…) (next to the tempo)
    - *Déplacer / échanger* (Move / swap): the kit goes to the chosen number. If that kit is empty, it is
      a move (the original number becomes empty); otherwise the two kits are
@@ -156,6 +166,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    takes the place of the kit it is dropped on (a line shows where), and the kits
    in between shift by one position, as in a list.
 
+   ![Déplacer / copier le kit… (Move / copy kit…) window](../images/kit-transfer-dialog.png)
+
    *Supprimer le kit…* (Delete kit…) (next to it) replaces the kit, after confirmation, with the empty
    kit written by the device: name "Empty", volume 100, 120 BPM, default
    settings, no sample. User samples remain in the backup. The
@@ -164,6 +176,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    or by id, with a *Mes samples / Usine* (My samples / Factory) filter. The ▶ button plays a user
    sample. The bottom area adds a WAV by drag and drop
    (see [Adding a sample](adding-a-sample.md)).
+
+   ![Sample selection window](../images/sample-picker.png)
+
 10. ***Enregistrer*** (Save) writes to the open file. On the first save of
    each session to an original file, its previous state is copied to
    `<file>.N.bak` (`Backup001.bkf.1.bak`, then `.2.bak` in the next session):
@@ -197,6 +212,8 @@ row returns to it in one go (undoing or redoing the actions in
 between); the last row, *Ouverture du fichier* (File opened) (or *Début de
 l'historique* (Start of history) when the history has been cleared), undoes everything.
 
+![History list under the ▾ chevron](../images/history-menu.png)
+
 - **Shortcuts**: `Ctrl+Z` undoes, `Ctrl+Y` or `Ctrl+Shift+Z` redoes (`Cmd` on
   macOS); in the desktop app, also *Édition › Annuler / Rétablir* (Edit › Undo / Redo).
   In a text field (kit name, value), they undo typing, as
@@ -211,6 +228,9 @@ l'historique* (Start of history) when the history has been cleared), undoes ever
   *Enregistrer et continuer* (Save and continue) or *Continuer* (Continue); unsaved changes
   are kept in every case. Adding a sample cannot be undone either,
   but keeps the history: the sample stays in the backup.
+
+  ![Warning before an action outside the history](../images/history-alert.png)
+
 - **Saved state**: undoing back to the last save shows « À jour » (Up to date) again.
   Opening a file or *Recharger* clears the history.
 - **Size**: the last 100 actions (`LIMIT` in `editor/history.py`); older

@@ -11,6 +11,8 @@ Strike MultiPad, à partir de ses sauvegardes USB :
 Le format n'est pas documenté par Alesis : il a été rétro-ingénié. **Garder une
 copie de la sauvegarde d'origine** avant de charger un fichier produit par ces outils.
 
+![Éditeur web : liste des kits, grille des 9 pads et réglages du pad choisi](docs/images/overview.png)
+
 ## Commandes
 
 | Commande | Rôle |
