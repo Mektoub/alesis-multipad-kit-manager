@@ -4,9 +4,11 @@
 // fourni par l'application Electron (window.kitManagerDesktop), ou, en lancement
 // local, lu dans l'adresse (#token=…). Il est alors conservé pour l'onglet
 // (sessionStorage), afin qu'un rechargement de la page fonctionne, et retiré
-// de l'adresse affichée.
+// de l'adresse affichée. La langue de l'interface l'accompagne
+// (X-KitManager-Language), pour les messages du serveur.
 
 import { desktop } from "./desktop.js";
+import { language } from "./locale.svelte.js";
 
 function readToken() {
   if (desktop?.token) return desktop.token;
@@ -27,7 +29,7 @@ const TOKEN = readToken();
 
 // `blob` : réponse binaire (WAV) au lieu de JSON.
 async function request(method, url, body, { blob = false } = {}) {
-  const options = { method, headers: { "X-KitManager-Token": TOKEN } };
+  const options = { method, headers: { "X-KitManager-Token": TOKEN, "X-KitManager-Language": language() } };
   if (body instanceof FormData) {
     options.body = body;
   } else if (body !== undefined) {

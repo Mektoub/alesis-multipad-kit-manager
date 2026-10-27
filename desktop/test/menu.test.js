@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { menuTemplate } from "../menu.js";
+import { messageKeys, resolveLanguage } from "../messages.js";
 
 const about = () => {};
 const send = (name) => () => name;
-const template = (platform) => menuTemplate({ platform, appName: "Alesis Kit Manager", about, send });
+const template = (platform, lang = "fr") => menuTemplate({ platform, appName: "Alesis Kit Manager", about, send, lang });
 const labels = (menu) => menu.map((m) => m.label);
 const items = (menu, label) => menu.find((m) => m.label === label).submenu;
 
@@ -60,7 +61,7 @@ describe("menu de l'application", () => {
 
   it("Ouvrir récent : un élément par fichier, puis Effacer la liste", () => {
     const openRecent = (file) => () => `ouvrir ${file}`;
-    const menu = menuTemplate({ platform: "linux", appName: "A", about, send, recent: ["/a.bkf", "/b.fac"], openRecent });
+    const menu = menuTemplate({ platform: "linux", appName: "A", about, send, recent: ["/a.bkf", "/b.fac"], openRecent, lang: "fr" });
     const sub = items(menu, "&Fichier").find((i) => i.label === "Ouvrir &récent").submenu;
     assert.deepEqual(
       sub.filter((i) => i.click).map((i) => i.click()),
@@ -76,5 +77,25 @@ describe("menu de l'application", () => {
       file.filter((i) => i.click).map((i) => i.click()),
       ["open", "save", "save-as"],
     );
+  });
+});
+
+describe("langue des menus", () => {
+  it("anglais par défaut, mêmes commandes qu'en français", () => {
+    const en = menuTemplate({ platform: "linux", appName: "A", about, send });
+    assert.deepEqual(labels(en), ["&File", "&Edit", "&View", "&Help"]);
+    const commands = (menu) => menu.flatMap((m) => m.submenu.filter((i) => i.click).map((i) => i.click()));
+    assert.deepEqual(commands(en), commands(template("linux")));
+  });
+
+  it("mêmes textes dans les deux langues", () => {
+    assert.deepEqual(messageKeys("fr"), messageKeys("en"));
+  });
+
+  it("langue : préférence, sinon celle du système (français, sinon anglais)", () => {
+    assert.equal(resolveLanguage("fr", "en-US"), "fr");
+    assert.equal(resolveLanguage("system", "fr-CA"), "fr");
+    assert.equal(resolveLanguage("system", "de"), "en");
+    assert.equal(resolveLanguage(undefined, ""), "en");
   });
 });

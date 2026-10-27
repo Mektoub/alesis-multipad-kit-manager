@@ -2,6 +2,7 @@
   // Copie d'un kit vers un autre numéro, ou échange de deux kits (déplacement
   // quand la cible est vide), comme le menu Copy de l'appareil.
   import { untrack } from "svelte";
+  import { t } from "./locale.svelte.js";
 
   let { kits, source, ontransfer, onclose } = $props();
 
@@ -18,7 +19,7 @@
 
   async function submit() {
     if (mode === "copy" && !targetEmpty
-        && !confirm(`Le kit ${target} « ${targetKit.name} » sera remplacé. Continuer ?`)) return;
+        && !confirm(t("askReplace", { target, name: targetKit.name }))) return;
     busy = true;
     error = "";
     try {
@@ -38,35 +39,35 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Copier ou déplacer le kit">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t("transferTitle")}>
     <header>
-      <h2>Kit {source} « {sourceKit?.name} »</h2>
-      <button onclick={onclose} aria-label="Fermer">✕</button>
+      <h2>{t("kitHeader", { num: source, name: sourceKit?.name })}</h2>
+      <button onclick={onclose} aria-label={t("close")}>✕</button>
     </header>
 
     <section>
-      <label class="choice"><input type="radio" bind:group={mode} value="swap" /> Déplacer / échanger</label>
-      <label class="choice"><input type="radio" bind:group={mode} value="copy" /> Copier (dupliquer)</label>
+      <label class="choice"><input type="radio" bind:group={mode} value="swap" /> {t("moveSwap")}</label>
+      <label class="choice"><input type="radio" bind:group={mode} value="copy" /> {t("copyDuplicate")}</label>
     </section>
 
     <section>
       <label>
-        <span class="muted">Vers le kit</span>
+        <span class="muted">{t("toKit")}</span>
         <select bind:value={target}>
           {#each candidates as k (k.num)}<option value={k.num}>{k.num} — {k.name}</option>{/each}
         </select>
       </label>
       <p class="muted explain">
         {#if !targetKit}
-          Choisissez un kit.
+          {t("chooseKit")}
         {:else if mode === "swap" && targetEmpty}
-          Le kit est déplacé en {target} ; le kit {source} devient vide.
+          {t("explainMove", { target, source })}
         {:else if mode === "swap"}
-          Les kits {source} et {target} « {targetKit.name} » sont échangés.
+          {t("explainSwap", { source, target, name: targetKit.name })}
         {:else if targetEmpty}
-          Une copie du kit est créée en {target}.
+          {t("explainCopy", { target })}
         {:else}
-          <strong>Le kit {target} « {targetKit.name} » sera remplacé</strong> par une copie.
+          <strong>{t("explainReplace", { target, name: targetKit.name })}</strong>{t("explainReplaceEnd")}
         {/if}
       </p>
     </section>
@@ -74,9 +75,9 @@
     {#if error}<p class="error">{error}</p>{/if}
 
     <footer>
-      <button onclick={onclose}>Annuler</button>
+      <button onclick={onclose}>{t("cancel")}</button>
       <button class="primary" onclick={submit} disabled={busy || !targetKit}>
-        {mode === "copy" ? "Copier" : targetEmpty ? "Déplacer" : "Échanger"}
+        {t(mode === "copy" ? "copy" : targetEmpty ? "move" : "swap")}
       </button>
     </footer>
   </div>

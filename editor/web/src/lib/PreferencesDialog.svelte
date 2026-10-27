@@ -5,15 +5,22 @@
   // `prefs` : préférences actuelles ; `onchange(changes)` : les enregistre
   // (promesse, rejetée avec le message du serveur).
   import { desktop } from "./desktop.js";
+  import { t } from "./locale.svelte.js";
 
   let { prefs, onchange, onclose } = $props();
 
   const HISTORY_MIN = 10;
   const HISTORY_MAX = 1000;
   const THEMES = [
-    ["system", "Système"],
-    ["light", "Clair"],
-    ["dark", "Sombre"],
+    ["system", "themeSystem"],
+    ["light", "themeLight"],
+    ["dark", "themeDark"],
+  ];
+  // noms des langues dans leur propre langue
+  const LANGUAGES = [
+    ["system", null],
+    ["en", "English"],
+    ["fr", "Français"],
   ];
 
   let error = $state("");
@@ -32,7 +39,7 @@
   function changeLimit(e) {
     const value = Number(e.target.value);
     if (!Number.isInteger(value) || value < HISTORY_MIN || value > HISTORY_MAX) {
-      error = `Taille de l'historique : un nombre entier de ${HISTORY_MIN} à ${HISTORY_MAX}.`;
+      error = t("historyLimitError", { min: HISTORY_MIN, max: HISTORY_MAX });
       e.target.value = prefs.history_limit;
       return;
     }
@@ -47,58 +54,71 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Préférences">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t("preferences")}>
     <header>
-      <h2>Préférences</h2>
-      <button onclick={onclose} aria-label="Fermer">✕</button>
+      <h2>{t("preferences")}</h2>
+      <button onclick={onclose} aria-label={t("close")}>✕</button>
     </header>
 
     <fieldset>
-      <legend>Thème</legend>
+      <legend>{t("theme")}</legend>
       <div class="row">
-        {#each THEMES as [value, label] (value)}
+        {#each THEMES as [value, key] (value)}
           <label class="choice">
             <input type="radio" name="theme" {value} checked={prefs.theme === value} onchange={() => change({ theme: value })} />
-            {label}
+            {t(key)}
           </label>
         {/each}
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Kits et fichiers</legend>
-      <label class="choice">
-        <input type="checkbox" checked={prefs.hide_empty} onchange={(e) => change({ hide_empty: e.target.checked })} />
-        Masquer les kits vides dans la liste
-      </label>
-      <label class="choice">
-        <input type="checkbox" checked={prefs.reopen_last} onchange={(e) => change({ reopen_last: e.target.checked })} />
-        Rouvrir la dernière sauvegarde au lancement
-      </label>
+      <legend>{t("language")}</legend>
       <div class="row">
-        <span class="muted">{prefs.recent_files.length} fichier(s) récent(s)</span>
-        <button onclick={() => change({ recent_files: [] })} disabled={!prefs.recent_files.length}>Effacer la liste</button>
+        {#each LANGUAGES as [value, name] (value)}
+          <label class="choice">
+            <input type="radio" name="language" {value} checked={prefs.language === value}
+              onchange={() => change({ language: value })} />
+            {name ?? t("languageSystem")}
+          </label>
+        {/each}
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Historique</legend>
+      <legend>{t("kitsAndFiles")}</legend>
+      <label class="choice">
+        <input type="checkbox" checked={prefs.hide_empty} onchange={(e) => change({ hide_empty: e.target.checked })} />
+        {t("hideEmpty")}
+      </label>
+      <label class="choice">
+        <input type="checkbox" checked={prefs.reopen_last} onchange={(e) => change({ reopen_last: e.target.checked })} />
+        {t("reopenLast")}
+      </label>
+      <div class="row">
+        <span class="muted">{t("recentCount", { n: prefs.recent_files.length })}</span>
+        <button onclick={() => change({ recent_files: [] })} disabled={!prefs.recent_files.length}>{t("clearList")}</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>{t("history")}</legend>
       <label class="limit">
         <input type="number" min={HISTORY_MIN} max={HISTORY_MAX} value={prefs.history_limit} onchange={changeLimit}
-          onkeydown={(e) => e.key === "Enter" && e.target.blur()} aria-label="Taille de l'historique" />
-        étapes gardées pour Annuler / Rétablir
+          onkeydown={(e) => e.key === "Enter" && e.target.blur()} aria-label={t("historySize")} />
+        {t("stepsKept")}
       </label>
-      <p class="muted explain">De {HISTORY_MIN} à {HISTORY_MAX}. Une réduction oublie tout de suite les étapes les plus anciennes.</p>
+      <p class="muted explain">{t("historyLimitHelp", { min: HISTORY_MIN, max: HISTORY_MAX })}</p>
     </fieldset>
 
     {#if desktop}
-      <p class="muted explain">La taille et la position de la fenêtre sont retenues d'un lancement à l'autre.</p>
+      <p class="muted explain">{t("windowKept")}</p>
     {/if}
 
     {#if error}<p class="error" role="alert">{error}</p>{/if}
 
     <footer>
-      <button class="primary" onclick={onclose}>Fermer</button>
+      <button class="primary" onclick={onclose}>{t("close")}</button>
     </footer>
   </div>
 </div>

@@ -93,7 +93,7 @@ cd editor/web && npm ci && npm run build && cd ../..
 
 ## Utilisation
 
-![Éditeur web : liste des kits, grille des 9 pads et réglages du pad choisi](../images/overview.png)
+![Éditeur web : liste des kits, grille des 9 pads et réglages du pad choisi](../images/fr/overview.png)
 
 1. **Ouvrir** : la sauvegarde passée au lancement est déjà ouverte. Pour en
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
@@ -129,7 +129,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
    message de confirmation.
 
-   ![Fenêtre Copier vers…](../images/copy-dialog.png)
+   ![Fenêtre Copier vers…](../images/fr/copy-dialog.png)
 
    *Valeurs par défaut…* (à côté) remet des réglages aux valeurs d'un kit vide de
    l'appareil, propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).
@@ -140,7 +140,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    des samples.
    Les paramètres non identifiés ne sont pas touchés.
 
-   ![Fenêtre Valeurs par défaut…](../images/reset-dialog.png)
+   ![Fenêtre Valeurs par défaut…](../images/fr/reset-dialog.png)
 
 7. **Modifier plusieurs pads** : *Modifier plusieurs pads…* (en haut des réglages
    du pad) donne une même valeur à un réglage sur une sélection de pads, par
@@ -151,7 +151,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    coché par défaut, raccourci *kits non vides*). L'opération est tout ou rien :
    si un kit refuse la valeur, aucun n'est modifié.
 
-   ![Fenêtre Modifier plusieurs pads…](../images/bulk-edit-dialog.png)
+   ![Fenêtre Modifier plusieurs pads…](../images/fr/bulk-edit-dialog.png)
 
 8. **Déplacer ou dupliquer un kit** : *Déplacer / copier le kit…* (à côté du tempo)
    - *Déplacer / échanger* : le kit va au numéro choisi. Si ce kit est vide, c'est
@@ -168,7 +168,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    prend la place du kit sur lequel on le dépose (un trait indique où), et les kits
    d'entre les deux se décalent d'un cran, comme dans une liste.
 
-   ![Fenêtre Déplacer / copier le kit…](../images/kit-transfer-dialog.png)
+   ![Fenêtre Déplacer / copier le kit…](../images/fr/kit-transfer-dialog.png)
 
    *Supprimer le kit…* (à côté) remplace le kit, après confirmation, par le kit
    vide écrit par l'appareil : nom « Empty », volume 100, 120 BPM, réglages par
@@ -179,7 +179,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    perso. La zone du bas ajoute un WAV par glisser-déposer
    (voir [Ajouter un sample](adding-a-sample.md)).
 
-   ![Fenêtre de choix d'un sample](../images/sample-picker.png)
+   ![Fenêtre de choix d'un sample](../images/fr/sample-picker.png)
 
 10. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
    chaque session sur un fichier d'origine, son état précédent est copié dans
@@ -214,7 +214,7 @@ ligne y revient en une fois (en annulant ou en rétablissant les actions d'entre
 les deux) ; la dernière ligne, *Ouverture du fichier* (ou *Début de
 l'historique* quand l'historique a été vidé), annule tout.
 
-![Liste de l'historique sous le chevron ▾](../images/history-menu.png)
+![Liste de l'historique sous le chevron ▾](../images/fr/history-menu.png)
 
 - **Raccourcis** : `Ctrl+Z` annule, `Ctrl+Y` ou `Ctrl+Maj+Z` rétablit (`Cmd` sous
   macOS) ; dans l'application de bureau, aussi *Édition › Annuler / Rétablir*.
@@ -231,7 +231,7 @@ l'historique* quand l'historique a été vidé), annule tout.
   sont conservées dans tous les cas. L'ajout d'un sample ne s'annule pas non plus,
   mais garde l'historique : le sample reste dans la sauvegarde.
 
-  ![Alerte avant une action hors historique](../images/history-alert.png)
+  ![Alerte avant une action hors historique](../images/fr/history-alert.png)
 
 - **État enregistré** : annuler jusqu'au dernier enregistrement réaffiche « À jour ».
   Ouvrir un fichier ou *Recharger* vide l'historique.
@@ -244,11 +244,12 @@ Le bouton ⚙ en haut à droite (dans l'application de bureau, aussi *Édition �
 Préférences…*, `Ctrl+,` ; sous macOS, dans le menu de l'application) ouvre la
 fenêtre des préférences. Chaque réglage s'applique et s'enregistre aussitôt :
 
-![Fenêtre Préférences](../images/preferences-dialog.png)
+![Fenêtre Préférences](../images/fr/preferences-dialog.png)
 
 | Préférence | Par défaut | Effet |
 |---|---|---|
 | Thème | Système | *Clair* ou *Sombre* fixe le thème ; *Système* suit le réglage du système |
+| Langue | Système | *English* ou *Français* : langue de l'interface, des menus et boîtes de dialogue de l'application de bureau, et des messages du serveur (erreurs, historique, infobulles) ; *Système* suit la langue du système (français s'il est en français, anglais sinon). Les noms et valeurs des paramètres des pads restent en anglais, comme sur l'appareil |
 | Masquer les kits vides | oui | même réglage que *masquer les vides* au-dessus de la liste des kits |
 | Rouvrir la dernière sauvegarde au lancement | non | sans fichier passé au lancement, rouvre le plus récent des fichiers récents (rien s'il n'est plus lisible) |
 | Fichiers récents | — | les 10 derniers fichiers ouverts ou enregistrés sous un autre nom ; *Effacer la liste* les oublie |
@@ -276,7 +277,9 @@ s'applique.
 ## API
 
 Le serveur expose une API JSON, utilisable aussi depuis un script ; chaque requête
-porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
+porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus.
+L'en-tête `X-KitManager-Language` (`en` ou `fr`, anglais par défaut) choisit la
+langue des messages d'erreur, des libellés de l'historique et des infobulles :
 
 | Méthode | Route | Rôle |
 |---|---|---|
@@ -327,6 +330,7 @@ L'interface passe en mode bureau quand l'application Electron expose l'objet
 | `saveFile(defaultPath)` | boîte native « Enregistrer sous », ouverte sur le nom suivant ; renvoie le chemin ou `null`. La boîte confirme elle-même l'écrasement d'un fichier existant |
 | `setDirty(dirty)` | appelé à chaque changement de l'état « modifications non enregistrées », pour que l'application confirme la fermeture de la fenêtre |
 | `setRecent(files)` | fichiers récents, pour le menu *Fichier › Ouvrir récent* |
+| `setLanguage(lang)` | langue de l'interface (`en` ou `fr`), pour les menus et boîtes de dialogue de l'application |
 | `onCommand(handler)` | reçoit les commandes de l'application, `{ command, path? }` ; la valeur renvoyée par `handler` est la réponse : `open`, `save`, `save-as` (menu Fichier), `open-file` (fichier passé au lancement, ou fichier récent), `preferences` (fenêtre Préférences), `clear-recent` (effacer les fichiers récents), `prepare-close` (→ `{ dirty }`, après envoi des modifications en attente), `save-before-close` (→ `{ saved }`) |
 
 En mode bureau, l'interface ne bloque pas la fermeture de la page

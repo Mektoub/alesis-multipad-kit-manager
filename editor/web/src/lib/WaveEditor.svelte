@@ -3,6 +3,7 @@
   import ParamField from "./ParamField.svelte";
   import { onPlaying, toggle } from "./player.js";
   import { tooltip } from "./format.js";
+  import { t } from "./locale.svelte.js";
 
   let { wave, title, meta, sampleIndex, defaults, onpick } = $props();
 
@@ -42,24 +43,24 @@
   <h3>{title}</h3>
   {#if hasHeader}
     <div class="sample" title={meta.help.sample}>
-      <button class="pick" onclick={onpick} title="Choisir un sample">
+      <button class="pick" onclick={onpick} title={t("chooseSample")}>
         {#if sample}
           <span class="name">{sample.name}</span><span class="muted">#{sample.id}</span>
         {:else if wave.sample != null}
           <span class="name">Sample #{wave.sample}</span>
         {:else}
-          <span class="muted">Aucun sample : choisir…</span>
+          <span class="muted">{t("noSampleChoose")}</span>
         {/if}
       </button>
       {#if sample?.user}
-        <button onclick={() => toggle(sample.id)} aria-label="Écouter">{playing === sample.id ? "■" : "▶"}</button>
+        <button onclick={() => toggle(sample.id)} aria-label={t("listen")}>{playing === sample.id ? "■" : "▶"}</button>
       {/if}
       {#if wave.sample != null}
-        <button onclick={() => (wave.sample = null)} aria-label="Retirer le sample" title="Retirer le sample">✕</button>
+        <button onclick={() => (wave.sample = null)} aria-label={t("removeSample")} title={t("removeSample")}>✕</button>
       {/if}
     </div>
   {:else}
-    <p class="muted">Sample et vélocité illisibles dans ce kit.</p>
+    <p class="muted">{t("waveUnreadable")}</p>
   {/if}
 
   {#each sections as s (s.title)}
@@ -79,7 +80,7 @@
   {/each}
   {#if unknown.length}
     <details>
-      <summary class="muted">Paramètres non identifiés ({unknown.length})</summary>
+      <summary class="muted">{t("unknownParams", { n: unknown.length })}</summary>
       {#each unknown as def (def.name)}
         <ParamField {def} bind:value={wave.params[def.name]} defaultValue={defaults.params[def.name]} />
       {/each}

@@ -282,28 +282,32 @@ The default allowed folders depend on the system (see
 - **Window**: its size, position and maximized state are remembered from one
   launch to the next (`window-state.json` in the app's configuration folder, see
   [Preferences](web-editor.md#preferences)); a position outside the current
-  screens is dropped. On first launch, it opens maximized; *Restaurer* (Restore)
+  screens is dropped. On first launch, it opens maximized; *Restore*
   brings it back to 1400×900.
 - **Single instance**: running the app again with a file opens it in the
   existing window.
 - **Menu**: the bar is hidden, the `Alt` key shows it; shortcuts remain
-  active while it is hidden. *Fichier* (File: *Ouvrir…* (Open…) `Ctrl+O`, *Ouvrir récent* (Open recent), *Enregistrer* (Save) `Ctrl+S`,
-  *Enregistrer sous…* (Save as…) `Ctrl+Shift+S`, *Quitter* (Quit) `Ctrl+Q`), *Édition* (Edit: *Annuler* (Undo) `Ctrl+Z`, *Rétablir* (Redo)
+  active while it is hidden. *File* (*Open…* `Ctrl+O`, *Open Recent*, *Save* `Ctrl+S`,
+  *Save As…* `Ctrl+Shift+S`, *Quit* `Ctrl+Q`), *Edit* (*Undo* `Ctrl+Z`, *Redo*
   `Ctrl+Y`, see [Undo / Redo](web-editor.md#undo--redo); cut,
-  copy, paste; *Préférences…* (Preferences…) `Ctrl+,`), *Affichage* (View: zoom, developer
-  tools), *Aide* (Help: *À propos* (About): name and version). On macOS, an
-  application menu comes first, as for any Mac app: *À propos*, *Préférences…*
-  (`Cmd+,`), *Masquer* (Hide), *Masquer les autres* (Hide Others), *Tout afficher* (Show All),
-  *Quitter* (`Cmd+Q`); *Quitter* is then no longer in *Fichier*, *Préférences…* no longer in *Édition*, and the *Aide*
+  copy, paste; *Preferences…* `Ctrl+,`), *View* (zoom, developer
+  tools), *Help* (*About*: name and version). On macOS, an
+  application menu comes first, as for any Mac app: *About*, *Preferences…*
+  (`Cmd+,`), *Hide*, *Hide Others*, *Show All*,
+  *Quit* (`Cmd+Q`); *Quit* is then no longer in *File*, *Preferences…* no longer in *Edit*, and the *Help*
   menu disappears. Menu template: `desktop/menu.js`.
-- **Version**: shown next to the interface title and in *Aide › À
-  propos*; `alesis-kit-manager --version` prints it in the terminal and quits
+- **Language**: menus and dialogs follow the interface language
+  ([Preferences](web-editor.md#preferences)); at launch, before the interface
+  gives it, the one saved in `preferences.json`, otherwise the system's.
+  Texts: `desktop/messages.js`.
+- **Version**: shown next to the interface title and in *Help ›
+  About*; `alesis-kit-manager --version` prints it in the terminal and quits
   without opening a window (`npx electron . --version` in development; nothing is
   shown on Windows, where the app has no console). The frozen server
   also has `--version`.
 - **Closing**: with unsaved changes, a box offers
-  *Enregistrer* (into the open file, with the usual `.bak` copy),
-  *Quitter sans enregistrer* (Quit without saving) or *Annuler* (Cancel). A change still waiting
+  *Save* (into the open file, with the usual `.bak` copy),
+  *Quit without saving* or *Cancel*. A change still waiting
   to be sent to the server is counted.
 - **Files**: the server only opens and saves in the user's home folder and
   removable media (see
@@ -323,6 +327,7 @@ The default allowed folders depend on the system (see
 | `desktop/main.js` | main process: server, window, menu, dialog boxes, closing |
 | `desktop/menu.js` | menu template (application menu first on macOS) |
 | `desktop/window-state.js` | window size, position and maximized state, kept from one launch to the next |
+| `desktop/messages.js` | texts of the menus and dialogs, in English and French |
 | `desktop/preload.cjs` | `window.kitManagerDesktop` bridge |
 | `app-names.json` | application names (see [Application names](#application-names)) |
 | `desktop/electron-builder.config.mjs` | electron-builder configuration: .deb package, file types, icon |
@@ -371,15 +376,15 @@ backup.
 |---|---|
 | Installation, then launch from the applications menu ("Alesis Kit Manager" shortcut, Launchpad) | window opened maximized, home screen; app icon; *Restaurer* brings it back to 1400×900 |
 | `--version` (Linux, macOS: `"/Applications/Alesis Kit Manager.app/Contents/MacOS/Alesis Kit Manager" --version`) | `alesis-kit-manager X.Y.Z`, no window |
-| *Aide › À propos*; version next to the title | package version |
-| macOS: application menu (under its name) | *À propos*, *Masquer*, *Masquer les autres*, *Tout afficher*, *Quitter* (`Cmd+Q`); *Fichier* without *Quitter*, no *Aide* menu |
+| *Help › About*; version next to the title | package version |
+| macOS: application menu (under its name) | *About*, *Hide*, *Hide Others*, *Show All*, *Quit* (`Cmd+Q`); *File* without *Quit*, no *Help* menu |
 | Double-click a `.bkf` in the file manager (Explorer, Finder) | the app opens on that file |
 | Double-click a second file, with the app open | opened in the same window |
-| *Fichier › Ouvrir…* (`Ctrl+O`, `Cmd+O` on Mac) | system dialog, `.bkf` / `.fac` filter |
+| *File › Open…* (`Ctrl+O`, `Cmd+O` on Mac) | system dialog, `.bkf` / `.fac` filter |
 | Open a file on a USB stick (`/media`, `/Volumes`, another drive on Windows) | opened; a file outside the [allowed folders](web-editor.md#allowed-folders) is refused with a message |
 | Listen to a user sample (WAV playback) | audible sound, no error |
 | Add a sample by dragging and dropping a `.wav` into the sample chooser | sample added, custom sample count incremented |
-| Edit a kit, *Enregistrer* (`Ctrl+S`) | « À jour » (up to date); `<file>.1.bak` copy of the original |
+| Edit a kit, *Save* (`Ctrl+S`) | “Up to date”; `<file>.1.bak` copy of the original |
 | *Enregistrer sous…* over an existing file | overwrite confirmation by the system dialog |
 | Close the window with changes: *Annuler*, then *Enregistrer* | the window stays open, then the file is saved and the app closes |
 | After closing, remaining processes (`ps`, Task Manager, Activity Monitor) | no `alesis-kit-manager-server` |

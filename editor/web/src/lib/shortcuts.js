@@ -23,7 +23,6 @@ export function shortcut(e) {
   return null;
 }
 
-// Libellés des infobulles.
-export const SHORTCUTS = isMac
-  ? { undo: "⌘Z", redo: "⌘⇧Z ou ⌘Y" }
-  : { undo: "Ctrl+Z", redo: "Ctrl+Y ou Ctrl+Maj+Z" };
+// Libellé d'Annuler dans les infobulles ; celui de Rétablir est traduit
+// (messages.js : redoKeys, redoKeysMac).
+export const SHORTCUTS = { undo: isMac ? "⌘Z" : "Ctrl+Z" };

@@ -5,6 +5,7 @@ import unittest
 
 import strike_kits as sk
 from editor.history import LIMIT, History, changes
+from editor.i18n import set_language
 from tests.outils import REF
 
 
@@ -50,6 +51,8 @@ class Differences(unittest.TestCase):
 
 class Historique(unittest.TestCase):
     def setUp(self):
+        set_language("fr")
+        self.addCleanup(set_language, "en")
         self.b = sk.Backup.open(REF)
         self.clock = Horloge()
         self.h = History(clock=self.clock)
@@ -141,6 +144,16 @@ class Historique(unittest.TestCase):
         self.clock.t = 30
         self.put("032", lambda k: k["slots"][0]["wave_b"]["params"].update(volume=3, pan=2))
         self.assertEqual(self.h.summary()["undo"], "Kit 032 · 2 paramètres")
+
+    def test_libelles_dans_la_langue_de_lecture(self):
+        """Une étape faite en français se lit en anglais après changement de langue."""
+        self.put("032", lambda k: k.update(name="Nom"))
+        self.clock.t = 10
+        self.h.track(self.b, ["031", "032"], lambda: self.b.set_slots_in_kits(["031", "032"], [1], "params.volume", 5))
+        set_language("en")
+        rows = self.h.entries()["entries"]
+        self.assertEqual([r["label"] for r in rows], ["Kit 032 · Kit name", "2 parameters · 2 kits"])
+        self.assertEqual(rows[0]["detail"], "“CrazyInLove” → “Nom”")
 
     def test_limite(self):
         for i in range(LIMIT + 5):

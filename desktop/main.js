@@ -9,7 +9,8 @@
 //
 // Les préférences (preferences.json) sont gérées par le serveur, dans le dossier
 // de configuration de l'application (KITMANAGER_CONFIG) ; la taille et la
-// position de la fenêtre sont gardées ici (window-state.js).
+// position de la fenêtre sont gardées ici (window-state.js). Les menus et les
+// boîtes de dialogue suivent la langue de l'interface (messages.js).
 
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -19,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from "electron";
 
 import { menuTemplate } from "./menu.js";
+import { LANGUAGES, languagePreference, resolveLanguage, translator } from "./messages.js";
 import { fileArgument, serverCommand, serverProblem, startServer } from "./server.js";
 import { readWindowState, windowBounds, writeWindowState } from "./window-state.js";
 
@@ -56,6 +58,10 @@ function run() {
   let quitting = false;
   let lastDir = launchFile ? path.dirname(launchFile) : app.getPath("documents");
   let recent = []; // fichiers récents, donnés par l'interface (préférences)
+  // langue des menus et des boîtes de dialogue : celle de l'interface une fois
+  // chargée ; d'ici là, celle des préférences ou du système (voir whenReady)
+  let lang = "en";
+  let t = translator(lang);
 
   // --- Commandes vers l'interface (menu, fichier à ouvrir, fermeture) --------
   // Envoyées une fois l'interface prête (onCommand) ; chacune attend la réponse.
@@ -103,17 +109,22 @@ function run() {
     recent = files;
     Menu.setApplicationMenu(buildMenu());
   });
+  ipcMain.on("kitmanager:language", (event, value) => {
+    if (!trusted(event) || !LANGUAGES.includes(value) || value === lang) return;
+    setLanguage(value);
+    Menu.setApplicationMenu(buildMenu());
+  });
   // `defaultDir` : dossier du dernier fichier ouvert (préférences), sinon celui
   // de cette session
   ipcMain.handle("kitmanager:open-file", async (event, defaultDir) => {
     if (!trusted(event)) return null;
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-      title: "Ouvrir une sauvegarde",
+      title: t("openTitle"),
       defaultPath: defaultDir || lastDir,
       properties: ["openFile"],
       filters: [
-        { name: "Sauvegardes Strike (.bkf, .fac)", extensions: ["bkf", "fac"] },
-        { name: "Tous les fichiers", extensions: ["*"] },
+        { name: t("backups"), extensions: ["bkf", "fac"] },
+        { name: t("allFiles"), extensions: ["*"] },
       ],
     });
     if (canceled || !filePaths.length) return null;
@@ -124,10 +135,10 @@ function run() {
     if (!trusted(event)) return null;
     const ext = path.extname(defaultPath).slice(1).toLowerCase();
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
-      title: "Enregistrer sous",
+      title: t("saveAsTitle"),
       defaultPath: defaultPath || lastDir,
       properties: ["showOverwriteConfirmation", "createDirectory"],
-      filters: ext ? [{ name: `Sauvegarde .${ext}`, extensions: [ext] }] : [],
+      filters: ext ? [{ name: t("backupExt", { ext }), extensions: [ext] }] : [],
     });
     if (canceled || !filePath) return null;
     lastDir = path.dirname(filePath);
@@ -219,11 +230,9 @@ function run() {
     const { response } = await dialog.showMessageBox(win, {
       type: "warning",
       title: TITLE,
-      message: "Des modifications ne sont pas enregistrées.",
-      detail:
-        "« Enregistrer » les écrit dans le fichier ouvert ; au premier enregistrement, " +
-        "une copie .bak de l'original est conservée.",
-      buttons: ["Enregistrer", "Quitter sans enregistrer", "Annuler"],
+      message: t("unsaved"),
+      detail: t("unsavedDetail"),
+      buttons: [t("saveButton"), t("quitWithoutSaving"), t("cancel")],
       defaultId: 0,
       cancelId: 2,
       noLink: true,
@@ -238,20 +247,25 @@ function run() {
   function about() {
     const options = {
       type: "info",
-      title: `À propos de ${NAMES.short}`,
+      title: t("aboutTitle", { app: NAMES.short }),
       message: NAMES.long,
-      detail: `Version ${NAMES.version}\nÉditeur des kits et des samples de l'Alesis Strike MultiPad.`,
+      detail: t("aboutDetail", { version: NAMES.version }),
       buttons: ["OK"],
     };
     return win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options);
   }
 
   // --- Menu --------------------------------------------------------------------
+  function setLanguage(value) {
+    lang = value;
+    t = translator(lang);
+  }
+
   function buildMenu() {
     const send = (name) => () => win && command(name);
     const openRecent = (file) => () => win && command("open-file", { path: file });
     return Menu.buildFromTemplate(
-      menuTemplate({ platform: process.platform, appName: NAMES.short, about, send, recent, openRecent }),
+      menuTemplate({ platform: process.platform, appName: NAMES.short, about, send, recent, openRecent, lang }),
     );
   }
 
@@ -273,6 +287,7 @@ function run() {
   });
 
   app.whenReady().then(async () => {
+    setLanguage(resolveLanguage(languagePreference(path.join(app.getPath("userData"), "preferences.json")), app.getLocale()));
     Menu.setApplicationMenu(buildMenu());
     const launch = serverCommand({
       projectDir: PROJECT,
@@ -280,7 +295,7 @@ function run() {
       resourcesPath: process.resourcesPath,
       serverName: `${NAMES.id}-server`,
     });
-    const problem = serverProblem(launch);
+    const problem = serverProblem({ ...launch, t });
     if (problem) {
       dialog.showErrorBox(TITLE, problem);
       app.quit();
@@ -289,9 +304,9 @@ function run() {
     try {
       // préférences dans le dossier de configuration d'Electron
       const env = { ...process.env, KITMANAGER_CONFIG: app.getPath("userData") };
-      server = await startServer({ ...launch, token, env });
+      server = await startServer({ ...launch, token, env, t });
     } catch (err) {
-      dialog.showErrorBox(TITLE, `Le serveur de l'éditeur n'a pas pu démarrer : ${err.message}`);
+      dialog.showErrorBox(TITLE, t("serverFailed", { reason: err.message }));
       app.quit();
       return;
     }
@@ -299,7 +314,7 @@ function run() {
     server.exited.then((code) => {
       serverStopped = true;
       if (quitting) return;
-      dialog.showErrorBox(TITLE, `Le serveur de l'éditeur s'est arrêté (${code}). L'application va se fermer.`);
+      dialog.showErrorBox(TITLE, t("serverStopped", { code }));
       win?.destroy(); // sans serveur, rien ne peut plus être enregistré
       app.quit();
     });

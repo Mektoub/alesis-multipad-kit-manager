@@ -5,7 +5,10 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { translator } from "../messages.js";
 import { fileArgument, pythonCommand, readyPort, serverCommand, serverProblem, startServer } from "../server.js";
+
+const fr = translator("fr");
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const project = path.resolve(here, "..", "..");
@@ -18,6 +21,7 @@ function startFake(mode, options = {}) {
     token: "jeton",
     env: { ...process.env, FAKE_MODE: mode, FAKE_TOKEN: "jeton" },
     timeoutMs: 2000,
+    t: fr,
     ...options,
   });
 }
@@ -82,7 +86,7 @@ describe("serveur à lancer", () => {
 });
 
 describe("serveur impossible à lancer", () => {
-  const dev = { command: "/p/.venv/bin/python", cwd: "/p" };
+  const dev = { command: "/p/.venv/bin/python", cwd: "/p", t: fr };
   const only = (...paths) => (p) => paths.includes(p);
   it("développement prêt", () => {
     assert.equal(serverProblem({ ...dev, exists: only(dev.command, "/p/editor/web/dist/index.html") }), null);
@@ -94,7 +98,8 @@ describe("serveur impossible à lancer", () => {
     assert.match(serverProblem({ ...dev, exists: only(dev.command) }), /Interface non construite.*\.\/dev\.sh start/);
   });
   it("serveur figé absent", () => {
-    assert.equal(serverProblem({ command: "/b/app-server", exists: only() }), "Serveur introuvable : /b/app-server.");
+    assert.equal(serverProblem({ command: "/b/app-server", exists: only(), t: fr }), "Serveur introuvable : /b/app-server.");
+    assert.equal(serverProblem({ command: "/b/app-server", exists: only() }), "Server not found: /b/app-server.");
     assert.equal(serverProblem({ command: "/b/app-server", exists: only("/b/app-server") }), null);
   });
 });

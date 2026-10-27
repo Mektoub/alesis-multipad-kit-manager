@@ -60,7 +60,7 @@ The server only opens and saves backups in:
 
 Paths are resolved before the check: a symbolic link placed in the home folder
 cannot be used to reach a file outside it. A path outside these folders is
-refused (error 403, « hors des dossiers autorisés », outside the allowed folders);
+refused (error 403, “outside the allowed folders”);
 so is the backup passed at launch, in which case the server exits with code 2.
 Since the `.bak` copy is written next to the open file, it stays within the area.
 The desktop app uses the default area.
@@ -74,7 +74,7 @@ machine therefore cannot drive the editor, which reads and writes files.
 - **Local launch**: a token is created at each launch and passed to the
   browser in the address (`#token=…`). The interface keeps it for the tab, which
   allows the page to be reloaded, and removes it from the displayed address. A page
-  opened without it shows « Accès refusé » (Access denied).
+  opened without it shows “Access denied”.
 - **Electron app**: the token is given by the `KITMANAGER_TOKEN` environment
   variable. Once listening, the server then writes a `{"ready": true, "port": N}`
   line to its standard output, useful with `--port 0`.
@@ -93,22 +93,22 @@ cd editor/web && npm ci && npm run build && cd ../..
 
 ## Usage
 
-![Web editor: kit list, grid of the 9 pads and settings of the selected pad](../images/overview.png)
+![Web editor: kit list, grid of the 9 pads and settings of the selected pad](../images/en/overview.png)
 
 1. **Open**: the backup passed at launch is already open. To open another
-   one, enter its full path at the top, then click *Ouvrir* (Open).
-   In the desktop app, *Ouvrir…* (Open…) and *Enregistrer sous…* (Save as…) use the
+   one, enter its full path at the top, then click *Open*.
+   In the desktop app, *Open…* and *Save as…* use the
    system dialogs, and only the name of the open file is displayed.
    The ▾ chevron next to it lists the last 10 files opened or saved; in the
    browser, the field suggests the most recent one at launch.
-2. **Choose a kit** in the left column (empty kits are hidden by default; uncheck *masquer les vides* (hide empty ones) to see them, for example to drop a kit onto one; this choice is remembered, see [Preferences](#preferences)).
+2. **Choose a kit** in the left column (empty kits are hidden by default; uncheck *hide empty* to see them, for example to drop a kit onto one; this choice is remembered, see [Preferences](#preferences)).
 3. **Set up the kit**: name, volume, tempo.
 4. **Choose a pad** in the grid of 9 pads, laid out as on the device (7-8-9 at the top,
    4-5-6 in the middle, 1-2-3 at the bottom). It shows the sample, the LED color and,
    if the pad has a Mode (Control), a badge ("Click" for Click On/Off). Below the grid
    are the identified rear inputs (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1,
    4/5, HH, in that order); the other slots (10 to 24) are shown through the
-   *afficher les emplacements non identifiés* (show unidentified slots) link.
+   *show the unidentified slots* link.
 5. **Set up the pad**:
    - pad sections, as on the device: *Feel* (Sensitivity, Curve, Threshold,
      Fixed Level), *Control* (Mode, Sound), *Output* (Audio Output, Kit FX Level,
@@ -123,41 +123,41 @@ cd editor/web && npm ci && npm run build && cd ../..
    slot, Sensitivity at 16 on P1–P6 but 24 on the small pads P7–P9. For
    an unidentified parameter, the tooltip also gives its range and, where applicable,
    a lead.
-6. **Copy a pad**: *Copier vers…* (Copy to…) (at the top of the pad settings) copies its
+6. **Copy a pad**: *Copy to…* (at the top of the pad settings) copies its
    settings to one or more other slots. You choose the sections (pad,
    lighting, wave A, wave B) and whether the MIDI note follows; by default, each pad keeps
    its own. A field missing from the target is not copied and is listed in the
    confirmation message.
 
-   ![Copier vers… (Copy to…) window](../images/copy-dialog.png)
+   ![Copy to… window](../images/en/copy-dialog.png)
 
-   *Valeurs par défaut…* (Default values…) (next to it) resets settings to the values of an empty kit
+   *Default values…* (next to it) resets settings to the values of an empty kit
    from the device, specific to each slot (MIDI note, Sensitivity, lighting…).
    You choose the slots (the displayed pad is preselected) and the
    sections: Feel, Control, Output, Light and Group for the pad, Mode and Mix for
-   each wave, *Sample (retirer)* (Sample (remove)) to also remove the sample. No section
-   is checked initially; *toutes les sections* (all sections) checks them all, except
+   each wave, *Sample (remove)* to also remove the sample. No section
+   is checked initially; *all sections* checks them all, except
    sample removal.
    Unidentified parameters are left untouched.
 
-   ![Valeurs par défaut… (Default values…) window](../images/reset-dialog.png)
+   ![Default values… window](../images/en/reset-dialog.png)
 
-7. **Edit several pads**: *Modifier plusieurs pads…* (Edit several pads…) (at the top of the
+7. **Edit several pads**: *Edit several pads…* (at the top of the
    pad settings) gives the same value to a setting on a selection of pads, for
    example Sensitivity = 20 on P1, P3, P5 and P9. You choose the setting (pad,
    lighting, velocity or mix of a wave), the value, bounded by its range, then
    the pads. The suggested value is that of the current pad. The *Kits* section
    applies the same value to the **same pads in several kits** (current kit
-   checked by default, *kits non vides* (non-empty kits) shortcut). The operation is all or nothing:
+   checked by default, *non-empty kits* shortcut). The operation is all or nothing:
    if one kit rejects the value, none is modified.
 
-   ![Modifier plusieurs pads… (Edit several pads…) window](../images/bulk-edit-dialog.png)
+   ![Edit several pads… window](../images/en/bulk-edit-dialog.png)
 
-8. **Move or duplicate a kit**: *Déplacer / copier le kit…* (Move / copy kit…) (next to the tempo)
-   - *Déplacer / échanger* (Move / swap): the kit goes to the chosen number. If that kit is empty, it is
+8. **Move or duplicate a kit**: *Move / copy kit…* (next to the tempo)
+   - *Move / swap*: the kit goes to the chosen number. If that kit is empty, it is
      a move (the original number becomes empty); otherwise the two kits are
      swapped;
-   - *Copier (dupliquer)* (Copy (duplicate)): a copy of the kit replaces the chosen kit, after
+   - *Copy (duplicate)*: a copy of the kit replaces the chosen kit, after
      confirmation if that one is not empty.
 
    A kit does not contain its own number: the operation copies its bytes as
@@ -168,32 +168,32 @@ cd editor/web && npm ci && npm run build && cd ../..
    takes the place of the kit it is dropped on (a line shows where), and the kits
    in between shift by one position, as in a list.
 
-   ![Déplacer / copier le kit… (Move / copy kit…) window](../images/kit-transfer-dialog.png)
+   ![Move / copy kit… window](../images/en/kit-transfer-dialog.png)
 
-   *Supprimer le kit…* (Delete kit…) (next to it) replaces the kit, after confirmation, with the empty
+   *Delete kit…* (next to it) replaces the kit, after confirmation, with the empty
    kit written by the device: name "Empty", volume 100, 120 BPM, default
    settings, no sample. User samples remain in the backup. The
    button is grayed out on a kit that is already empty.
 9. **Choose a sample**: the sample button opens a window for searching by name
-   or by id, with a *Mes samples / Usine* (My samples / Factory) filter. The ▶ button plays a user
+   or by id, with a *My samples / Factory* filter. The ▶ button plays a user
    sample. The bottom area adds a WAV by drag and drop
    (see [Adding a sample](adding-a-sample.md)).
 
-   ![Sample selection window](../images/sample-picker.png)
+   ![Sample selection window](../images/en/sample-picker.png)
 
-10. ***Enregistrer*** (Save) writes to the open file. On the first save of
+10. ***Save*** writes to the open file. On the first save of
    each session to an original file, its previous state is copied to
    `<file>.N.bak` (`Backup001.bkf.1.bak`, then `.2.bak` in the next session):
-   nothing is lost. ***Enregistrer sous*** (Save as) writes to another file (the next
+   nothing is lost. ***Save as*** writes to another file (the next
    name is suggested, `Backup003.bkf` after `Backup002.bkf`), which becomes the
    open file; if that file exists, confirmation is requested.
-   ***Recharger*** (Reload) rereads the open file and discards all unsaved
+   ***Reload*** rereads the open file and discards all unsaved
    changes, after confirmation if there are any; the displayed kit stays the same.
 11. **Undo / Redo**: the ↶ ↷ buttons and the ▾ list in the header (see below).
 
 Each change is sent to the server and validated immediately. A rejected value
 (out of range, for example) shows a message and the kit returns to its last
-valid state. Changes stay in memory until *Enregistrer*. The
+valid state. Changes stay in memory until *Save*. The
 browser warns you if you leave the page with unsaved changes.
 
 Then load the produced file onto the device as described in
@@ -203,21 +203,21 @@ Then load the produced file onto the device as described in
 
 The ↶ and ↷ buttons in the header undo and redo parameter changes, one
 action at a time; their tooltip and the displayed message name the
-action (« Kit 032 · P1 · Volume », « Sensitivity · 3 kits »).
+action (“Kit 032 · P1 · Volume”, “Sensitivity · 3 kits”).
 
 The ▾ chevron next to them shows the **history**: actions from most recent to
 oldest, with the old and new value when an action changes only one
-parameter (« 90 → 50 », « Normal → Exp2 »). The current position
+parameter (“90 → 50”, “Normal → Exp2”). The current position
 is marked; undone actions, which can still be redone, are grayed out above it;
-the *Enregistré* (Saved) marker shows the state of the last save. Clicking a
+the *Saved* marker shows the state of the last save. Clicking a
 row returns to it in one go (undoing or redoing the actions in
-between); the last row, *Ouverture du fichier* (File opened) (or *Début de
-l'historique* (Start of history) when the history has been cleared), undoes everything.
+between); the last row, *File opened* (or *Start of
+history* when the history has been cleared), undoes everything.
 
-![History list under the ▾ chevron](../images/history-menu.png)
+![History list under the ▾ chevron](../images/en/history-menu.png)
 
 - **Shortcuts**: `Ctrl+Z` undoes, `Ctrl+Y` or `Ctrl+Shift+Z` redoes (`Cmd` on
-  macOS); in the desktop app, also *Édition › Annuler / Rétablir* (Edit › Undo / Redo).
+  macOS); in the desktop app, also *Edit › Undo / Redo*.
   In a text field (kit name, value), they undo typing, as
   everywhere; once outside the field, they undo changes.
 - **One step per action**: a changed setting, a settings copy, default
@@ -226,36 +226,37 @@ l'historique* (Start of history) when the history has been cleared), undoes ever
   name being typed) make up a single step.
 - **Outside the history**: moving, transferring (copying, swapping) or deleting a
   kit replaces whole kits and clears the history. If there are actions left to
-  undo or redo, an alert offers *Annuler* (Cancel: give up the action),
-  *Enregistrer et continuer* (Save and continue) or *Continuer* (Continue); unsaved changes
+  undo or redo, an alert offers *Cancel* (give up the action),
+  *Save and continue* or *Continue*; unsaved changes
   are kept in every case. Adding a sample cannot be undone either,
   but keeps the history: the sample stays in the backup.
 
-  ![Warning before an action outside the history](../images/history-alert.png)
+  ![Warning before an action outside the history](../images/en/history-alert.png)
 
-- **Saved state**: undoing back to the last save shows « À jour » (Up to date) again.
-  Opening a file or *Recharger* clears the history.
+- **Saved state**: undoing back to the last save shows “Up to date” again.
+  Opening a file or *Reload* clears the history.
 - **Size**: the last 100 actions by default; older ones are forgotten. The size
   can be set from 10 to 1000 in the [Preferences](#preferences).
 
 ### Preferences
 
-The ⚙ button at the top right (in the desktop app, also *Édition ›
-Préférences…* (Edit › Preferences…), `Ctrl+,`; on macOS, in the application
+The ⚙ button at the top right (in the desktop app, also *Edit ›
+Preferences…*, `Ctrl+,`; on macOS, in the application
 menu) opens the preferences window. Each setting is applied and saved at once:
 
-![Preferences window](../images/preferences-dialog.png)
+![Preferences window](../images/en/preferences-dialog.png)
 
 | Preference | Default | Effect |
 |---|---|---|
-| *Thème* (Theme) | *Système* (System) | *Clair* (Light) or *Sombre* (Dark) sets the theme; *Système* follows the system setting |
-| *Masquer les kits vides* (Hide empty kits) | yes | same setting as *masquer les vides* above the kit list |
-| *Rouvrir la dernière sauvegarde au lancement* (Reopen the last backup at launch) | no | when no file is passed at launch, reopens the most recent of the recent files (nothing if it can no longer be read) |
-| Recent files | — | the last 10 files opened or saved under another name; *Effacer la liste* (Clear list) forgets them |
+| *Theme* | *System* | *Light* or *Dark* sets the theme; *System* follows the system setting |
+| *Language* | *System* | *English* or *Français*: language of the interface, of the desktop app's menus and dialogs, and of the server's messages (errors, history, tooltips); *System* follows the system language (French if it is French, English otherwise). Pad parameter names and values stay in English, as on the device |
+| *Hide empty kits in the list* | yes | same setting as *hide empty* above the kit list |
+| *Reopen the last backup at launch* | no | when no file is passed at launch, reopens the most recent of the recent files (nothing if it can no longer be read) |
+| Recent files | — | the last 10 files opened or saved under another name; *Clear the list* forgets them |
 | History size | 100 | steps kept for [Undo / Redo](#undo--redo), from 10 to 1000; reducing it forgets the oldest ones at once |
 
 The folder of the last opened file is remembered too: the desktop app's
-« Ouvrir » (Open) dialog starts there. The desktop app also remembers the size,
+*Open* dialog starts there. The desktop app also remembers the size,
 position and maximized state of its window (see
 [Desktop app](desktop-app.md#how-it-works)).
 
@@ -275,7 +276,9 @@ an invalid value, is ignored: the default value applies.
 ## API
 
 The server exposes a JSON API, which can also be used from a script; every request
-carries the `X-KitManager-Token` header, and file paths are absolute:
+carries the `X-KitManager-Token` header, and file paths are absolute.
+The `X-KitManager-Language` header (`en` or `fr`, English by default) picks the
+language of error messages, history labels and tooltips:
 
 | Method | Route | Purpose |
 |---|---|---|
@@ -293,7 +296,7 @@ carries the `X-KitManager-Token` header, and file paths are absolute:
 | GET | `/api/samples` | sample catalog |
 | GET | `/api/samples/{id}/wav` | WAV of a user sample |
 | POST | `/api/samples` | add a WAV (multipart form, `file` field) |
-| POST | `/api/undo` / `/api/redo` | undo / redo the last action in the history; returns the state, `done` (action label), `detail` (« 90 → 50 », empty if the action changes several parameters) and `changed` (modified kits); 409 if there is nothing to undo or redo |
+| POST | `/api/undo` / `/api/redo` | undo / redo the last action in the history; returns the state, `done` (action label), `detail` (“90 → 50”, empty if the action changes several parameters) and `changed` (modified kits); 409 if there is nothing to undo or redo |
 | GET | `/api/history` | history actions, from oldest to most recent (`entries`: `id`, `label`, `detail`, `done` done or undone); `base`: id of the state before the oldest one, `position`: last action done, `saved`: action of the last save (`null` if the saved state can no longer be reached) |
 | POST | `/api/history/goto` | return to an action (`{"id": 12}`, or `base` to undo everything); returns the state and `changed`; 404 if the action is not in the history |
 | GET / PATCH | `/api/preferences` | read / change the [preferences](#preferences) (`{"theme": "dark", "history_limit": 200}`; keys: `theme`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`); 400 if a key or value is invalid, nothing is changed then |
@@ -322,10 +325,11 @@ The interface switches to desktop mode when the Electron app exposes the
 | Member | Purpose |
 |---|---|
 | `token` | server token, sent in the `X-KitManager-Token` header |
-| `openFile(defaultDir)` | native « Ouvrir » (Open) dialog, in the folder of the last opened file; returns a promise of the chosen absolute path, or `null` |
-| `saveFile(defaultPath)` | native « Enregistrer sous » (Save as) dialog, opened on the next name; returns the path or `null`. The dialog itself confirms overwriting an existing file |
+| `openFile(defaultDir)` | native *Open* dialog, in the folder of the last opened file; returns a promise of the chosen absolute path, or `null` |
+| `saveFile(defaultPath)` | native *Save as* dialog, opened on the next name; returns the path or `null`. The dialog itself confirms overwriting an existing file |
 | `setDirty(dirty)` | called on every change of the "unsaved changes" state, so that the app confirms closing the window |
-| `setRecent(files)` | recent files, for the *Fichier › Ouvrir récent* (File › Open recent) menu |
+| `setRecent(files)` | recent files, for the *File › Open Recent* menu |
+| `setLanguage(lang)` | interface language (`en` or `fr`), for the menus and dialogs of the app |
 | `onCommand(handler)` | receives commands from the app, `{ command, path? }`; the value returned by `handler` is the response: `open`, `save`, `save-as` (File menu), `open-file` (file passed at launch, or recent file), `preferences` (preferences window), `clear-recent` (clear the recent files), `prepare-close` (→ `{ dirty }`, after sending pending changes), `save-before-close` (→ `{ saved }`) |
 
 In desktop mode, the interface does not block closing the page

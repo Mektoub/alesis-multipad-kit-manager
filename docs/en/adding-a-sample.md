@@ -14,7 +14,7 @@ refused with a message stating the format received.
 ## With the web editor
 
 In the sample selection window (the sample button of a wave), drag and drop
-the file onto the *Ajouter un WAV* (Add a WAV) area or click it. The sample is
+the file onto the *Add a WAV* area or click it. The sample is
 added, then selected for the current wave. See [Web editor](web-editor.md).
 
 ## From the command line

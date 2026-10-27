@@ -2,6 +2,8 @@
   // Alerte avant une action hors historique (déplacer, transférer ou supprimer un
   // kit) quand des modifications peuvent encore être annulées ou rétablies :
   // l'action viderait l'historique. `onchoose` reçoit "cancel", "save" ou "continue".
+  import { t } from "./locale.svelte.js";
+
   let { question, onchoose } = $props();
 
   function onkeydown(e) {
@@ -12,16 +14,13 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onchoose("cancel")}>
-  <div class="dialog" role="alertdialog" aria-modal="true" aria-label="Historique des modifications">
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-label={t("historyTitle")}>
     <p><strong>{question}</strong></p>
-    <p class="muted">
-      Cette action ne peut pas être annulée et vide l'historique des modifications : Annuler et Rétablir ne
-      pourront plus revenir avant elle. Les modifications non enregistrées sont conservées.
-    </p>
+    <p class="muted">{t("historyAlert")}</p>
     <footer>
-      <button onclick={() => onchoose("cancel")}>Annuler</button>
-      <button onclick={() => onchoose("save")}>Enregistrer et continuer</button>
-      <button class="primary" onclick={() => onchoose("continue")}>Continuer</button>
+      <button onclick={() => onchoose("cancel")}>{t("cancel")}</button>
+      <button onclick={() => onchoose("save")}>{t("saveAndContinue")}</button>
+      <button class="primary" onclick={() => onchoose("continue")}>{t("continue")}</button>
     </footer>
   </div>
 </div>
