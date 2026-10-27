@@ -11,6 +11,9 @@
   import SamplePicker from "./lib/SamplePicker.svelte";
   import HistoryAlert from "./lib/HistoryAlert.svelte";
   import HistoryMenu from "./lib/HistoryMenu.svelte";
+  import PreferencesDialog from "./lib/PreferencesDialog.svelte";
+  import RecentMenu from "./lib/RecentMenu.svelte";
+  import { applyTheme } from "./lib/theme.js";
   import { SHORTCUTS, isTextField, shortcut } from "./lib/shortcuts.js";
 
   let meta = $state(null);
@@ -19,7 +22,7 @@
   let currentNum = $state(null);
   let kit = $state(null);
   let selected = $state(0);
-  let hideEmpty = $state(true); // kits vides masqués par défaut (le kit affiché reste visible)
+  let prefs = $state(null); // préférences de l'utilisateur (GET /api/preferences)
   let error = $state("");
   let notice = $state("");
   let picking = $state(null); // "wave_a" | "wave_b" | null
@@ -35,12 +38,17 @@
   let openPath = $state(""); // chemin absolu de la sauvegarde à ouvrir
   let historyList = $state(null); // liste déroulante de l'historique (GET /api/history), ouverte
   let historyAlert = $state(null); // { question, resolve } : alerte avant une action hors historique
+  let prefsOpen = $state(false); // fenêtre Préférences
+  let recentOpen = $state(false); // liste déroulante des fichiers récents
 
   let fileName = $derived(session?.path?.split(/[\\/]/).pop() ?? "");
   // libellés des dernières étapes à annuler et à rétablir (editor/history.py)
   let canUndo = $derived(Boolean(session?.history?.undo));
   let canRedo = $derived(Boolean(session?.history?.redo));
   let sampleIndex = $derived(new Map(samples.map((s) => [s.id, s])));
+  // kits vides masqués par défaut (le kit affiché reste visible)
+  let hideEmpty = $derived(prefs?.hide_empty ?? true);
+  let recentFiles = $derived(prefs?.recent_files ?? []);
   let visibleKits = $derived(
     (session?.kits ?? []).filter((k) => !hideEmpty || k.name !== "Empty" || k.num === currentNum),
   );
@@ -58,6 +66,27 @@
   $effect(() => {
     desktop?.setDirty(Boolean(session?.dirty));
   });
+
+  $effect(() => applyTheme(prefs?.theme ?? "system"));
+
+  // Mode bureau : menu Fichier › Ouvrir récent
+  $effect(() => {
+    desktop?.setRecent(recentFiles);
+  });
+
+  // Enregistre des préférences ; l'erreur remonte à l'appelant.
+  async function setPrefs(changes) {
+    prefs = await api.setPreferences(changes);
+  }
+
+  // Après une ouverture ou un enregistrement : fichiers récents mis à jour par le serveur.
+  async function refreshPrefs() {
+    try {
+      prefs = await api.preferences();
+    } catch {
+      // sans conséquence : la liste sera relue plus tard
+    }
+  }
 
   // Synchronisation : chaque modification du kit est envoyée au serveur après
   // un court délai ; la réponse (kit relu) remplace la copie locale.
@@ -292,6 +321,7 @@
     if (!name || isTextField(document.activeElement)) return;
     if (desktop && e.metaKey && e.key.toLowerCase() === "z") return;
     if (copyFrom || resetFrom || bulkFrom || transferring || picking || historyAlert || historyList) return;
+    if (prefsOpen || recentOpen) return;
     e.preventDefault();
     step(name);
   }
@@ -314,9 +344,11 @@
 
   async function openBackup(path, force = false) {
     error = notice = "";
+    recentOpen = false;
     try {
       if (!force) await flush(); // la dernière modification compte pour le serveur
       session = await api.open(path, force);
+      await refreshPrefs();
       openPath = session.path;
       samples = await api.samples();
       savePath = nextName(session.path);
@@ -356,6 +388,7 @@
     try {
       await flush(); // la dernière modification compte
       session = await api.save(path, overwrite);
+      if (path != null) await refreshPrefs(); // « Enregistrer sous » : nouveau fichier récent
       openPath = session.path; // « Enregistrer sous » : le nouveau fichier devient le fichier ouvert
       notice = `Enregistré dans ${session.path}`;
       savePath = nextName(session.path);
@@ -369,7 +402,7 @@
 
   // Mode bureau : boîtes de dialogue natives.
   async function openDialog() {
-    const path = await desktop.openFile();
+    const path = await desktop.openFile(prefs?.last_dir);
     if (path) await openBackup(path);
   }
 
@@ -397,6 +430,12 @@
         // menu Édition : dans un champ de saisie, annulation de la frappe
         if (isTextField(document.activeElement)) document.execCommand(command);
         else await step(command);
+        return null;
+      case "preferences":
+        prefsOpen = true;
+        return null;
+      case "clear-recent":
+        await setPrefs({ recent_files: [] }).catch((err) => (error = err.message));
         return null;
       case "prepare-close":
         await flush();
@@ -429,7 +468,9 @@
 
   onMount(async () => {
     try {
-      [meta, session] = await Promise.all([api.meta(), api.state()]);
+      [meta, session, prefs] = await Promise.all([api.meta(), api.state(), api.preferences()]);
+      // navigateur : chemin proposé, la dernière sauvegarde ouverte
+      openPath = recentFiles[0] ?? "";
       if (session.path) {
         openPath = session.path;
         samples = await api.samples();
@@ -457,11 +498,18 @@
   <div class="open">
     {#if desktop}
       <button onclick={openDialog}>Ouvrir…</button>
-      {#if session?.path}<span class="file" title={session.path}>{fileName}</span>{/if}
     {:else}
       <input type="text" bind:value={openPath} placeholder="/chemin/vers/Backup001.bkf" aria-label="Sauvegarde à ouvrir (chemin absolu)" />
       <button onclick={() => openBackup(openPath.trim())} disabled={!openPath.trim()}>Ouvrir</button>
     {/if}
+    <span class="recent">
+      <button class="icon chevron" onclick={() => (recentOpen = !recentOpen)} disabled={!recentFiles.length}
+        aria-label="Fichiers récents" aria-expanded={recentOpen} title="Fichiers récents">▾</button>
+      {#if recentOpen}
+        <RecentMenu files={recentFiles} onselect={(path) => openBackup(path)} onclose={() => (recentOpen = false)} />
+      {/if}
+    </span>
+    {#if desktop && session?.path}<span class="file" title={session.path}>{fileName}</span>{/if}
   </div>
   {#if session?.path}
     <div class="save">
@@ -489,6 +537,8 @@
       {/if}
     </div>
   {/if}
+  <button class="icon prefs" class:alone={!session?.path} onclick={() => (prefsOpen = true)} aria-label="Préférences"
+    title="Préférences">⚙</button>
 </header>
 
 <!-- Messages en toasts (en haut, au milieu, au-dessus des fenêtres) : les erreurs
@@ -511,7 +561,8 @@
     <aside>
       <div class="aside-head">
         <h2>Kits</h2>
-        <label class="muted"><input type="checkbox" bind:checked={hideEmpty} /> masquer les vides</label>
+        <label class="muted"><input type="checkbox" checked={hideEmpty}
+          onchange={(e) => setPrefs({ hide_empty: e.target.checked }).catch((err) => (error = err.message))} /> masquer les vides</label>
       </div>
       <p class="muted info">{session.path} · {session.kind} · {session.user_samples} sample(s) perso</p>
       <ul>
@@ -573,6 +624,10 @@
 
 {#if transferring && kit}
   <KitTransferDialog kits={session.kits} source={currentNum} ontransfer={transferKit} onclose={() => (transferring = false)} />
+{/if}
+
+{#if prefsOpen && prefs}
+  <PreferencesDialog {prefs} onchange={setPrefs} onclose={() => (prefsOpen = false)} />
 {/if}
 
 {#if historyAlert}
@@ -639,8 +694,12 @@
   .status.dirty {
     color: var(--accent);
   }
-  .history {
+  .history,
+  .recent {
     position: relative;
+  }
+  .prefs.alone {
+    margin-left: auto;
   }
   .chevron {
     margin-left: -6px;

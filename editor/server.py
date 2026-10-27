@@ -8,6 +8,8 @@ autorisés : le dossier personnel, les supports amovibles de l'utilisateur et le
 dossiers ajoutés au lancement (--allow), chemins résolus.
 « Enregistrer » écrit dans le fichier ouvert ; au premier enregistrement d'une
 session sur un fichier d'origine, son état précédent est copié dans <fichier>.N.bak.
+Les préférences de l'utilisateur (editor/preferences.py) sont servies par
+/api/preferences.
 """
 
 import getpass
@@ -29,6 +31,7 @@ from pydantic import BaseModel
 import strike_kits as sk
 from editor.history import History
 from editor.meta import TITLES, meta
+from editor.preferences import Preferences
 
 WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
 # noms et version de l'application (à la racine du dépôt ; à côté du paquet editor/ une fois figé)
@@ -113,13 +116,14 @@ def next_backup_path(path):
 
 
 class Session:
-    def __init__(self, roots):
+    def __init__(self, roots, preferences):
         self.roots = roots  # dossiers autorisés, résolus
+        self.preferences = preferences
         self.backup = None
         self.file = None  # fichier ouvert (chemin absolu)
         self.original = False  # le fichier ouvert n'a pas été écrit par l'éditeur
         self.backed_up = False  # copie .bak déjà faite pour cette session
-        self.history = History()  # annuler / rétablir (editor/history.py)
+        self.history = self.new_history()  # annuler / rétablir (editor/history.py)
         self.lock = threading.Lock()
 
     def resolve(self, path):
@@ -143,9 +147,13 @@ class Session:
             raise HTTPException(409, "aucune sauvegarde ouverte")
         return self.backup
 
+    def new_history(self):
+        return History(limit=self.preferences["history_limit"])
+
     def set_opened(self, backup, path):
         self.backup, self.file, self.original, self.backed_up = backup, path, True, False
-        self.history = History()
+        self.history = self.new_history()
+        self.preferences.opened(path)
 
     def state(self):
         if self.backup is None:
@@ -199,15 +207,25 @@ def strike_errors(fn):
         raise HTTPException(400, str(exc)) from exc
 
 
-def create_app(token, open_file=None, allow=()):
+def create_app(token, open_file=None, allow=(), preferences=None):
     """`token` : jeton exigé sur /api/* ; `open_file` : sauvegarde ouverte au
-    démarrage ; `allow` : dossiers autorisés en plus de la zone par défaut."""
+    démarrage ; `allow` : dossiers autorisés en plus de la zone par défaut ;
+    `preferences` : Preferences de l'utilisateur (par défaut, en mémoire).
+
+    Sans `open_file`, la dernière sauvegarde est rouverte si la préférence
+    reopen_last le demande (rien si elle n'est plus lisible)."""
     if not token:
         raise ValueError("un jeton est obligatoire")
-    s = Session([Path(r).resolve() for r in [*default_roots(), *allow]])
+    s = Session([Path(r).resolve() for r in [*default_roots(), *allow]], preferences or Preferences())
     if open_file is not None:
         path = Path(open_file)
         s.set_opened(load_backup(path, s.roots), path.resolve())
+    elif s.preferences["reopen_last"] and s.preferences["recent_files"]:
+        path = Path(s.preferences["recent_files"][0])
+        try:
+            s.set_opened(load_backup(path, s.roots), path.resolve())
+        except sk.StrikeError:
+            pass
     app = FastAPI(title=APP_NAMES["long"], version=APP_NAMES["version"])
 
     @app.middleware("http")
@@ -383,9 +401,26 @@ def create_app(token, open_file=None, allow=()):
             path.write_bytes(data)
             if not same:
                 s.file, s.original = path, False
+                s.preferences.opened(path)
             b.dirty = False
             s.history.mark_saved()
             return s.state()
+
+    @app.get("/api/preferences")
+    def get_preferences():
+        with s.lock:
+            return s.preferences.get()
+
+    @app.patch("/api/preferences")
+    def patch_preferences(changes: dict):
+        """Modifie les préférences données (toutes valides, ou aucune : 400)."""
+        with s.lock:
+            try:
+                values = s.preferences.update(changes)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from None
+            s.history.set_limit(values["history_limit"])
+            return values
 
     def step(name):
         with s.lock:

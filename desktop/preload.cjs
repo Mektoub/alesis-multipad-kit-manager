@@ -5,9 +5,10 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("kitManagerDesktop", {
   token: ipcRenderer.sendSync("kitmanager:token"),
-  openFile: () => ipcRenderer.invoke("kitmanager:open-file"),
+  openFile: (defaultDir) => ipcRenderer.invoke("kitmanager:open-file", String(defaultDir ?? "")),
   saveFile: (defaultPath) => ipcRenderer.invoke("kitmanager:save-file", String(defaultPath ?? "")),
   setDirty: (dirty) => ipcRenderer.send("kitmanager:dirty", Boolean(dirty)),
+  setRecent: (files) => ipcRenderer.send("kitmanager:recent", Array.from(files ?? [], String)),
   // Commandes du menu et de l'application ({ command, path? }) ; la valeur
   // renvoyée par `handler` (éventuellement une promesse) est transmise en réponse.
   onCommand: (handler) => {
