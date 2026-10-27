@@ -14,12 +14,13 @@ if (import.meta.env.DEV) {
     if (sessionStorage.getItem(KEY)) {
       window.kitManagerDesktop = {
         // pas de jeton : api.js le lit dans l'adresse, comme en lancement local
-        openFile: async () => prompt("[bouchon] Ouvrir : chemin absolu") || null,
+        openFile: async (defaultDir) => prompt("[bouchon] Ouvrir : chemin absolu", defaultDir) || null,
         saveFile: async (defaultPath) => prompt("[bouchon] Enregistrer sous : chemin absolu", defaultPath) || null,
         setDirty: (dirty) => {
           console.info(`[bouchon] setDirty(${dirty})`);
           document.title = `${dirty ? "● " : ""}${__APP_NAMES__.long}`;
         },
+        setRecent: (files) => console.info("[bouchon] setRecent", files),
         onCommand: (handler) => {
           window.kitManagerFakeCommand = (command, path) => handler({ command, path });
         },

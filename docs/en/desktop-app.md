@@ -270,7 +270,8 @@ The default allowed folders depend on the system (see
 
 - **Server**: the app starts the server (`python -m editor` or the frozen
   server) with `--port 0 --watch-stdin`
-  and a random token (`KITMANAGER_TOKEN`), waits for the line
+  and a random token (`KITMANAGER_TOKEN`) and its configuration folder
+  (`KITMANAGER_CONFIG`, where the server keeps the preferences), waits for the line
   `{"ready": true, "port": N}` (30 s at most), then opens the window on
   `http://127.0.0.1:N`. If the server does not start, an error box shows
   the end of its error output.
@@ -278,18 +279,22 @@ The default allowed folders depend on the system (see
   the server stops (then `SIGTERM`, `SIGKILL` if needed). If the app crashes,
   standard input is closed too: the server does not outlive it. If the server
   stops on its own, the app reports it and closes.
-- **Window**: opened maximized; *Restaurer* (Restore) brings it back to 1400×900.
+- **Window**: its size, position and maximized state are remembered from one
+  launch to the next (`window-state.json` in the app's configuration folder, see
+  [Preferences](web-editor.md#preferences)); a position outside the current
+  screens is dropped. On first launch, it opens maximized; *Restaurer* (Restore)
+  brings it back to 1400×900.
 - **Single instance**: running the app again with a file opens it in the
   existing window.
 - **Menu**: the bar is hidden, the `Alt` key shows it; shortcuts remain
-  active while it is hidden. *Fichier* (File: *Ouvrir…* (Open…) `Ctrl+O`, *Enregistrer* (Save) `Ctrl+S`,
+  active while it is hidden. *Fichier* (File: *Ouvrir…* (Open…) `Ctrl+O`, *Ouvrir récent* (Open recent), *Enregistrer* (Save) `Ctrl+S`,
   *Enregistrer sous…* (Save as…) `Ctrl+Shift+S`, *Quitter* (Quit) `Ctrl+Q`), *Édition* (Edit: *Annuler* (Undo) `Ctrl+Z`, *Rétablir* (Redo)
   `Ctrl+Y`, see [Undo / Redo](web-editor.md#undo--redo); cut,
-  copy, paste), *Affichage* (View: zoom, developer
+  copy, paste; *Préférences…* (Preferences…) `Ctrl+,`), *Affichage* (View: zoom, developer
   tools), *Aide* (Help: *À propos* (About): name and version). On macOS, an
-  application menu comes first, as for any Mac app: *À propos*, *Masquer*
-  (Hide), *Masquer les autres* (Hide Others), *Tout afficher* (Show All),
-  *Quitter* (`Cmd+Q`); *Quitter* is then no longer in *Fichier*, and the *Aide*
+  application menu comes first, as for any Mac app: *À propos*, *Préférences…*
+  (`Cmd+,`), *Masquer* (Hide), *Masquer les autres* (Hide Others), *Tout afficher* (Show All),
+  *Quitter* (`Cmd+Q`); *Quitter* is then no longer in *Fichier*, *Préférences…* no longer in *Édition*, and the *Aide*
   menu disappears. Menu template: `desktop/menu.js`.
 - **Version**: shown next to the interface title and in *Aide › À
   propos*; `alesis-kit-manager --version` prints it in the terminal and quits
@@ -317,6 +322,7 @@ The default allowed folders depend on the system (see
 |---|---|
 | `desktop/main.js` | main process: server, window, menu, dialog boxes, closing |
 | `desktop/menu.js` | menu template (application menu first on macOS) |
+| `desktop/window-state.js` | window size, position and maximized state, kept from one launch to the next |
 | `desktop/preload.cjs` | `window.kitManagerDesktop` bridge |
 | `app-names.json` | application names (see [Application names](#application-names)) |
 | `desktop/electron-builder.config.mjs` | electron-builder configuration: .deb package, file types, icon |

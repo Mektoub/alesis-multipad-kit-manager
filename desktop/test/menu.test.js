@@ -33,7 +33,7 @@ describe("menu de l'application", () => {
     const file = items(menu, "&Fichier");
     assert.ok(!file.some((i) => i.role === "quit"));
     assert.notEqual(file.at(-1).type, "separator"); // pas de séparateur orphelin
-    assert.equal(file.length, 3);
+    assert.equal(file.length, 4);
   });
 
   it("Annuler / Rétablir passent par `send` ; raccourcis affichés, gérés par l'interface hors macOS", () => {
@@ -48,6 +48,26 @@ describe("menu de l'application", () => {
       assert.deepEqual([undoItem.registerAccelerator, redoItem.registerAccelerator], [registered, registered]);
       assert.ok(!undoItem.role && !redoItem.role, platform);
     }
+  });
+
+  it("Préférences… : Édition hors macOS, menu de l'application sous macOS", () => {
+    const linux = items(template("linux"), "É&dition").at(-1);
+    assert.deepEqual([linux.click(), linux.accelerator], ["preferences", "CmdOrCtrl+,"]);
+    const mac = template("darwin");
+    assert.ok(mac[0].submenu.some((i) => i.click?.() === "preferences"));
+    assert.ok(!items(mac, "É&dition").some((i) => i.click?.() === "preferences"));
+  });
+
+  it("Ouvrir récent : un élément par fichier, puis Effacer la liste", () => {
+    const openRecent = (file) => () => `ouvrir ${file}`;
+    const menu = menuTemplate({ platform: "linux", appName: "A", about, send, recent: ["/a.bkf", "/b.fac"], openRecent });
+    const sub = items(menu, "&Fichier").find((i) => i.label === "Ouvrir &récent").submenu;
+    assert.deepEqual(
+      sub.filter((i) => i.click).map((i) => i.click()),
+      ["ouvrir /a.bkf", "ouvrir /b.fac", "clear-recent"],
+    );
+    const empty = items(template("linux"), "&Fichier").find((i) => i.label === "Ouvrir &récent").submenu;
+    assert.deepEqual(empty, [{ label: "Aucun fichier récent", enabled: false }]);
   });
 
   it("les commandes de Fichier passent par `send`", () => {

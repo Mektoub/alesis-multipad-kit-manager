@@ -6,16 +6,21 @@
 // En développement : ./dev.sh start [--frozen] [FICHIER], ou npm start [-- FICHIER]
 // une fois le venv et l'interface prêts (Python du .venv du dépôt, ou le serveur
 // figé désigné par KITMANAGER_SERVER).
+//
+// Les préférences (preferences.json) sont gérées par le serveur, dans le dossier
+// de configuration de l'application (KITMANAGER_CONFIG) ; la taille et la
+// position de la fenêtre sont gardées ici (window-state.js).
 
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from "electron";
 
 import { menuTemplate } from "./menu.js";
 import { fileArgument, serverCommand, serverProblem, startServer } from "./server.js";
+import { readWindowState, windowBounds, writeWindowState } from "./window-state.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(here, "..");
@@ -50,6 +55,7 @@ function run() {
   let dirty = false; // dernier état signalé par l'interface (setDirty)
   let quitting = false;
   let lastDir = launchFile ? path.dirname(launchFile) : app.getPath("documents");
+  let recent = []; // fichiers récents, donnés par l'interface (préférences)
 
   // --- Commandes vers l'interface (menu, fichier à ouvrir, fermeture) --------
   // Envoyées une fois l'interface prête (onCommand) ; chacune attend la réponse.
@@ -92,11 +98,18 @@ function run() {
   ipcMain.on("kitmanager:dirty", (event, value) => {
     if (trusted(event)) dirty = Boolean(value);
   });
-  ipcMain.handle("kitmanager:open-file", async (event) => {
+  ipcMain.on("kitmanager:recent", (event, files) => {
+    if (!trusted(event)) return;
+    recent = files;
+    Menu.setApplicationMenu(buildMenu());
+  });
+  // `defaultDir` : dossier du dernier fichier ouvert (préférences), sinon celui
+  // de cette session
+  ipcMain.handle("kitmanager:open-file", async (event, defaultDir) => {
     if (!trusted(event)) return null;
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
       title: "Ouvrir une sauvegarde",
-      defaultPath: lastDir,
+      defaultPath: defaultDir || lastDir,
       properties: ["openFile"],
       filters: [
         { name: "Sauvegardes Strike (.bkf, .fac)", extensions: ["bkf", "fac"] },
@@ -129,10 +142,12 @@ function run() {
   });
 
   // --- Fenêtre -----------------------------------------------------------------
+  const windowStateFile = path.join(app.getPath("userData"), "window-state.json");
+
   function createWindow() {
+    const saved = readWindowState(windowStateFile);
     win = new BrowserWindow({
-      width: 1400,
-      height: 900,
+      ...windowBounds(saved, screen.getAllDisplays().map((d) => d.workArea)),
       minWidth: 800,
       minHeight: 500,
       title: TITLE,
@@ -145,9 +160,9 @@ function run() {
         sandbox: true,
       },
     });
-    // ouverte maximisée (maximize() affiche aussi la fenêtre) ; Restaurer la
-    // ramène à 1400×900
-    win.once("ready-to-show", () => win.maximize());
+    // taille et position du dernier lancement ; maximisée au premier (maximize()
+    // affiche aussi la fenêtre), Restaurer la ramène alors à 1400×900
+    win.once("ready-to-show", () => (saved.maximized ? win.maximize() : win.show()));
 
     // Navigation limitée au serveur local ; les liens externes s'ouvrent dans le navigateur.
     const external = (url) => {
@@ -171,6 +186,7 @@ function run() {
     let closing = false;
     let allowClose = false;
     win.on("close", async (event) => {
+      writeWindowState(windowStateFile, win.getNormalBounds(), win.isMaximized() || win.isFullScreen());
       if (allowClose || !rendererReady) return;
       event.preventDefault();
       if (closing) return;
@@ -233,7 +249,10 @@ function run() {
   // --- Menu --------------------------------------------------------------------
   function buildMenu() {
     const send = (name) => () => win && command(name);
-    return Menu.buildFromTemplate(menuTemplate({ platform: process.platform, appName: NAMES.short, about, send }));
+    const openRecent = (file) => () => win && command("open-file", { path: file });
+    return Menu.buildFromTemplate(
+      menuTemplate({ platform: process.platform, appName: NAMES.short, about, send, recent, openRecent }),
+    );
   }
 
   // --- Cycle de vie --------------------------------------------------------------
@@ -268,7 +287,9 @@ function run() {
       return;
     }
     try {
-      server = await startServer({ ...launch, token });
+      // préférences dans le dossier de configuration d'Electron
+      const env = { ...process.env, KITMANAGER_CONFIG: app.getPath("userData") };
+      server = await startServer({ ...launch, token, env });
     } catch (err) {
       dialog.showErrorBox(TITLE, `Le serveur de l'éditeur n'a pas pu démarrer : ${err.message}`);
       app.quit();

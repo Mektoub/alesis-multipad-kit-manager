@@ -103,6 +103,11 @@ try {
   await shot("sample-picker", dialog());
   await close();
 
+  // Fenêtre Préférences
+  await page.getByRole("button", { name: "Préférences", exact: true }).click();
+  await shot("preferences-dialog", dialog());
+  await close();
+
   // Historique : trois modifications, une annulée, puis la liste déroulante
   await kitName.fill("Ham & Beans 2");
   await page.waitForTimeout(2000); // étapes distinctes (envois rapprochés fusionnés)

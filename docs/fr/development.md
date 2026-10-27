@@ -9,6 +9,7 @@
 | `strike_kits/` | lecture et écriture des formats (`__init__.py`), commandes `export` / `import` (`python3 -m strike_kits`, `__main__.py`) ; bibliothèque standard uniquement |
 | `editor/server.py` | API FastAPI de l'éditeur |
 | `editor/history.py` | historique des modifications (annuler / rétablir) |
+| `editor/preferences.py` | préférences de l'utilisateur (`preferences.json`) |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
 | `app-names.json` | noms de l'application : long, court, identifiant des chemins, dossier de configuration (voir [Application de bureau](desktop-app.md#noms-de-lapplication)) |
@@ -19,6 +20,7 @@
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
 | `tests/test_editor.py` | tests de l'API |
 | `tests/test_history.py` | tests de l'historique (annuler / rétablir) |
+| `tests/test_preferences.py` | tests des préférences (fichier, API, effets sur l'éditeur) |
 | `tests/outils.py` | outils communs aux tests (sauvegarde de référence, WAV et `.fac` synthétiques) |
 | `tests/ressources/Backup001.bkf` | sauvegarde de référence des tests |
 | `tests/construire_reference.py` | script qui a construit cette sauvegarde |
