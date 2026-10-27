@@ -1,5 +1,7 @@
 # Éditeur web
 
+[English](../en/web-editor.md) · **Français**
+
 Interface graphique locale (FastAPI + Svelte) pour éditer les kits sans manipuler
 de JSON.
 
@@ -91,6 +93,8 @@ cd editor/web && npm ci && npm run build && cd ../..
 
 ## Utilisation
 
+![Éditeur web : liste des kits, grille des 9 pads et réglages du pad choisi](../images/overview.png)
+
 1. **Ouvrir** : la sauvegarde passée au lancement est déjà ouverte. Pour en
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
    Dans l'application de bureau, *Ouvrir…* et *Enregistrer sous…* utilisent les
@@ -123,6 +127,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
    message de confirmation.
 
+   ![Fenêtre Copier vers…](../images/copy-dialog.png)
+
    *Valeurs par défaut…* (à côté) remet des réglages aux valeurs d'un kit vide de
    l'appareil, propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).
    On choisit les emplacements (le pad affiché est présélectionné) et les
@@ -131,6 +137,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    n'est cochée au départ ; *toutes les sections* les coche toutes, sauf le retrait
    des samples.
    Les paramètres non identifiés ne sont pas touchés.
+
+   ![Fenêtre Valeurs par défaut…](../images/reset-dialog.png)
+
 7. **Modifier plusieurs pads** : *Modifier plusieurs pads…* (en haut des réglages
    du pad) donne une même valeur à un réglage sur une sélection de pads, par
    exemple Sensitivity = 20 sur P1, P3, P5 et P9. On choisit le réglage (pad,
@@ -139,6 +148,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    d'appliquer la même valeur aux **mêmes pads de plusieurs kits** (kit courant
    coché par défaut, raccourci *kits non vides*). L'opération est tout ou rien :
    si un kit refuse la valeur, aucun n'est modifié.
+
+   ![Fenêtre Modifier plusieurs pads…](../images/bulk-edit-dialog.png)
+
 8. **Déplacer ou dupliquer un kit** : *Déplacer / copier le kit…* (à côté du tempo)
    - *Déplacer / échanger* : le kit va au numéro choisi. Si ce kit est vide, c'est
      un déplacement (le numéro d'origine devient vide) ; sinon les deux kits sont
@@ -154,14 +166,19 @@ cd editor/web && npm ci && npm run build && cd ../..
    prend la place du kit sur lequel on le dépose (un trait indique où), et les kits
    d'entre les deux se décalent d'un cran, comme dans une liste.
 
+   ![Fenêtre Déplacer / copier le kit…](../images/kit-transfer-dialog.png)
+
    *Supprimer le kit…* (à côté) remplace le kit, après confirmation, par le kit
    vide écrit par l'appareil : nom « Empty », volume 100, 120 BPM, réglages par
    défaut, aucun sample. Les samples utilisateur restent dans la sauvegarde. Le
    bouton est grisé sur un kit déjà vide.
 9. **Choisir un sample** : le bouton du sample ouvre une fenêtre de recherche par nom
    ou par id, avec un filtre *Mes samples / Usine*. Le bouton ▶ écoute un sample
-   perso (indisponible pour l'instant, voir la limitation ci-dessus). La zone du bas ajoute un WAV par glisser-déposer
-   (voir [Ajouter un sample](ajouter-un-sample.md)).
+   perso. La zone du bas ajoute un WAV par glisser-déposer
+   (voir [Ajouter un sample](adding-a-sample.md)).
+
+   ![Fenêtre de choix d'un sample](../images/sample-picker.png)
+
 10. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
    chaque session sur un fichier d'origine, son état précédent est copié dans
    `<fichier>.N.bak` (`Backup001.bkf.1.bak`, puis `.2.bak` à la session suivante) :
@@ -178,7 +195,7 @@ valide. Les modifications restent en mémoire jusqu'à *Enregistrer*. Le
 navigateur prévient si l'on quitte la page avec des modifications non enregistrées.
 
 Charger ensuite le fichier produit sur l'appareil comme décrit dans
-[Modifier un kit](modifier-un-kit.md#5-charger-sur-lappareil).
+[Modifier un kit](editing-a-kit.md#5-charger-sur-lappareil).
 
 ### Annuler / Rétablir
 
@@ -195,6 +212,8 @@ ligne y revient en une fois (en annulant ou en rétablissant les actions d'entre
 les deux) ; la dernière ligne, *Ouverture du fichier* (ou *Début de
 l'historique* quand l'historique a été vidé), annule tout.
 
+![Liste de l'historique sous le chevron ▾](../images/history-menu.png)
+
 - **Raccourcis** : `Ctrl+Z` annule, `Ctrl+Y` ou `Ctrl+Maj+Z` rétablit (`Cmd` sous
   macOS) ; dans l'application de bureau, aussi *Édition › Annuler / Rétablir*.
   Dans un champ de saisie (nom du kit, valeur), ils annulent la frappe, comme
@@ -209,6 +228,9 @@ l'historique* quand l'historique a été vidé), annule tout.
   *Enregistrer et continuer* ou *Continuer* ; les modifications non enregistrées
   sont conservées dans tous les cas. L'ajout d'un sample ne s'annule pas non plus,
   mais garde l'historique : le sample reste dans la sauvegarde.
+
+  ![Alerte avant une action hors historique](../images/history-alert.png)
+
 - **État enregistré** : annuler jusqu'au dernier enregistrement réaffiche « À jour ».
   Ouvrir un fichier ou *Recharger* vide l'historique.
 - **Taille** : les 100 dernières actions (`LIMIT` dans `editor/history.py`) ; les
@@ -254,7 +276,7 @@ cd editor/web && npm run dev                        # puis ouvrir http://localho
 ```
 
 Vite relaie `/api` vers le serveur ; le jeton affiché au lancement du serveur est
-à ajouter à l'adresse de Vite. Voir aussi [Développement](developpement.md).
+à ajouter à l'adresse de Vite. Voir aussi [Développement](development.md).
 
 ### Mode bureau
 

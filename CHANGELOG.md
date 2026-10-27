@@ -1,114 +1,121 @@
 # Changelog
 
-## 0.4.0 — Améliorations UI
+## 0.5.0 — English documentation
 
-- Éditeur web : liste de l'historique (chevron ▾ à côté de ↶ ↷), de la plus récente action à la plus ancienne, avec l'ancienne et la nouvelle valeur (« 90 → 50 », « Normal → Exp2 »), la position actuelle et le repère *Enregistré* ; un clic revient à l'action choisie. API : `GET /api/history`, `POST /api/history/goto` ; `detail` dans la réponse de `/api/undo` et `/api/redo`.
+- Documentation in English (`README.md`, `docs/en/`) and in French (`README.fr.md`, `docs/fr/`), with the same English file names in both languages and a language switch at the top of each page. The changelog is now kept in English only.
+- Web editor: on the small pads P7–P9, the sample names no longer overlap the pad label (the pad grows to fit its content).
+- Documentation: screenshots of the web editor (overview, action windows, sample picker, history list and warning) in `docs/images/`, shared by both languages; `./dev.sh screenshots` regenerates them in the desktop app (`desktop/e2e/screenshots.js`, Playwright).
+- Documentation: removed an outdated note saying that playing user samples (▶) was unavailable.
 
-- Éditeur web : *Annuler / Rétablir* (boutons ↶ ↷ de l'en-tête, `Ctrl+Z`, `Ctrl+Y` ou `Ctrl+Maj+Z`, menu *Édition* de l'application de bureau) sur les modifications de paramètres, une étape par action, 100 au plus. Déplacer, transférer ou supprimer un kit vide l'historique, après une alerte (*Annuler*, *Enregistrer et continuer*, *Continuer*) ; l'ajout d'un sample ne s'annule pas. API : `POST /api/undo`, `/api/redo`, `history` dans l'état (`editor/history.py`).
+## 0.4.0 — UI improvements
 
-- Éditeur web : kits vides masqués par défaut dans la liste (*masquer les vides* coché à l'ouverture).
-- Entrées de l'arrière localisées par des sauvegardes de l'appareil : 15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH, 18 = FootSwitch 1/2, 20 = FootSwitch 3/4 ; ces noms remplacent « slot N » dans l'éditeur (`strike_kits.SLOT_NAMES`).
-- Application de bureau : la fenêtre s'ouvre maximisée (*Restaurer* la ramène à 1400×900).
-- Éditeur web : messages affichés en toasts (en haut, au milieu, au-dessus des fenêtres) au lieu de bandeaux dans la page ; les confirmations disparaissent seules après 6 s, les erreurs restent jusqu'à leur fermeture.
-- Éditeur web : bouton *Recharger* (à côté d'*Enregistrer*) : relit le fichier ouvert et abandonne les modifications non enregistrées, après confirmation ; le kit affiché reste le même.
-- Éditeur web : réorganisation des kits par glisser-déposer dans la liste, par la poignée ⠿ en bout de ligne (visible au survol) : le kit prend la place du kit visé, ceux d'entre les deux se décalent d'un cran. API : `POST /api/kits/{num}/move` ; `strike_kits` : `Backup.move_kit`.
-- Éditeur web : *Valeurs par défaut…* remet les réglages des emplacements choisis aux valeurs du kit vide de l'appareil (propres à chaque emplacement), par sections (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix, et sample sur demande ; aucune cochée au départ, lien *toutes les sections*). API : `POST /api/kits/{num}/reset` ; `strike_kits` : `Backup.reset_slots`.
-- Éditeur web : Sound (section Control) affiché On / Off (0 = On par défaut, 1 = Off).
-- Éditeur web : grille des 9 pads centrée dans l'espace ; le pad sélectionné prend une couleur de fond (au lieu d'une simple bordure rouge).
-- Éditeur web : sections du pad disposées en colonnes, chacune juste sous la précédente (plus d'espace vide sous les sections courtes, Group ne descend plus au bas de Light).
-- Éditeur web : *Supprimer le kit…* remplace le kit choisi, après confirmation, par le kit vide de l'appareil (« Empty », réglages par défaut) ; les samples utilisateur restent dans la sauvegarde. API : `POST /api/kits/{num}/clear` ; l'état indique les kits vides (`empty`). `strike_kits` : `Backup.clear_kit`, `EMPTY_KIT`.
-- Application de bureau, macOS : menu de l'application en tête (À propos, Masquer, Masquer les autres, Tout afficher, Quitter `Cmd+Q`) ; Quitter retiré de *Fichier* et menu *Aide* supprimé, pour éviter les doublons. Rien ne change sous Linux et Windows (`desktop/menu.js`).
+- Web editor: history list (▾ chevron next to ↶ ↷), from the most recent action to the oldest, with the old and new value (“90 → 50”, “Normal → Exp2”), the current position and the *Enregistré* (Saved) marker; a click goes back to the chosen action. API: `GET /api/history`, `POST /api/history/goto`; `detail` in the `/api/undo` and `/api/redo` responses.
 
-## 0.3.3 — Corrections
+- Web editor: *Annuler / Rétablir* (Undo / Redo) (↶ ↷ buttons in the header, `Ctrl+Z`, `Ctrl+Y` or `Ctrl+Shift+Z`, the desktop app's *Édition* (Edit) menu) on parameter edits, one step per action, 100 at most. Moving, transferring or deleting a kit clears the history, after a warning (*Annuler* (Cancel), *Enregistrer et continuer* (Save and continue), *Continuer* (Continue)); adding a sample cannot be undone. API: `POST /api/undo`, `/api/redo`, `history` in the state (`editor/history.py`).
 
-- Paramètres identifiés en comparant deux sauvegardes de l'appareil : Curve, Kit FX Level, Sync Mode (`params.sync_mode`, octet fixe de l'emplacement), Play Beat et Stop Beat (`light.play_beat` / `stop_beat`), Playback Mode (0–9, FS4 = 9 au-delà du max déclaré) et Poly/Mono des waves. Les clés JSON `p13`, `p16`, wave `p09` et `p19` deviennent `curve`, `kit_fx_level`, `playback_mode` et `poly_mono`.
-- Éditeur web : réglages rangés par sections, comme sur l'appareil (pad : Feel, Control, Output, Light, Group ; waves : Mode, Mix), aussi dans *Modifier plusieurs pads* ; « Control » s'appelle « Mode ».
-- Test de bout en bout de l'application de bureau (Playwright, `desktop/e2e/`, `./dev.sh e2e`, inclus dans `./dev.sh all`) : ouverture d'une copie de la sauvegarde de référence, modification, enregistrement par le menu et relecture, confirmation de fermeture avec des modifications non enregistrées. Lancé par la CI sous Ubuntu 24.04 (xvfb).
-- Liste de vérifications manuelles par système avant une release (`docs/application-bureau.md`).
+- Web editor: empty kits hidden by default in the list (*masquer les vides* (hide empty ones) checked on opening).
+- Rear inputs located using device backups: 15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH, 18 = FootSwitch 1/2, 20 = FootSwitch 3/4; these names replace “slot N” in the editor (`strike_kits.SLOT_NAMES`).
+- Desktop app: the window opens maximized (*Restaurer* (Restore) brings it back to 1400×900).
+- Web editor: messages shown as toasts (at the top, centered, above dialogs) instead of banners in the page; confirmations disappear on their own after 6 s, errors stay until dismissed.
+- Web editor: *Recharger* (Reload) button (next to *Enregistrer* (Save)): rereads the open file and discards unsaved changes, after confirmation; the displayed kit stays the same.
+- Web editor: kits reordered by drag and drop in the list, using the ⠿ handle at the end of the row (visible on hover): the kit takes the target kit's place, those in between shift by one. API: `POST /api/kits/{num}/move`; `strike_kits`: `Backup.move_kit`.
+- Web editor: *Valeurs par défaut…* (Default values…) resets the settings of the chosen slots to the device's empty kit values (specific to each slot), by section (pad: Feel, Control, Output, Light, Group; waves: Mode, Mix, and sample on request; none checked initially, *toutes les sections* (all sections) link). API: `POST /api/kits/{num}/reset`; `strike_kits`: `Backup.reset_slots`.
+- Web editor: Sound (Control section) shown as On / Off (0 = On by default, 1 = Off).
+- Web editor: grid of the 9 pads centered in the space; the selected pad gets a background color (instead of a plain red border).
+- Web editor: pad sections laid out in columns, each right below the previous one (no more empty space under short sections, Group no longer drops to the bottom of Light).
+- Web editor: *Supprimer le kit…* (Delete kit…) replaces the chosen kit, after confirmation, with the device's empty kit (“Empty”, default settings); user samples stay in the backup. API: `POST /api/kits/{num}/clear`; the state flags empty kits (`empty`). `strike_kits`: `Backup.clear_kit`, `EMPTY_KIT`.
+- Desktop app, macOS: application menu first (*À propos* (About), *Masquer* (Hide), *Masquer les autres* (Hide Others), *Tout afficher* (Show All), *Quitter* (Quit) `Cmd+Q`); *Quitter* removed from *Fichier* (File) and *Aide* (Help) menu removed, to avoid duplicates. Nothing changes on Linux and Windows (`desktop/menu.js`).
 
-## 0.3.2 — Gestion des versions / releases
+## 0.3.3 — Fixes
 
-- Release GitHub sur un tag `vX.Y.Z` (workflow « Release », `release.yml`) : versions du commit vérifiées, paquets des trois systèmes construits (`build.yml`, qui ne se lance plus lui-même sur un tag), puis release en brouillon avec les paquets et les notes du CHANGELOG.
-- Paquets Windows et macOS nommés `alesis-kit-manager-X.Y.Z-<win|mac>-<arch>[-setup].<ext>` (sans espaces) ; le build vérifie que chaque paquet attendu porte la version de `app-names.json` (et la version du .deb), ainsi que `--version` du serveur figé.
-- `scripts/verifier-version.py` : cohérence de la version dans `app-names.json`, les `package.json` et les locks (`./dev.sh lint` / `all`, CI) ; avec `X.Y.Z`, vérifie aussi la section du CHANGELOG ; `--notes` donne les notes de version (utilisé par `./dev.sh release` et la release GitHub).
-- Hooks Git (`.githooks/`, activés par `./dev.sh`) : `git tag vX.Y.Z` et le push d'un tag sont refusés si les versions du commit ne sont pas X.Y.Z.
-- `editor/web/package.json` aligné sur la version de l'application (0.3.1).
-- Version affichée dans l'interface (à côté du titre) et dans le menu *Aide › À propos* de l'application ; `alesis-kit-manager --version` et `python -m editor --version` (serveur figé compris) l'affichent et quittent. Le test Docker du .deb les vérifie.
-- `./dev.sh release X.Y.Z` : sur `main`, arbre propre et section `## X.Y.Z` présente dans le CHANGELOG, met la version dans `app-names.json`, `desktop/package.json` et `editor/web/package.json` (+ locks), commite « Version X.Y.Z » et crée le tag annoté `vX.Y.Z` (message : la section du CHANGELOG), sans le pousser.
-- La version de l'application est aussi dans `app-names.json` ; l'API l'affiche (`/docs`, au lieu de la 0.1.0 par défaut de FastAPI). `editor/web/package.json` passe de 0.1.0 à la version de l'application au prochain `release`.
+- Parameters identified by comparing two device backups: Curve, Kit FX Level, Sync Mode (`params.sync_mode`, fixed byte in the slot), Play Beat and Stop Beat (`light.play_beat` / `stop_beat`), Playback Mode (0–9, FS4 = 9 beyond the declared max) and the waves' Poly/Mono. JSON keys `p13`, `p16`, wave `p09` and `p19` become `curve`, `kit_fx_level`, `playback_mode` and `poly_mono`.
+- Web editor: settings grouped by section, as on the device (pad: Feel, Control, Output, Light, Group; waves: Mode, Mix), also in *Modifier plusieurs pads* (Edit several pads); “Control” is now called “Mode”.
+- End-to-end test of the desktop app (Playwright, `desktop/e2e/`, `./dev.sh e2e`, included in `./dev.sh all`): opening a copy of the reference backup, editing, saving through the menu and reading back, close confirmation with unsaved changes. Run by the CI on Ubuntu 24.04 (xvfb).
+- Per-system manual checklist before a release (`docs/application-bureau.md`).
 
-## 0.3.1 — Corrections GitHub Actions
+## 0.3.2 — Version and release management
 
-- CI : actions GitHub en v7 (fin des avertissements Node 20) ; paquet Linux et job « Serveur figé » construits sur `ubuntu-24.04` (`ubuntu-latest` passe à Ubuntu 26, dont la glibc rendrait le .deb inutilisable sur 24.04). Runners Windows et macOS figés aussi : `windows-2025`, `macos-26`.
-- Correction : les tests de `desktop/server.js` échouaient sous Windows (build « Package » de la 0.3.0) ; les chemins du serveur à lancer suivent maintenant la plateforme indiquée (`path.win32` / `path.posix`), et un test vérifie le cas Windows sur tous les systèmes.
-- Version de l'application : 0.3.1 (`desktop/package.json`, `package-lock.json`).
+- GitHub release on a `vX.Y.Z` tag (“Release” workflow, `release.yml`): commit versions checked, packages built for the three systems (`build.yml`, which no longer triggers itself on a tag), then a draft release with the packages and the CHANGELOG notes.
+- Windows and macOS packages named `alesis-kit-manager-X.Y.Z-<win|mac>-<arch>[-setup].<ext>` (no spaces); the build checks that each expected package carries the version from `app-names.json` (and the .deb version), as well as the frozen server's `--version`.
+- `scripts/verifier-version.py`: version consistency across `app-names.json`, the `package.json` files and the locks (`./dev.sh lint` / `all`, CI); with `X.Y.Z`, also checks the CHANGELOG section; `--notes` prints the release notes (used by `./dev.sh release` and the GitHub release).
+- Git hooks (`.githooks/`, enabled by `./dev.sh`): `git tag vX.Y.Z` and pushing a tag are refused if the commit's versions are not X.Y.Z.
+- `editor/web/package.json` aligned with the application version (0.3.1).
+- Version shown in the UI (next to the title) and in the app's *Aide › À propos* (Help › About) menu; `alesis-kit-manager --version` and `python -m editor --version` (frozen server included) print it and exit. The .deb Docker test checks them.
+- `./dev.sh release X.Y.Z`: on `main`, with a clean tree and a `## X.Y.Z` section in the CHANGELOG, writes the version into `app-names.json`, `desktop/package.json` and `editor/web/package.json` (+ locks), commits “Version X.Y.Z” and creates the annotated tag `vX.Y.Z` (message: the CHANGELOG section), without pushing it.
+- The application version is also in `app-names.json`; the API shows it (`/docs`, instead of FastAPI's default 0.1.0). `editor/web/package.json` moves from 0.1.0 to the application version at the next `release`.
 
-## 0.3.0 — Passage à une application desktop avec electron
+## 0.3.1 — GitHub Actions fixes
 
-- `strike_kits.py` devient le paquet `strike_kits/` (code dans `__init__.py`, imports inchangés) ; ligne de commande : `python3 -m strike_kits export|import …` au lieu de `python3 strike_kits.py …`.
-- CI factorisée : préparation commune des jobs dans l'action composite `.github/actions/setup` (versions de Python et de Node à un seul endroit) ; le job « Serveur figé » de `ci.yml` réutilise le workflow « Paquets » (`workflow_call`, sous Linux, sans paquet) au lieu de `./dev.sh freeze`.
-- Paquets Windows (installateur NSIS en un clic, zip) et macOS Apple Silicon (dmg, zip), non signés : workflow « Paquets » (`.github/workflows/build.yml`), un runner par système, sur un tag `v*` ou à la main ; paquets en artefacts. Nom affiché « Alesis Kit Manager » sous Windows et macOS. `npm run package` construit les paquets du système courant.
-- Dossiers autorisés par défaut selon le système : `/Volumes` sous macOS, tous les lecteurs sauf celui du système sous Windows.
-- Serveur lancé sans fenêtre de console sous Windows ; test de fumée du serveur figé utilisable sous Windows et avec un chemin relatif.
-- Un seul mode de fonctionnement, celui de l'application Electron : jeton exigé sur `/api/*`, fichiers désignés par chemin absolu. Le mode « développement » (dossier `--root`, liste `GET /api/backups`) est retiré.
-- `editeur.sh FICHIER` : lancement local rapide sur une sauvegarde (usage affiché sans paramètre) ; `python -m editor --open FICHIER`. En local, un jeton est créé et transmis au navigateur dans l'adresse (`#token=…`), puis conservé pour l'onglet.
-- Interface : ouverture par chemin complet, champ « Ouvrir » mis à jour après « Enregistrer sous ».
-- Interface en mode bureau (étape 2 du passage à Electron) : si l'application expose `window.strikeDesktop` (jeton, boîtes natives `openFile` / `saveFile`, `setDirty`), *Ouvrir…* et *Enregistrer sous…* passent par les boîtes de dialogue du système, et l'état « non enregistré » lui est signalé. Bouchon de développement (`#…&desktop=fake`, absent du build) pour tester ce mode dans le navigateur.
-- Application de bureau Electron (`desktop/`, étape 3) : `npm start [-- FICHIER]` lance le serveur Python avec un jeton aléatoire et ouvre l'éditeur dans une fenêtre ; menu Fichier (Ouvrir, Enregistrer, Enregistrer sous, Quitter) avec raccourcis, boîtes de dialogue natives, une seule instance, confirmation de fermeture (Enregistrer / Quitter sans enregistrer / Annuler), arrêt du serveur en quittant ou en cas de plantage. Tests `node:test`, ESLint ; dans `dev.sh` et la CI (job « desktop »).
-- `./dev.sh start [--frozen] [FICHIER]` : lance l'application de bureau, avec le serveur figé si demandé (reconstruit si une source a changé).
-- Identifiants internes alignés sur le nom de l'application : `KITMANAGER_TOKEN`, `KITMANAGER_SERVER`, en-tête `X-KitManager-Token`, `window.kitManagerDesktop`, messages `kitmanager:…` entre la fenêtre et Electron, types de fichier `application/x-kitmanager-bkf` / `-fac` (auparavant `STRIKE_…`, `X-Strike-Token`, `strikeDesktop`, `strike:…`, `x-strike-…`).
-- Noms de l'application centralisés dans `app-names.json` : « Alesis Strike Multipad Kit Manager » (affichage), « Alesis Kit Manager » (menu), `alesis-kit-manager` (paquet, exécutable, `/opt/alesis-kit-manager`, profils AppArmor), `AlesisKitManager` (`~/.config/AlesisKitManager`), serveur figé `alesis-kit-manager-server` (recette `desktop/server.spec`, point d'entrée `desktop/server_entry.py`) ; lus par Vite, electron-builder (configuration déplacée dans `desktop/electron-builder.config.mjs`), `main.js`, le serveur et les scripts.
-- `./dev.sh test-deb` : installe le .deb dans un conteneur Docker Ubuntu 24.04 propre et vérifie fichiers, types de fichier, serveur intégré, lancement d'Electron (Xvfb) et désinstallation.
-- Paquet .deb : dépendance `libasound2t64 | libasound2` ajoutée (Electron ne démarrait pas sans elle) ; chemin d'installation sans espaces (`chrome-sandbox` échouait avec un chemin qui en contient).
-- Le serveur n'ouvre et n'enregistre que dans le dossier personnel, les supports amovibles de l'utilisateur (`/media/<utilisateur>`, `/run/media/<utilisateur>`) et les dossiers ajoutés par `--allow DOSSIER` (aussi pour `./dev.sh serve`), chemins résolus ; ailleurs : erreur 403.
-- Documentation : rôle du profil AppArmor de développement, risques et retrait (`docs/application-bureau.md`).
-- Paquet .deb de l'application de bureau (étape 5) : `./dev.sh package` (electron-builder) ; serveur figé embarqué, entrée de menu et icône, ouverture des `.bkf` / `.fac` par double-clic (URL `file://` acceptées en argument), profil AppArmor installé par le paquet.
-- `./dev.sh serve FICHIER` remplace `editeur.sh` (supprimé) : éditeur dans le navigateur. Une seule préparation, dans `dev.sh` (venv avec `requirements-dev.txt`, build de l'interface si une source a changé) ; `scripts/preparer.sh` est supprimé. `npm start` ne prépare plus rien et signale un venv ou une interface manquants.
-- Serveur figé (étape 4) : `./dev.sh freeze` construit avec PyInstaller un dossier autonome `desktop/build/strike-server/` (serveur et interface, 33 Mo), puis le teste hors du dépôt ; job CI « Serveur figé ». L'application lance le serveur désigné par `STRIKE_SERVER`, celui de ses ressources une fois empaquetée, sinon le Python du `.venv`.
-- Application de bureau : barre de menus masquée par défaut, affichée avec la touche Alt.
-- `desktop/apparmor.sh` : profil AppArmor pour l'Electron de développement (Ubuntu 24.04 et suivants bloquent sa sandbox) ; `npm start` prévient tant qu'il manque.
-- `python -m editor --watch-stdin` : le serveur s'arrête quand son entrée standard se ferme.
-- Interface : commandes de l'application de bureau (`strikeDesktop.onCommand`).
-- `scripts/preparer.sh` : préparation du venv et de l'interface, partagée par `editeur.sh` et `npm start`.
-- Écoute des samples (▶) : le WAV est téléchargé avec le jeton puis lu depuis un blob (la balise audio ne pouvait pas envoyer le jeton).
-- Tests de l'interface avec Vitest et jsdom (`npm test`), lancés par `dev.sh test` / `all` et par la CI.
-- Intégration continue GitHub Actions (`.github/workflows/ci.yml`) : sur chaque push sur `main` et chaque pull request, `ruff check`, `ruff format --check` et tests sous Python 3.14 ; ESLint et build de l'interface sous Node 24.
-- Analyse du code : ruff (`pyproject.toml`, `requirements-dev.txt`) avec les règles E, F, W, I, B et formatage automatique ; ESLint avec les règles recommandées JavaScript et Svelte (`editor/web/eslint.config.js`, `npm run lint`).
-- `dev.sh` : `lint [--fix]`, `test [TESTS…]`, `build`, `all` (bilan final) ; installe au besoin les dépendances de développement.
-- Correction : l'avertissement « Interface non construite » part sur la sortie d'erreur ; il faisait échouer le test d'arrêt par Ctrl+C dans la CI, où l'interface n'est pas construite.
-- Code mis en conformité : formatage ruff, `raise … from`, clés des listes `{#each}`, sélections des fenêtres en `SvelteSet`.
+- CI: GitHub actions at v7 (no more Node 20 warnings); Linux package and “Serveur figé” (frozen server) job built on `ubuntu-24.04` (`ubuntu-latest` moves to Ubuntu 26, whose glibc would make the .deb unusable on 24.04). Windows and macOS runners pinned too: `windows-2025`, `macos-26`.
+- Fix: the `desktop/server.js` tests failed on Windows (0.3.0 “Package” build); the paths of the server to launch now follow the given platform (`path.win32` / `path.posix`), and a test checks the Windows case on every system.
+- Application version: 0.3.1 (`desktop/package.json`, `package-lock.json`).
+
+## 0.3.0 — Move to an Electron desktop app
+
+- `strike_kits.py` becomes the `strike_kits/` package (code in `__init__.py`, imports unchanged); command line: `python3 -m strike_kits export|import …` instead of `python3 strike_kits.py …`.
+- CI factored out: setup shared by the jobs in the composite action `.github/actions/setup` (Python and Node versions in a single place); the `ci.yml` “Serveur figé” (frozen server) job reuses the “Paquets” (Packages) workflow (`workflow_call`, on Linux, without packaging) instead of `./dev.sh freeze`.
+- Windows (one-click NSIS installer, zip) and macOS Apple Silicon (dmg, zip) packages, unsigned: “Paquets” workflow (`.github/workflows/build.yml`), one runner per system, on a `v*` tag or manually; packages as artifacts. Display name “Alesis Kit Manager” on Windows and macOS. `npm run package` builds the packages for the current system.
+- Default allowed folders depending on the system: `/Volumes` on macOS, all drives except the system drive on Windows.
+- Server launched without a console window on Windows; frozen server smoke test usable on Windows and with a relative path.
+- A single operating mode, the Electron app's: token required on `/api/*`, files designated by absolute path. The “development” mode (`--root` folder, `GET /api/backups` list) is removed.
+- `editeur.sh FICHIER`: quick local launch on a backup (usage shown without arguments); `python -m editor --open FICHIER`. Locally, a token is created and passed to the browser in the address (`#token=…`), then kept for the tab.
+- UI: opening by full path, *Ouvrir* (Open) field updated after *Enregistrer sous* (Save as).
+- UI in desktop mode (step 2 of the move to Electron): if the app exposes `window.strikeDesktop` (token, native `openFile` / `saveFile` dialogs, `setDirty`), *Ouvrir…* (Open…) and *Enregistrer sous…* (Save as…) go through the system dialogs, and the “unsaved” state is reported to it. Development stub (`#…&desktop=fake`, absent from the build) to test this mode in the browser.
+- Electron desktop app (`desktop/`, step 3): `npm start [-- FICHIER]` launches the Python server with a random token and opens the editor in a window; *Fichier* (File) menu (*Ouvrir*, *Enregistrer*, *Enregistrer sous*, *Quitter* (Quit)) with shortcuts, native dialogs, single instance, close confirmation (*Enregistrer* / *Quitter sans enregistrer* (Quit without saving) / *Annuler* (Cancel)), server stopped on quit or on crash. `node:test` tests, ESLint; in `dev.sh` and the CI (“desktop” job).
+- `./dev.sh start [--frozen] [FICHIER]`: launches the desktop app, with the frozen server if requested (rebuilt if a source has changed).
+- Internal identifiers aligned with the application name: `KITMANAGER_TOKEN`, `KITMANAGER_SERVER`, `X-KitManager-Token` header, `window.kitManagerDesktop`, `kitmanager:…` messages between the window and Electron, file types `application/x-kitmanager-bkf` / `-fac` (previously `STRIKE_…`, `X-Strike-Token`, `strikeDesktop`, `strike:…`, `x-strike-…`).
+- Application names centralized in `app-names.json`: “Alesis Strike Multipad Kit Manager” (display), “Alesis Kit Manager” (menu), `alesis-kit-manager` (package, executable, `/opt/alesis-kit-manager`, AppArmor profiles), `AlesisKitManager` (`~/.config/AlesisKitManager`), frozen server `alesis-kit-manager-server` (recipe `desktop/server.spec`, entry point `desktop/server_entry.py`); read by Vite, electron-builder (configuration moved to `desktop/electron-builder.config.mjs`), `main.js`, the server and the scripts.
+- `./dev.sh test-deb`: installs the .deb in a clean Ubuntu 24.04 Docker container and checks files, file types, bundled server, Electron launch (Xvfb) and uninstallation.
+- .deb package: dependency `libasound2t64 | libasound2` added (Electron would not start without it); installation path without spaces (`chrome-sandbox` failed with a path containing some).
+- The server only opens and saves in the home folder, the user's removable media (`/media/<user>`, `/run/media/<user>`) and the folders added with `--allow DOSSIER` (also for `./dev.sh serve`), with resolved paths; elsewhere: error 403.
+- Documentation: role of the development AppArmor profile, risks and removal (`docs/application-bureau.md`).
+- .deb package of the desktop app (step 5): `./dev.sh package` (electron-builder); embedded frozen server, menu entry and icon, opening `.bkf` / `.fac` files by double-click (`file://` URLs accepted as arguments), AppArmor profile installed by the package.
+- `./dev.sh serve FICHIER` replaces `editeur.sh` (removed): editor in the browser. A single setup, in `dev.sh` (venv with `requirements-dev.txt`, UI build if a source has changed); `scripts/preparer.sh` is removed. `npm start` no longer prepares anything and reports a missing venv or UI.
+- Frozen server (step 4): `./dev.sh freeze` builds with PyInstaller a self-contained folder `desktop/build/strike-server/` (server and UI, 33 MB), then tests it outside the repository; “Serveur figé” CI job. The app launches the server designated by `STRIKE_SERVER`, the one in its resources once packaged, otherwise the `.venv` Python.
+- Desktop app: menu bar hidden by default, shown with the Alt key.
+- `desktop/apparmor.sh`: AppArmor profile for the development Electron (Ubuntu 24.04 and later block its sandbox); `npm start` warns as long as it is missing.
+- `python -m editor --watch-stdin`: the server stops when its standard input closes.
+- UI: desktop app commands (`strikeDesktop.onCommand`).
+- `scripts/preparer.sh`: venv and UI setup, shared by `editeur.sh` and `npm start`.
+- Sample preview (▶): the WAV is downloaded with the token then played from a blob (the audio tag could not send the token).
+- UI tests with Vitest and jsdom (`npm test`), run by `dev.sh test` / `all` and by the CI.
+- GitHub Actions continuous integration (`.github/workflows/ci.yml`): on every push to `main` and every pull request, `ruff check`, `ruff format --check` and tests on Python 3.14; ESLint and UI build on Node 24.
+- Linting: ruff (`pyproject.toml`, `requirements-dev.txt`) with rules E, F, W, I, B and automatic formatting; ESLint with the recommended JavaScript and Svelte rules (`editor/web/eslint.config.js`, `npm run lint`).
+- `dev.sh`: `lint [--fix]`, `test [TESTS…]`, `build`, `all` (final summary); installs the development dependencies when needed.
+- Fix: the « Interface non construite » (UI not built) warning goes to standard error; it made the Ctrl+C shutdown test fail in the CI, where the UI is not built.
+- Code brought into compliance: ruff formatting, `raise … from`, keys for `{#each}` lists, dialog selections as `SvelteSet`.
 
 ## 0.2.0 — 2026-10-16
 
-- Éditeur web local (`python -m editor`) : FastAPI + Svelte, édition des kits, choix et écoute des samples, ajout de WAV, enregistrement sous un nouveau fichier.
-- Classe `Backup` : sauvegarde `.bkf` / `.fac` éditable en mémoire, utilisée par l'éditeur et par `import` / `export`.
-- Éditeur web : grille des pads disposée comme sur l'appareil (7-8-9 en haut, deux fois moins hauts, puis 4-5-6 et 1-2-3).
-- Éditeur web : recopie des réglages d'un pad vers d'autres (sections au choix, note MIDI conservée par défaut) ; badge du Control (« Click ») sur les pads à la place de la note MIDI.
-- Fonction `copy_slot_settings` et route `POST /api/kits/{num}/copy`.
-- Éditeur web : déplacer, échanger ou dupliquer un kit vers un autre numéro (`Backup.copy_kit`, `Backup.swap_kits`, route `POST /api/kits/{num}/transfer`).
-- Éditeur web : les flèches du champ tempo avancent de 1 BPM (au lieu de 0,1) ; une valeur décimale reste saisissable.
-- Éditeur web : les infobulles indiquent la valeur par défaut du réglage pour le pad affiché (relevée dans un kit vide de l'appareil ; `/api/meta` expose `defaults`).
-- Éditeur web : « Modifier plusieurs pads… » donne une même valeur à un réglage sur une sélection de pads (`set_slots_value`, `Backup.set_slots`, route `POST /api/kits/{num}/set`).
-- Serveur de l'éditeur pilotable par l'application de bureau (étape 1 du passage à Electron) : jeton `STRIKE_TOKEN` exigé sur `/api/*` (en-tête `X-Strike-Token`), `--port 0` et ligne `{"ready": true, "port": N}` une fois à l'écoute ; en mode bureau, fichiers ouverts et enregistrés par chemin absolu, n'importe où.
-- « Enregistrer » écrit dans le fichier ouvert (auparavant, seul « Enregistrer sous » existait et la sauvegarde d'origine était protégée) ; au premier enregistrement de chaque session sur un fichier d'origine, son état précédent est copié dans `<fichier>.N.bak`.
-- Arrêt de l'éditeur par Ctrl+C sans trace d'erreur (`KeyboardInterrupt`), avec le message « Éditeur arrêté. ».
-- Ouvrir une autre sauvegarde avec des modifications non enregistrées est refusé par le serveur (409) sauf confirmation (`force`) ; l'interface demande confirmation.
-- `editeur.sh` : dossier de sauvegardes par défaut `Backups/` (sinon `Strike/`, puis le dossier courant) ; les `.bkf` / `.fac` de `Backups/` sont ignorés par Git.
-- Éditeur web : la modification groupée peut s'appliquer aux mêmes pads de plusieurs kits, tout ou rien (`Backup.set_slots_in_kits`, route `POST /api/kits/set`).
-- Tests : une seule sauvegarde de référence, `tests/ressources/Backup001.bkf` (5 Mo, construite par `tests/construire_reference.py`), indépendante des sauvegardes de travail de `Strike/` ; tests déplacés dans `tests/`, `.fac` construit en mémoire. `Bkf.remove_last_sample` (inverse de `add_sample`, réservé aux tests).
-- Éditeur web : infobulle décrivant chaque réglage (paramètres de pad et de wave, kit, éclairage, sample, vélocité), d'après le manuel ; `/api/meta` expose `description` et `help`.
-- Script `editeur.sh` : lance l'éditeur en créant ou mettant à jour le venv, les dépendances et l'interface au besoin.
-- Correction : dans les pads 1 à 8 des kits `KITC`, les champs dont l'en-tête est recouvert par d'autres données étaient omis ; leur octet valeur est désormais lu et modifiable, et tous les pads affichent les mêmes champs.
-- Documentation réorganisée : README réduit aux commandes, un guide par cas d'usage dans `docs/` (modifier un kit, ajouter un sample, éditeur web, contenu de l'export, paramètres, limites, développement).
+- Local web editor (`python -m editor`): FastAPI + Svelte, kit editing, choosing and previewing samples, adding WAV files, saving to a new file.
+- `Backup` class: `.bkf` / `.fac` backup editable in memory, used by the editor and by `import` / `export`.
+- Web editor: pad grid laid out as on the device (7-8-9 at the top, half as tall, then 4-5-6 and 1-2-3).
+- Web editor: copying one pad's settings to others (sections of your choice, MIDI note kept by default); Control badge (“Click”) on the pads instead of the MIDI note.
+- `copy_slot_settings` function and `POST /api/kits/{num}/copy` route.
+- Web editor: moving, swapping or duplicating a kit to another number (`Backup.copy_kit`, `Backup.swap_kits`, `POST /api/kits/{num}/transfer` route).
+- Web editor: the tempo field's arrows step by 1 BPM (instead of 0.1); a decimal value can still be typed.
+- Web editor: tooltips show the setting's default value for the displayed pad (taken from an empty kit of the device; `/api/meta` exposes `defaults`).
+- Web editor: *Modifier plusieurs pads…* (Edit several pads…) gives a setting the same value on a selection of pads (`set_slots_value`, `Backup.set_slots`, `POST /api/kits/{num}/set` route).
+- Editor server controllable by the desktop app (step 1 of the move to Electron): `STRIKE_TOKEN` token required on `/api/*` (`X-Strike-Token` header), `--port 0` and a `{"ready": true, "port": N}` line once listening; in desktop mode, files opened and saved by absolute path, anywhere.
+- *Enregistrer* (Save) writes to the open file (previously only *Enregistrer sous* (Save as) existed and the original backup was protected); on the first save of each session on an original file, its previous state is copied to `<fichier>.N.bak`.
+- Stopping the editor with Ctrl+C without an error trace (`KeyboardInterrupt`), with the message « Éditeur arrêté. » (Editor stopped.).
+- Opening another backup with unsaved changes is refused by the server (409) unless confirmed (`force`); the UI asks for confirmation.
+- `editeur.sh`: default backup folder `Backups/` (otherwise `Strike/`, then the current folder); `.bkf` / `.fac` files in `Backups/` are ignored by Git.
+- Web editor: bulk editing can apply to the same pads of several kits, all or nothing (`Backup.set_slots_in_kits`, `POST /api/kits/set` route).
+- Tests: a single reference backup, `tests/ressources/Backup001.bkf` (5 MB, built by `tests/construire_reference.py`), independent of the working backups in `Strike/`; tests moved to `tests/`, `.fac` built in memory. `Bkf.remove_last_sample` (inverse of `add_sample`, reserved for tests).
+- Web editor: tooltip describing each setting (pad and wave parameters, kit, lighting, sample, velocity), based on the manual; `/api/meta` exposes `description` and `help`.
+- `editeur.sh` script: launches the editor, creating or updating the venv, the dependencies and the UI when needed.
+- Fix: in pads 1 to 8 of `KITC` kits, fields whose header is overlapped by other data were omitted; their value byte is now read and editable, and all pads show the same fields.
+- Documentation reorganized: README reduced to the commands, one guide per use case in `docs/` (editing a kit, adding a sample, web editor, export contents, parameters, limitations, development).
 
 ## 0.1.0 — 2026-10-16
 
-- Export des kits `.bkf` / `.fac` en JSON et import vers une nouvelle sauvegarde (round-trip à l'identique).
-- Recalcul des sommes de contrôle (kit, en-têtes `PACKBKF` / `FILEH`) ; validation des plages de valeurs.
-- Catalogue des samples (`samples.json`) ; samples désignables par id ou par nom.
-- Documentation des formats `.bkf`, `.fac` et `.kit` dans `docs/`, dont `.had` et les listes de samples.
-- Ajout de samples WAV depuis le dossier `wav/` de l'export (reproduit à l'identique l'import fait par l'appareil).
-- Kits `KITC` : lecture et modification des valeurs des emplacements 1 à 8.
-- Paramètres de pad identifiés : `control` (`p14`, 3 = Click On/Off) et `audio_output` (`p0f`, 4 = Aux+Phone).
-- Vélocités de wave (`velocity_low`, `velocity_high`) ; correction : le sample d'une wave dont la vélocité n'est pas 0–127 n'était ni exporté ni modifiable.
-- Export des WAV des samples utilisateur dans `wav/` (option `--no-wav`) ; l'import ignore les WAV déjà présents (par nom ou par contenu).
+- Export of `.bkf` / `.fac` kits to JSON and import into a new backup (byte-for-byte round trip).
+- Checksum recalculation (kit, `PACKBKF` / `FILEH` headers); value range validation.
+- Sample catalog (`samples.json`); samples can be designated by id or by name.
+- Documentation of the `.bkf`, `.fac` and `.kit` formats in `docs/`, including `.had` and sample lists.
+- Adding WAV samples from the export's `wav/` folder (reproduces exactly the import done by the device).
+- `KITC` kits: reading and editing the values of slots 1 to 8.
+- Pad parameters identified: `control` (`p14`, 3 = Click On/Off) and `audio_output` (`p0f`, 4 = Aux+Phone).
+- Wave velocities (`velocity_low`, `velocity_high`); fix: the sample of a wave whose velocity is not 0–127 was neither exported nor editable.
+- Export of user samples' WAV files to `wav/` (`--no-wav` option); the import skips WAV files already present (by name or by content).

@@ -188,7 +188,7 @@ class AjoutSample(unittest.TestCase):
 
     def test_regles_de_l_ajout(self):
         """Règles relevées en comparant deux sauvegardes faites par l'appareil avant
-        et après l'import d'un WAV (docs/format-bkf.md, « Ajout d'un sample »)."""
+        et après l'import d'un WAV (docs/fr/bkf-format.md, « Ajout d'un sample »)."""
 
         def lst(files, name):
             data = files["WAV/LIST/" + name]

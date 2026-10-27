@@ -1,5 +1,7 @@
 # Format `.bkf` (sauvegarde « All User Kit And Sample Backup »)
 
+[English](../en/bkf-format.md) · **Français**
+
 Fichier produit par *Utility > Backup > Save All User Kits* (firmware ≥ 1.3),
 dans `Strike/All User Kit And Sample Backup/BackupNNN.bkf`. Il contient les kits
 utilisateur, les samples utilisateur et les listes d'index des samples.
@@ -184,7 +186,7 @@ L'octet 0x08 des listes ne change pas.
 
 ## Format d'un kit (`.kit`)
 
-Commun aux formats `.bkf` et [`.fac`](format-fac.md). Taille fixe de
+Commun aux formats `.bkf` et [`.fac`](fac-format.md). Taille fixe de
 **0x2660 octets (9 824)**, en big-endian.
 
 ### Variantes
