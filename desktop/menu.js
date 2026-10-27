@@ -7,12 +7,22 @@
 // en tête, avec Quitter, et Aide › À propos.
 //
 // `about` : affiche la boîte À propos ; `send(nom)` : fonction qui transmet la
-// commande `nom` à l'interface.
+// commande `nom` à l'interface ; `recent` : fichiers récents (préférences),
+// `openRecent(chemin)` : fonction qui ouvre l'un d'eux.
 
-export function menuTemplate({ platform, appName, about, send }) {
+export function menuTemplate({ platform, appName, about, send, recent = [], openRecent = () => () => {} }) {
   const mac = platform === "darwin";
+  const recentMenu = recent.length
+    ? [
+        ...recent.map((file) => ({ label: file, click: openRecent(file) })),
+        { type: "separator" },
+        { label: "Effacer la liste", click: send("clear-recent") },
+      ]
+    : [{ label: "Aucun fichier récent", enabled: false }];
+  const preferences = { label: "&Préférences…", accelerator: "CmdOrCtrl+,", click: send("preferences") };
   const file = [
     { label: "&Ouvrir…", accelerator: "CmdOrCtrl+O", click: send("open") },
+    { label: "Ouvrir &récent", submenu: recentMenu },
     { label: "&Enregistrer", accelerator: "CmdOrCtrl+S", click: send("save") },
     { label: "Enregistrer &sous…", accelerator: "CmdOrCtrl+Shift+S", click: send("save-as") },
   ];
@@ -22,6 +32,8 @@ export function menuTemplate({ platform, appName, about, send }) {
     label: appName,
     submenu: [
       { label: `À propos de ${appName}`, click: about },
+      { type: "separator" },
+      preferences,
       { type: "separator" },
       { label: `Masquer ${appName}`, role: "hide" },
       { label: "Masquer les autres", role: "hideOthers" },
@@ -53,6 +65,8 @@ export function menuTemplate({ platform, appName, about, send }) {
         { label: "Copier", role: "copy" },
         { label: "Coller", role: "paste" },
         { label: "Tout sélectionner", role: "selectAll" },
+        // sous macOS, Préférences… est dans le menu de l'application
+        ...(mac ? [] : [{ type: "separator" }, preferences]),
       ],
     },
     {

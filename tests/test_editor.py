@@ -634,6 +634,11 @@ class DossiersAutorises(unittest.TestCase):
 
 
 class Lancement(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.config = tmp.name
+
     def test_interface_absente_avertissement_sur_stderr(self):
         """Sans interface construite (cas de la CI), l'avertissement part sur la sortie
         d'erreur : la sortie standard ne contient que les lignes utiles."""
@@ -649,7 +654,7 @@ class Lancement(unittest.TestCase):
             mock.patch.object(launcher, "WEB_DIST", Path(REF.parent) / "absent"),
             mock.patch.object(launcher, "run", fake_run),
             mock.patch.object(sys, "argv", argv),
-            mock.patch.dict(os.environ, {}, clear=False),
+            mock.patch.dict(os.environ, {"KITMANAGER_CONFIG": self.config}, clear=False),
             contextlib.redirect_stdout(out),
             contextlib.redirect_stderr(err),
         ):
@@ -665,6 +670,7 @@ class Lancement(unittest.TestCase):
         """Lancement local (sans KITMANAGER_TOKEN), comme ./dev.sh serve."""
         project = Path(__file__).resolve().parent.parent
         env = {k: v for k, v in os.environ.items() if k != "KITMANAGER_TOKEN"}
+        env["KITMANAGER_CONFIG"] = self.config  # préférences de l'utilisateur intouchées
         return subprocess.Popen(
             [sys.executable, "-m", "editor", "--port", "0", "--no-browser", *args],
             cwd=project,

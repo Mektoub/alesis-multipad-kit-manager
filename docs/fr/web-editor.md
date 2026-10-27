@@ -99,7 +99,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    ouvrir une autre, saisir son chemin complet en haut, puis cliquer sur *Ouvrir*.
    Dans l'application de bureau, *Ouvrir…* et *Enregistrer sous…* utilisent les
    boîtes de dialogue du système, et seul le nom du fichier ouvert est affiché.
-2. **Choisir un kit** dans la colonne de gauche (les kits vides sont masqués par défaut ; décocher *masquer les vides* pour les voir, par exemple pour y déposer un kit).
+   Le chevron ▾ à côté liste les 10 derniers fichiers ouverts ou enregistrés ;
+   dans le navigateur, le champ propose au lancement le dernier d'entre eux.
+2. **Choisir un kit** dans la colonne de gauche (les kits vides sont masqués par défaut ; décocher *masquer les vides* pour les voir, par exemple pour y déposer un kit ; ce choix est retenu, voir [Préférences](#préférences)).
 3. **Régler le kit** : nom, volume, tempo.
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
    4-5-6 au milieu, 1-2-3 en bas). Elle montre le sample, la couleur de LED et,
@@ -233,9 +235,43 @@ l'historique* quand l'historique a été vidé), annule tout.
 
 - **État enregistré** : annuler jusqu'au dernier enregistrement réaffiche « À jour ».
   Ouvrir un fichier ou *Recharger* vide l'historique.
-- **Taille** : les 100 dernières actions (`LIMIT` dans `editor/history.py`) ; les
-  plus anciennes sont oubliées. Ce réglage pourra devenir une préférence de
-  l'utilisateur, conservée d'un lancement à l'autre, si l'éditeur en gère un jour.
+- **Taille** : les 100 dernières actions par défaut ; les plus anciennes sont
+  oubliées. La taille se règle de 10 à 1000 dans les [Préférences](#préférences).
+
+### Préférences
+
+Le bouton ⚙ en haut à droite (dans l'application de bureau, aussi *Édition ›
+Préférences…*, `Ctrl+,` ; sous macOS, dans le menu de l'application) ouvre la
+fenêtre des préférences. Chaque réglage s'applique et s'enregistre aussitôt :
+
+![Fenêtre Préférences](../images/preferences-dialog.png)
+
+| Préférence | Par défaut | Effet |
+|---|---|---|
+| Thème | Système | *Clair* ou *Sombre* fixe le thème ; *Système* suit le réglage du système |
+| Masquer les kits vides | oui | même réglage que *masquer les vides* au-dessus de la liste des kits |
+| Rouvrir la dernière sauvegarde au lancement | non | sans fichier passé au lancement, rouvre le plus récent des fichiers récents (rien s'il n'est plus lisible) |
+| Fichiers récents | — | les 10 derniers fichiers ouverts ou enregistrés sous un autre nom ; *Effacer la liste* les oublie |
+| Taille de l'historique | 100 | étapes gardées pour [Annuler / Rétablir](#annuler--rétablir), de 10 à 1000 ; une réduction oublie tout de suite les plus anciennes |
+
+Le dossier du dernier fichier ouvert est aussi retenu : la boîte « Ouvrir » de
+l'application de bureau s'y ouvre. L'application de bureau retient en plus la
+taille, la position et l'état maximisé de sa fenêtre (voir
+[Application de bureau](desktop-app.md#fonctionnement)).
+
+Les préférences sont gérées par le serveur, communes au navigateur et à
+l'application de bureau, dans `preferences.json` (module `editor/preferences.py`) :
+
+| Système | Dossier |
+|---|---|
+| Linux | `~/.config/AlesisKitManager/` (ou `$XDG_CONFIG_HOME/AlesisKitManager/`) |
+| macOS | `~/Library/Application Support/AlesisKitManager/` |
+| Windows | `%APPDATA%\AlesisKitManager\` |
+
+La variable d'environnement `KITMANAGER_CONFIG` désigne un autre dossier (les
+tests s'en servent pour ne pas toucher aux préférences de l'utilisateur). Un
+fichier illisible, ou une valeur invalide, est ignoré : la valeur par défaut
+s'applique.
 
 ## API
 
@@ -261,6 +297,7 @@ porte l'en-tête `X-KitManager-Token`, et les chemins de fichiers sont absolus :
 | POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action), `detail` (« 90 → 50 », vide si l'action modifie plusieurs paramètres) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
 | GET | `/api/history` | actions de l'historique, de la plus ancienne à la plus récente (`entries` : `id`, `label`, `detail`, `done` faite ou annulée) ; `base` : id de l'état avant la plus ancienne, `position` : dernière action faite, `saved` : action du dernier enregistrement (`null` si l'état enregistré n'est plus atteignable) |
 | POST | `/api/history/goto` | revenir à une action (`{"id": 12}`, ou `base` pour tout annuler) ; renvoie l'état et `changed` ; 404 si l'action n'est pas dans l'historique |
+| GET / PATCH | `/api/preferences` | lire / modifier les [préférences](#préférences) (`{"theme": "dark", "history_limit": 200}` ; clés : `theme`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`) ; 400 si une clé ou une valeur est invalide, rien n'est alors modifié |
 | POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (403 hors des dossiers autorisés ; 409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses
@@ -286,10 +323,11 @@ L'interface passe en mode bureau quand l'application Electron expose l'objet
 | Membre | Rôle |
 |---|---|
 | `token` | jeton du serveur, envoyé dans l'en-tête `X-KitManager-Token` |
-| `openFile()` | boîte native « Ouvrir » ; renvoie une promesse du chemin absolu choisi, ou `null` |
+| `openFile(defaultDir)` | boîte native « Ouvrir », dans le dossier du dernier fichier ouvert ; renvoie une promesse du chemin absolu choisi, ou `null` |
 | `saveFile(defaultPath)` | boîte native « Enregistrer sous », ouverte sur le nom suivant ; renvoie le chemin ou `null`. La boîte confirme elle-même l'écrasement d'un fichier existant |
 | `setDirty(dirty)` | appelé à chaque changement de l'état « modifications non enregistrées », pour que l'application confirme la fermeture de la fenêtre |
-| `onCommand(handler)` | reçoit les commandes de l'application, `{ command, path? }` ; la valeur renvoyée par `handler` est la réponse : `open`, `save`, `save-as` (menu Fichier), `open-file` (fichier passé au lancement), `prepare-close` (→ `{ dirty }`, après envoi des modifications en attente), `save-before-close` (→ `{ saved }`) |
+| `setRecent(files)` | fichiers récents, pour le menu *Fichier › Ouvrir récent* |
+| `onCommand(handler)` | reçoit les commandes de l'application, `{ command, path? }` ; la valeur renvoyée par `handler` est la réponse : `open`, `save`, `save-as` (menu Fichier), `open-file` (fichier passé au lancement, ou fichier récent), `preferences` (fenêtre Préférences), `clear-recent` (effacer les fichiers récents), `prepare-close` (→ `{ dirty }`, après envoi des modifications en attente), `save-before-close` (→ `{ saved }`) |
 
 En mode bureau, l'interface ne bloque pas la fermeture de la page
 (`beforeunload`) : c'est l'application qui la confirme.

@@ -1,11 +1,13 @@
 # Changelog
 
-## 0.5.0 — English documentation
+## 0.5.0 — English documentation, preferences
 
 - Documentation in English (`README.md`, `docs/en/`) and in French (`README.fr.md`, `docs/fr/`), with the same English file names in both languages and a language switch at the top of each page. The changelog is now kept in English only.
 - Web editor: on the small pads P7–P9, the sample names no longer overlap the pad label (the pad grows to fit its content).
 - Documentation: screenshots of the web editor (overview, action windows, sample picker, history list and warning) in `docs/images/`, shared by both languages; `./dev.sh screenshots` regenerates them in the desktop app (`desktop/e2e/screenshots.js`, Playwright).
 - Documentation: removed an outdated note saying that playing user samples (▶) was unavailable.
+- User preferences, kept from one launch to the next in `preferences.json` (app configuration folder, or `KITMANAGER_CONFIG`) and shared by the browser and the desktop app: theme (system, light, dark), hide empty kits, reopen the last backup at launch, recent files (▾ chevron next to *Ouvrir* (Open), *Fichier › Ouvrir récent* (File › Open recent) menu), history size (10 to 1000, 100 by default), folder of the last opened file. *Préférences* (Preferences) window: ⚙ button in the header, `Ctrl+,` in the desktop app. API: `GET` / `PATCH /api/preferences` (`editor/preferences.py`).
+- Desktop app: the window's size, position and maximized state are remembered (`window-state.json`); it opens maximized on first launch only.
 
 ## 0.4.0 — UI improvements
 

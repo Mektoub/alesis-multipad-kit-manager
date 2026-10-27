@@ -6,6 +6,8 @@ L'API exige toujours un jeton (en-tête X-KitManager-Token) :
     `{"ready": true, "port": N}` est écrite sur la sortie standard ;
   - lancement local (./dev.sh serve) : sans KITMANAGER_TOKEN, un jeton est créé et
     transmis au navigateur dans l'adresse (http://…/#token=…).
+Les préférences sont lues et écrites dans le dossier de configuration de
+l'application (KITMANAGER_CONFIG s'il est donné : voir editor/preferences.py).
 Avec --port 0, un port libre est choisi. Avec --watch-stdin, le serveur s'arrête
 quand son entrée standard se ferme : l'application qui l'a lancé s'est arrêtée,
 même brutalement.
@@ -24,6 +26,7 @@ from pathlib import Path
 import uvicorn
 
 import strike_kits as sk
+from editor.preferences import FILE_NAME, Preferences, config_dir
 from editor.server import APP_NAMES, WEB_DIST, create_app
 
 
@@ -85,7 +88,12 @@ def main():
     desktop_token = os.environ.get("KITMANAGER_TOKEN") or None
     token = desktop_token or secrets.token_urlsafe(24)
     try:
-        app = create_app(token, open_file=Path(args.open).resolve() if args.open else None, allow=args.allow)
+        app = create_app(
+            token,
+            open_file=Path(args.open).resolve() if args.open else None,
+            allow=args.allow,
+            preferences=Preferences(config_dir(APP_NAMES["config"]) / FILE_NAME),
+        )
     except sk.StrikeError as exc:
         print("Erreur : %s" % exc, file=sys.stderr)
         sys.exit(2)

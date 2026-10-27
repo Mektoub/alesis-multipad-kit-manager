@@ -99,7 +99,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    one, enter its full path at the top, then click *Ouvrir* (Open).
    In the desktop app, *Ouvrir…* (Open…) and *Enregistrer sous…* (Save as…) use the
    system dialogs, and only the name of the open file is displayed.
-2. **Choose a kit** in the left column (empty kits are hidden by default; uncheck *masquer les vides* (hide empty ones) to see them, for example to drop a kit onto one).
+   The ▾ chevron next to it lists the last 10 files opened or saved; in the
+   browser, the field suggests the most recent one at launch.
+2. **Choose a kit** in the left column (empty kits are hidden by default; uncheck *masquer les vides* (hide empty ones) to see them, for example to drop a kit onto one; this choice is remembered, see [Preferences](#preferences)).
 3. **Set up the kit**: name, volume, tempo.
 4. **Choose a pad** in the grid of 9 pads, laid out as on the device (7-8-9 at the top,
    4-5-6 in the middle, 1-2-3 at the bottom). It shows the sample, the LED color and,
@@ -233,9 +235,42 @@ l'historique* (Start of history) when the history has been cleared), undoes ever
 
 - **Saved state**: undoing back to the last save shows « À jour » (Up to date) again.
   Opening a file or *Recharger* clears the history.
-- **Size**: the last 100 actions (`LIMIT` in `editor/history.py`); older
-  ones are forgotten. This setting may become a user preference,
-  kept from one launch to the next, if the editor ever supports them.
+- **Size**: the last 100 actions by default; older ones are forgotten. The size
+  can be set from 10 to 1000 in the [Preferences](#preferences).
+
+### Preferences
+
+The ⚙ button at the top right (in the desktop app, also *Édition ›
+Préférences…* (Edit › Preferences…), `Ctrl+,`; on macOS, in the application
+menu) opens the preferences window. Each setting is applied and saved at once:
+
+![Preferences window](../images/preferences-dialog.png)
+
+| Preference | Default | Effect |
+|---|---|---|
+| *Thème* (Theme) | *Système* (System) | *Clair* (Light) or *Sombre* (Dark) sets the theme; *Système* follows the system setting |
+| *Masquer les kits vides* (Hide empty kits) | yes | same setting as *masquer les vides* above the kit list |
+| *Rouvrir la dernière sauvegarde au lancement* (Reopen the last backup at launch) | no | when no file is passed at launch, reopens the most recent of the recent files (nothing if it can no longer be read) |
+| Recent files | — | the last 10 files opened or saved under another name; *Effacer la liste* (Clear list) forgets them |
+| History size | 100 | steps kept for [Undo / Redo](#undo--redo), from 10 to 1000; reducing it forgets the oldest ones at once |
+
+The folder of the last opened file is remembered too: the desktop app's
+« Ouvrir » (Open) dialog starts there. The desktop app also remembers the size,
+position and maximized state of its window (see
+[Desktop app](desktop-app.md#how-it-works)).
+
+Preferences are handled by the server, shared by the browser and the desktop
+app, in `preferences.json` (module `editor/preferences.py`):
+
+| System | Folder |
+|---|---|
+| Linux | `~/.config/AlesisKitManager/` (or `$XDG_CONFIG_HOME/AlesisKitManager/`) |
+| macOS | `~/Library/Application Support/AlesisKitManager/` |
+| Windows | `%APPDATA%\AlesisKitManager\` |
+
+The `KITMANAGER_CONFIG` environment variable points to another folder (the
+tests use it to leave the user's preferences untouched). An unreadable file, or
+an invalid value, is ignored: the default value applies.
 
 ## API
 
@@ -261,6 +296,7 @@ carries the `X-KitManager-Token` header, and file paths are absolute:
 | POST | `/api/undo` / `/api/redo` | undo / redo the last action in the history; returns the state, `done` (action label), `detail` (« 90 → 50 », empty if the action changes several parameters) and `changed` (modified kits); 409 if there is nothing to undo or redo |
 | GET | `/api/history` | history actions, from oldest to most recent (`entries`: `id`, `label`, `detail`, `done` done or undone); `base`: id of the state before the oldest one, `position`: last action done, `saved`: action of the last save (`null` if the saved state can no longer be reached) |
 | POST | `/api/history/goto` | return to an action (`{"id": 12}`, or `base` to undo everything); returns the state and `changed`; 404 if the action is not in the history |
+| GET / PATCH | `/api/preferences` | read / change the [preferences](#preferences) (`{"theme": "dark", "history_limit": 200}`; keys: `theme`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`); 400 if a key or value is invalid, nothing is changed then |
 | POST | `/api/save` | `{}`: save to the open file (`.N.bak` copy of the original on the first save of the session); `{"path": …, "overwrite": false}`: save as (403 outside the allowed folders; 409 if another file exists, unless `overwrite`) |
 
 Interactive documentation is available at http://127.0.0.1:8765/docs; its
@@ -286,10 +322,11 @@ The interface switches to desktop mode when the Electron app exposes the
 | Member | Purpose |
 |---|---|
 | `token` | server token, sent in the `X-KitManager-Token` header |
-| `openFile()` | native « Ouvrir » (Open) dialog; returns a promise of the chosen absolute path, or `null` |
+| `openFile(defaultDir)` | native « Ouvrir » (Open) dialog, in the folder of the last opened file; returns a promise of the chosen absolute path, or `null` |
 | `saveFile(defaultPath)` | native « Enregistrer sous » (Save as) dialog, opened on the next name; returns the path or `null`. The dialog itself confirms overwriting an existing file |
 | `setDirty(dirty)` | called on every change of the "unsaved changes" state, so that the app confirms closing the window |
-| `onCommand(handler)` | receives commands from the app, `{ command, path? }`; the value returned by `handler` is the response: `open`, `save`, `save-as` (File menu), `open-file` (file passed at launch), `prepare-close` (→ `{ dirty }`, after sending pending changes), `save-before-close` (→ `{ saved }`) |
+| `setRecent(files)` | recent files, for the *Fichier › Ouvrir récent* (File › Open recent) menu |
+| `onCommand(handler)` | receives commands from the app, `{ command, path? }`; the value returned by `handler` is the response: `open`, `save`, `save-as` (File menu), `open-file` (file passed at launch, or recent file), `preferences` (preferences window), `clear-recent` (clear the recent files), `prepare-close` (→ `{ dirty }`, after sending pending changes), `save-before-close` (→ `{ saved }`) |
 
 In desktop mode, the interface does not block closing the page
 (`beforeunload`): the app confirms it.
