@@ -3,6 +3,7 @@
   // de l'appareil, propres à chaque emplacement), par sections.
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
+  import { t } from "./locale.svelte.js";
 
   let { kit, meta, source, onreset, onclose } = $props();
 
@@ -20,7 +21,7 @@
         ...meta.wave_sections.map((s) => ({
           key: `${w}.${s.title}`, label: s.title, fields: s.fields.map((f) => `${w}.${f}`), all: true,
         })),
-        { key: `${w}.sample`, label: "Sample (retirer)", fields: [`${w}.sample`], all: false },
+        { key: `${w}.sample`, label: t("removeSampleSection"), fields: [`${w}.sample`], all: false },
       ],
     }));
     return [{ title: "Pad", sections: pad }, ...waves];
@@ -74,18 +75,18 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Réinitialiser les réglages">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t("resetLabel")}>
     <header>
-      <h2>Valeurs par défaut</h2>
-      <button onclick={onclose} aria-label="Fermer">✕</button>
+      <h2>{t("defaults")}</h2>
+      <button onclick={onclose} aria-label={t("close")}>✕</button>
     </header>
 
     <section>
       <div class="head">
-        <h3>Emplacements</h3>
+        <h3>{t("slots")}</h3>
         <span>
-          <button class="link" onclick={() => selectPads(true)}>tous les pads</button>
-          <button class="link" onclick={() => selectPads(false)}>aucun</button>
+          <button class="link" onclick={() => selectPads(true)}>{t("allPads")}</button>
+          <button class="link" onclick={() => selectPads(false)}>{t("none")}</button>
         </span>
       </div>
       <div class="pads">
@@ -98,7 +99,7 @@
         {/each}
       </div>
       <details>
-        <summary class="muted">Autres entrées (10 à 24)</summary>
+        <summary class="muted">{t("otherInputs")}</summary>
         <div class="others">
           {#each others as n (n)}
             <button class="target small" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(targets, n)}>
@@ -111,10 +112,10 @@
 
     <section>
       <div class="head">
-        <h3>Sections</h3>
+        <h3>{t("sections")}</h3>
         <span>
-          <button class="link" onclick={() => selectSections(true)}>toutes les sections</button>
-          <button class="link" onclick={() => selectSections(false)}>aucune</button>
+          <button class="link" onclick={() => selectSections(true)}>{t("allSections")}</button>
+          <button class="link" onclick={() => selectSections(false)}>{t("noneSections")}</button>
         </span>
       </div>
       {#each GROUPS as g (g.title)}
@@ -125,15 +126,15 @@
           {/each}
         </div>
       {/each}
-      <p class="muted help">Valeurs d'un kit vide de l'appareil, propres à chaque emplacement (note MIDI, Sensitivity, éclairage…).</p>
+      <p class="muted help">{t("resetHelp")}</p>
     </section>
 
     {#if error}<p class="error">{error}</p>{/if}
 
     <footer>
-      <button onclick={onclose}>Annuler</button>
+      <button onclick={onclose}>{t("cancel")}</button>
       <button class="primary" onclick={submit} disabled={busy || !targets.size || !chosen.size}>
-        Réinitialiser {targets.size} emplacement(s)
+        {t("resetSlots", { n: targets.size })}
       </button>
     </footer>
   </div>

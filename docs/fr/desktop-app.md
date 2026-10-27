@@ -305,6 +305,10 @@ Les dossiers autorisés par défaut dépendent du système (voir
   Préférences… (`Cmd+,`), Masquer, Masquer les autres, Tout afficher, Quitter
   (`Cmd+Q`) ; Quitter n'est alors plus dans *Fichier*, Préférences… plus dans *Édition*, et le menu *Aide* disparaît. Modèle du menu :
   `desktop/menu.js`.
+- **Langue** : menus et boîtes de dialogue suivent la langue de l'interface
+  ([Préférences](web-editor.md#préférences)) ; au lancement, avant que
+  l'interface ne la donne, celle enregistrée dans `preferences.json`, sinon
+  celle du système. Textes : `desktop/messages.js`.
 - **Version** : affichée à côté du titre de l'interface et dans *Aide › À
   propos* ; `alesis-kit-manager --version` l'écrit dans le terminal et quitte
   sans ouvrir de fenêtre (`npx electron . --version` en développement ; rien ne
@@ -333,6 +337,7 @@ Les dossiers autorisés par défaut dépendent du système (voir
 | `desktop/menu.js` | modèle du menu (menu de l'application en tête sous macOS) |
 | `desktop/preload.cjs` | pont `window.kitManagerDesktop` |
 | `desktop/window-state.js` | taille, position et état maximisé de la fenêtre, gardés d'un lancement à l'autre |
+| `desktop/messages.js` | textes des menus et des boîtes de dialogue, en anglais et en français |
 | `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |
 | `desktop/electron-builder.config.mjs` | configuration d'electron-builder : paquet .deb, types de fichier, icône |
 | `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |

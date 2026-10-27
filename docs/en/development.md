@@ -10,22 +10,24 @@
 | `editor/server.py` | the editor's FastAPI API |
 | `editor/history.py` | edit history (undo / redo) |
 | `editor/preferences.py` | user preferences (`preferences.json`) |
+| `editor/i18n.py` | server texts in English and French (errors, history labels) |
 | `editor/meta.py` | parameter descriptions for the UI (labels, colors) |
 | `editor/__main__.py` | entry point (`python -m editor`) |
 | `app-names.json` | application names: long, short, path identifier, configuration folder (see [Desktop app](desktop-app.md#application-names)) |
 | `dev.sh` | launches the editor (browser or desktop app), preparing the venv and the UI automatically; linting, tests and builds locally, like the CI |
 | `desktop/` | Electron desktop app (see [Desktop app](desktop-app.md)) |
-| `editor/web/` | Svelte UI (Vite) |
+| `editor/web/` | Svelte UI (Vite); texts in English and French in `src/lib/messages.js` |
 | `editor/web/src/**/*.test.js` | UI tests (Vitest, jsdom) |
 | `tests/test_strike_kits.py` | format and command-line tests |
 | `tests/test_editor.py` | API tests |
 | `tests/test_history.py` | history tests (undo / redo) |
 | `tests/test_preferences.py` | preferences tests (file, API, effects on the editor) |
+| `tests/test_i18n.py` | translation tests (catalogs, request language) |
 | `tests/outils.py` | shared test helpers (reference backup, synthetic WAV and `.fac` files) |
 | `tests/ressources/Backup001.bkf` | the tests' reference backup |
 | `tests/construire_reference.py` | script that built this backup |
 | `docs/en/*-format.md` (French: `docs/fr/`) | what is known about the binary formats |
-| `docs/images/` | screenshots shared by both languages |
+| `docs/images/en/`, `docs/images/fr/` | screenshots, interface in the language of the documentation |
 | `desktop/e2e/screenshots.js` | documentation screenshots (`./dev.sh screenshots`) |
 
 In `strike_kits/__init__.py`:
@@ -49,7 +51,7 @@ installs `requirements-dev.txt` and the UI packages (`npm ci`).
 | `./dev.sh test` | all tests, Python and UI |
 | `./dev.sh test tests.test_editor.Lancement` | only the given Python tests |
 | `./dev.sh e2e` | end-to-end test of the desktop app (see [Desktop app](desktop-app.md#end-to-end-test)) |
-| `./dev.sh screenshots` | screenshots for the documentation in `docs/images/`, taken in the desktop app on the test reference backup (Playwright, light theme, 1400×900 window); rerun after an interface change; the window shows during the captures: do not type meanwhile |
+| `./dev.sh screenshots` | screenshots for the documentation in `docs/images/en/` and `docs/images/fr/`, taken in the desktop app on the test reference backup (Playwright, light theme, 1400×900 window); rerun after an interface change; the window shows during the captures: do not type meanwhile |
 | `./dev.sh build` | builds the UI into `editor/web/dist` |
 | `./dev.sh serve FILE [--port N] [--host ADDRESS] [--no-browser]` | editor in the browser on this backup |
 | `./dev.sh package` | .deb package of the app in `desktop/dist/` (see [Desktop app](desktop-app.md#deb-package)) |

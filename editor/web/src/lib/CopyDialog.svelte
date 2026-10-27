@@ -1,14 +1,15 @@
 <script>
   // Recopie des réglages d'un emplacement vers d'autres.
   import { SvelteSet } from "svelte/reactivity";
+  import { t } from "./locale.svelte.js";
 
   let { kit, source, oncopy, onclose } = $props();
 
   const PARTS = [
-    { key: "params", label: "Pad : Feel, Control, Output, Group" },
-    { key: "light", label: "Light" },
-    { key: "wave_a", label: "Wave A : sample, Mode, Mix" },
-    { key: "wave_b", label: "Wave B : sample, Mode, Mix" },
+    { key: "params", label: () => t("copyPad") },
+    { key: "light", label: () => "Light" },
+    { key: "wave_a", label: () => t("copyWave", { wave: "Wave A" }) },
+    { key: "wave_b", label: () => t("copyWave", { wave: "Wave B" }) },
   ];
   // même disposition que la grille de l'éditeur
   const PAD_ROWS = [[7, 8, 9], [4, 5, 6], [1, 2, 3]];
@@ -56,18 +57,18 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Copier les réglages">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t("copySettings")}>
     <header>
-      <h2>Copier les réglages de {kit.slots[source - 1]._label}</h2>
-      <button onclick={onclose} aria-label="Fermer">✕</button>
+      <h2>{t("copyTitle", { slot: kit.slots[source - 1]._label })}</h2>
+      <button onclick={onclose} aria-label={t("close")}>✕</button>
     </header>
 
     <section>
       <div class="head">
-        <h3>Vers</h3>
+        <h3>{t("to")}</h3>
         <span>
-          <button class="link" onclick={() => selectPads(true)}>tous les pads</button>
-          <button class="link" onclick={() => selectPads(false)}>aucun</button>
+          <button class="link" onclick={() => selectPads(true)}>{t("allPads")}</button>
+          <button class="link" onclick={() => selectPads(false)}>{t("none")}</button>
         </span>
       </div>
       <div class="pads">
@@ -86,7 +87,7 @@
         {/each}
       </div>
       <details>
-        <summary class="muted">Autres entrées (10 à 24)</summary>
+        <summary class="muted">{t("otherInputs")}</summary>
         <div class="others">
           {#each others as n (n)}
             <button
@@ -104,22 +105,22 @@
     </section>
 
     <section>
-      <h3>Quoi</h3>
+      <h3>{t("what")}</h3>
       {#each PARTS as p (p.key)}
-        <label><input type="checkbox" checked={parts.has(p.key)} onchange={() => toggle(parts, p.key)} /> {p.label}</label>
+        <label><input type="checkbox" checked={parts.has(p.key)} onchange={() => toggle(parts, p.key)} /> {p.label()}</label>
       {/each}
       <label class="midi">
         <input type="checkbox" bind:checked={includeMidi} disabled={!parts.has("params")} />
-        Inclure la note MIDI (sinon chaque pad garde la sienne)
+        {t("includeMidi")}
       </label>
     </section>
 
     {#if error}<p class="error">{error}</p>{/if}
 
     <footer>
-      <button onclick={onclose}>Annuler</button>
+      <button onclick={onclose}>{t("cancel")}</button>
       <button class="primary" onclick={submit} disabled={busy || !targets.size || !parts.size}>
-        Copier vers {targets.size} emplacement(s)
+        {t("copyToSlots", { n: targets.size })}
       </button>
     </footer>
   </div>

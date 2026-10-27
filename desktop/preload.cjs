@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("kitManagerDesktop", {
   saveFile: (defaultPath) => ipcRenderer.invoke("kitmanager:save-file", String(defaultPath ?? "")),
   setDirty: (dirty) => ipcRenderer.send("kitmanager:dirty", Boolean(dirty)),
   setRecent: (files) => ipcRenderer.send("kitmanager:recent", Array.from(files ?? [], String)),
+  setLanguage: (lang) => ipcRenderer.send("kitmanager:language", String(lang)),
   // Commandes du menu et de l'application ({ command, path? }) ; la valeur
   // renvoyée par `handler` (éventuellement une promesse) est transmise en réponse.
   onCommand: (handler) => {

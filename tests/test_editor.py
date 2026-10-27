@@ -37,6 +37,7 @@ def client_for(open_file=None, token=TOKEN, allow=TMP_ALLOWED):
     """Client de test qui envoie le jeton dans chaque requête."""
     client = TestClient(create_app(token=token, open_file=open_file, allow=allow))
     client.headers["X-KitManager-Token"] = token
+    client.headers["X-KitManager-Language"] = "fr"
     return client
 
 
@@ -630,7 +631,7 @@ class DossiersAutorises(unittest.TestCase):
     def test_fichier_au_demarrage_hors_zone(self):
         with self.assertRaises(sk.StrikeError) as ctx:
             create_app(token=TOKEN, open_file=self.outside / "B.bkf", allow=(self.inside,))
-        self.assertIn("hors des dossiers autorisés", str(ctx.exception))
+        self.assertIn(str(self.outside / "B.bkf"), str(ctx.exception))
 
 
 class Lancement(unittest.TestCase):
@@ -723,7 +724,7 @@ class Lancement(unittest.TestCase):
             p = self.start_local("--open", str(file))
             out, err = p.communicate(timeout=15)
             self.assertEqual(p.returncode, 2, err)
-            self.assertIn("hors des dossiers autorisés", err)
+            self.assertIn(str(file), err)
             p = self.start_local("--open", str(file), "--allow", tmp)
             try:
                 self.assertIn("Éditeur disponible", p.stdout.readline())

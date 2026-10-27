@@ -1,6 +1,8 @@
 <script>
   // Liste déroulante des fichiers récents (chevron à côté de « Ouvrir »), le plus
   // récent en haut. `files` : chemins absolus (préférences) ; `onselect(chemin)`.
+  import { t } from "./locale.svelte.js";
+
   let { files, onselect, onclose } = $props();
 
   let menu;
@@ -28,7 +30,7 @@
 
 <svelte:window {onpointerdown} {onkeydown} />
 
-<div class="menu" role="menu" aria-label="Fichiers récents" bind:this={menu}>
+<div class="menu" role="menu" aria-label={t("recentFiles")} bind:this={menu}>
   {#each files as file (file)}
     {@const [name, dir] = split(file)}
     <button role="menuitem" onclick={() => onselect(file)} title={file}>

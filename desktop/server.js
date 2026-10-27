@@ -11,6 +11,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { translator } from "./messages.js";
+
 // Chemins à la manière de `platform` (\\ sous Windows), quel que soit le système
 // qui exécute le code : les tests vérifient chaque plateforme partout.
 const pathFor = (platform) => (platform === "win32" ? path.win32 : path.posix);
@@ -45,14 +47,14 @@ export function serverCommand({
 
 // Ce qui empêche de lancer le serveur, en message lisible, ou null. En
 // développement (Python du .venv), `npm start` ne prépare rien : ./dev.sh start
-// crée le venv et construit l'interface.
-export function serverProblem({ command, cwd, exists = existsSync }) {
-  const hint = "lancer ./dev.sh start depuis la racine du dépôt";
+// crée le venv et construit l'interface. `t` : traduction (messages.js).
+export function serverProblem({ command, cwd, exists = existsSync, t = translator("en") }) {
+  const hint = t("devHint");
   if (!exists(command)) {
-    return cwd ? `Python du .venv introuvable (${command}) : ${hint}.` : `Serveur introuvable : ${command}.`;
+    return cwd ? t("pythonMissing", { command, hint }) : t("serverMissing", { command });
   }
   if (cwd && !exists(path.join(cwd, "editor", "web", "dist", "index.html"))) {
-    return `Interface non construite : ${hint}.`;
+    return t("uiMissing", { hint });
   }
   return null;
 }
@@ -82,8 +84,16 @@ export function fileArgument(argv, cwd, skip) {
 // Démarre le serveur et attend qu'il soit prêt. Renvoie { port, child, stop,
 // exited } ; `exited` est une promesse du code de sortie. Échoue si le serveur
 // s'arrête ou ne répond pas avant `timeoutMs`, avec la fin de sa sortie
-// d'erreur dans le message.
-export function startServer({ command, args = [], cwd, token, env = process.env, timeoutMs = 30000 }) {
+// d'erreur dans le message (traduit par `t`, voir messages.js).
+export function startServer({
+  command,
+  args = [],
+  cwd,
+  token,
+  env = process.env,
+  timeoutMs = 30000,
+  t = translator("en"),
+}) {
   const child = spawn(command, [...args, "--port", "0", "--watch-stdin"], {
     cwd,
     env: { ...env, KITMANAGER_TOKEN: token },
@@ -113,7 +123,7 @@ export function startServer({ command, args = [], cwd, token, env = process.env,
   return new Promise((resolve, reject) => {
     let buffer = "";
     const timer = setTimeout(() => {
-      fail(`le serveur n'a pas répondu en ${Math.round(timeoutMs / 1000)} s`);
+      fail(t("noAnswer", { seconds: Math.round(timeoutMs / 1000) }));
       child.kill("SIGKILL");
     }, timeoutMs);
     function fail(reason) {
@@ -121,8 +131,8 @@ export function startServer({ command, args = [], cwd, token, env = process.env,
       const details = tail();
       reject(new Error(details ? `${reason}\n\n${details}` : reason));
     }
-    child.on("error", (err) => fail(`lancement impossible (${command}) : ${err.message}`));
-    child.on("exit", (code, signal) => fail(`le serveur s'est arrêté (${code ?? signal})`));
+    child.on("error", (err) => fail(t("cannotLaunch", { command, message: err.message })));
+    child.on("exit", (code, signal) => fail(t("exited", { code: code ?? signal })));
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", function onData(chunk) {
       buffer += chunk;

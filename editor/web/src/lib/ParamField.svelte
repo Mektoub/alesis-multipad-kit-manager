@@ -3,6 +3,7 @@
   // des libellés, curseur sinon.
   // `defaultValue` : valeur par défaut de l'emplacement affiché, pour l'infobulle.
   import { formatValue, tooltip } from "./format.js";
+  import { t } from "./locale.svelte.js";
 
   let { def, value = $bindable(), defaultValue = null } = $props();
 </script>
@@ -10,12 +11,12 @@
 <label class="field" class:unknown={!def.known} title={tooltip(def.description, def, defaultValue)}>
   <span class="name">
     {def.title}
-    {#if def.labels && !def.verified}<span class="hint" title="Libellés supposés d'après le manuel">?</span>{/if}
+    {#if def.labels && !def.verified}<span class="hint" title={t("assumedLabels")}>?</span>{/if}
   </span>
   {#if def.labels}
     <select bind:value>
       {#each { length: def.max - def.min + 1 } as _, i (i)}
-        <option value={def.min + i}>{def.labels[def.min + i] ?? `Valeur ${def.min + i}`}</option>
+        <option value={def.min + i}>{def.labels[def.min + i] ?? t("valueN", { n: def.min + i })}</option>
       {/each}
     </select>
   {:else}

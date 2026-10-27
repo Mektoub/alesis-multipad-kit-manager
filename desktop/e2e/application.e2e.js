@@ -9,7 +9,7 @@
 // principal, sans affichage.
 
 import assert from "node:assert/strict";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -24,13 +24,17 @@ const names = JSON.parse(readFileSync(path.resolve(desktop, "..", "app-names.jso
 const reference = path.resolve(desktop, "..", "tests", "ressources", "Backup001.bkf");
 
 // Dossier personnel temporaire : la sauvegarde y est dans la zone autorisée par
-// défaut, et la configuration de l'application (~/.config) y reste.
+// défaut, et la configuration de l'application (~/.config) y reste. Interface
+// en français (préférence `language`), quelle que soit la langue du système.
 let home;
 let file;
 before(() => {
   home = mkdtempSync(path.join(tmpdir(), "kitmanager-e2e-"));
   mkdirSync(path.join(home, "Sauvegardes"));
   file = path.join(home, "Sauvegardes", "Backup001.bkf");
+  const config = path.join(home, ".config", names.config);
+  mkdirSync(config, { recursive: true });
+  writeFileSync(path.join(config, "preferences.json"), JSON.stringify({ language: "fr" }));
 });
 after(() => rmSync(home, { recursive: true, force: true }));
 

@@ -10,6 +10,8 @@ dossiers ajoutés au lancement (--allow), chemins résolus.
 session sur un fichier d'origine, son état précédent est copié dans <fichier>.N.bak.
 Les préférences de l'utilisateur (editor/preferences.py) sont servies par
 /api/preferences.
+Les messages d'erreur, les libellés de l'historique et les infobulles sont dans
+la langue de l'en-tête X-KitManager-Language (editor/i18n.py), anglais par défaut.
 """
 
 import getpass
@@ -30,6 +32,7 @@ from pydantic import BaseModel
 
 import strike_kits as sk
 from editor.history import History
+from editor.i18n import Msg, from_header, set_language, startup, tr
 from editor.meta import TITLES, meta
 from editor.preferences import Preferences
 
@@ -38,7 +41,7 @@ WEB_DIST = Path(__file__).resolve().parent / "web" / "dist"
 APP_NAMES = json.loads((Path(__file__).resolve().parent.parent / "app-names.json").read_text(encoding="utf-8"))
 EXTENSIONS = (".bkf", ".fac")
 TOKEN_HEADER = "X-KitManager-Token"
-UNSAVED = "des modifications ne sont pas enregistrées"
+LANGUAGE_HEADER = "X-KitManager-Language"
 
 
 class OpenRequest(BaseModel):
@@ -104,7 +107,7 @@ def outside_roots(path, roots):
     """Message d'erreur si `path` (résolu) n'est dans aucun des `roots`, sinon None."""
     if any(path.is_relative_to(root) for root in roots):
         return None
-    return "hors des dossiers autorisés (%s) : %s" % (", ".join(str(r) for r in roots), path)
+    return tr("outside_roots", roots=", ".join(str(r) for r in roots), path=path)
 
 
 def next_backup_path(path):
@@ -130,7 +133,7 @@ class Session:
         """Chemin absolu résolu (liens symboliques suivis), dans la zone autorisée."""
         p = Path(path)
         if not p.is_absolute():
-            raise HTTPException(400, "chemin absolu attendu : %s" % path)
+            raise HTTPException(400, tr("absolute_path", path=path))
         p = p.resolve()
         error = outside_roots(p, self.roots)
         if error:
@@ -140,11 +143,11 @@ class Session:
     def check_unsaved(self, force):
         """409 si des modifications seraient perdues, sauf confirmation (`force`)."""
         if self.backup is not None and self.backup.dirty and not force:
-            raise HTTPException(409, UNSAVED)
+            raise HTTPException(409, tr("unsaved"))
 
     def require(self):
         if self.backup is None:
-            raise HTTPException(409, "aucune sauvegarde ouverte")
+            raise HTTPException(409, tr("no_backup"))
         return self.backup
 
     def new_history(self):
@@ -185,12 +188,12 @@ def load_backup(path, roots=None):
     donnés ; StrikeError sinon."""
     path = Path(path)
     if not path.is_absolute():
-        raise sk.StrikeError("chemin absolu attendu : %s" % path)
+        raise sk.StrikeError(tr("absolute_path", path=path))
     error = roots is not None and outside_roots(path.resolve(), roots)
     if error:
         raise sk.StrikeError(error)
     if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
-        raise sk.StrikeError("sauvegarde introuvable : %s" % path)
+        raise sk.StrikeError(tr("backup_not_found", path=path))
     return sk.Backup.open(path)
 
 
@@ -217,6 +220,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
     if not token:
         raise ValueError("un jeton est obligatoire")
     s = Session([Path(r).resolve() for r in [*default_roots(), *allow]], preferences or Preferences())
+    startup(s.preferences["language"])  # messages d'erreur du lancement
     if open_file is not None:
         path = Path(open_file)
         s.set_opened(load_backup(path, s.roots), path.resolve())
@@ -230,10 +234,11 @@ def create_app(token, open_file=None, allow=(), preferences=None):
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
+        set_language(from_header(request.headers.get(LANGUAGE_HEADER)))
         if request.url.path.startswith("/api/") and not secrets.compare_digest(
             request.headers.get(TOKEN_HEADER, ""), token
         ):
-            return JSONResponse({"detail": "jeton absent ou invalide"}, status_code=403)
+            return JSONResponse({"detail": tr("token")}, status_code=403)
         return await call_next(request)
 
     @app.post("/api/open")
@@ -259,7 +264,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
     def kit_or_404(num):
         b = s.require()
         if num not in b.kit_numbers():
-            raise HTTPException(404, "kit %s inexistant" % num)
+            raise HTTPException(404, tr("kit_missing", num=num))
         return b
 
     def kit_result(kit, skipped):
@@ -280,7 +285,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
     def copy_slot(num: str, req: CopyRequest):
         with s.lock:
             b = kit_or_404(num)
-            label = "Copie des réglages de %s" % sk.slot_label(req.source - 1)
+            label = Msg("copy_from", slot=sk.slot_label(req.source - 1))
             kit, skipped = strike_errors(
                 lambda: s.history.track(
                     b, [num], lambda: b.copy_slot(num, req.source, req.targets, req.parts, req.include_midi_note), label
@@ -322,9 +327,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
         with s.lock:
             b = kit_or_404(num)
             kit, skipped = strike_errors(
-                lambda: s.history.track(
-                    b, [num], lambda: b.reset_slots(num, req.targets, req.fields), "Valeurs par défaut"
-                )
+                lambda: s.history.track(b, [num], lambda: b.reset_slots(num, req.targets, req.fields), Msg("defaults"))
             )
             return kit_result(kit, skipped)
 
@@ -367,7 +370,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
         with s.lock:
             b = s.require()
             if sid not in b.user_sample_ids():
-                raise HTTPException(404, "seuls les samples utilisateur sont dans la sauvegarde")
+                raise HTTPException(404, tr("user_samples_only"))
             return Response(b.user_wav(sid), media_type="audio/wav")
 
     @app.post("/api/samples")
@@ -388,10 +391,10 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             b = s.require()
             path = s.file if req.path is None else s.resolve(req.path)
             if path.suffix.lower() != "." + b.kind:
-                raise HTTPException(400, "l'extension doit être .%s" % b.kind)
+                raise HTTPException(400, tr("extension", kind=b.kind))
             same = path == s.file
             if not same and path.exists() and not req.overwrite:
-                raise HTTPException(409, "le fichier existe déjà : %s" % path)
+                raise HTTPException(409, tr("file_exists", path=path))
             data = b.serialize()
             strike_errors(lambda: sk.parse_container(data))
             if same and s.original and not s.backed_up and path.exists():
@@ -427,7 +430,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             b = s.require()
             entry = getattr(s.history, name)(b)
             if entry is None:
-                raise HTTPException(409, "rien à %s" % ("annuler" if name == "undo" else "rétablir"))
+                raise HTTPException(409, tr("nothing_" + name))
             return dict(s.state(), done=entry.label, detail=entry.detail, changed=entry.kits)
 
     @app.get("/api/history")
@@ -445,7 +448,7 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             try:
                 changed = s.history.goto(b, req.id)
             except KeyError:
-                raise HTTPException(404, "étape %s absente de l'historique" % req.id) from None
+                raise HTTPException(404, tr("step_missing", id=req.id)) from None
             return dict(s.state(), changed=changed)
 
     @app.post("/api/undo")

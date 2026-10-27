@@ -21,6 +21,7 @@ if (import.meta.env.DEV) {
           document.title = `${dirty ? "● " : ""}${__APP_NAMES__.long}`;
         },
         setRecent: (files) => console.info("[bouchon] setRecent", files),
+        setLanguage: (lang) => console.info(`[bouchon] setLanguage(${lang})`),
         onCommand: (handler) => {
           window.kitManagerFakeCommand = (command, path) => handler({ command, path });
         },
