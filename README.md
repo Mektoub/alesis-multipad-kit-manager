@@ -11,7 +11,7 @@ computer, from its USB backups:
 The format is not documented by Alesis: it was reverse-engineered. **Keep a
 copy of the original backup** before loading a file produced by these tools.
 
-![Web editor: kit list, grid of the 9 pads and settings of the selected pad](docs/images/overview.png)
+![Web editor: kit list, grid of the 9 pads and settings of the selected pad](docs/images/en/overview.png)
 
 ## Commands
 

@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { fly } from "svelte/transition";
   import { api } from "./lib/api.js";
   import { desktop } from "./lib/desktop.js";
@@ -14,7 +14,9 @@
   import PreferencesDialog from "./lib/PreferencesDialog.svelte";
   import RecentMenu from "./lib/RecentMenu.svelte";
   import { applyTheme } from "./lib/theme.js";
-  import { SHORTCUTS, isTextField, shortcut } from "./lib/shortcuts.js";
+  import { resolveLanguage } from "./lib/i18n.js";
+  import { language, setLanguage, t } from "./lib/locale.svelte.js";
+  import { SHORTCUTS, isMac, isTextField, shortcut } from "./lib/shortcuts.js";
 
   let meta = $state(null);
   let session = $state(null); // état renvoyé par /api/state
@@ -69,6 +71,25 @@
 
   $effect(() => applyTheme(prefs?.theme ?? "system"));
 
+  // Langue (préférence) : textes de l'interface, menus de l'application de
+  // bureau ; les textes venus du serveur (infobulles, historique) sont relus.
+  $effect(() => {
+    if (!prefs) return;
+    const lang = resolveLanguage(prefs.language);
+    desktop?.setLanguage(lang);
+    if (lang === untrack(language)) return;
+    setLanguage(lang);
+    untrack(reloadTexts);
+  });
+
+  async function reloadTexts() {
+    try {
+      [meta, session] = await Promise.all([api.meta(), api.state()]);
+    } catch (err) {
+      error = err.message;
+    }
+  }
+
   // Mode bureau : menu Fichier › Ouvrir récent
   $effect(() => {
     desktop?.setRecent(recentFiles);
@@ -112,7 +133,7 @@
       const entry = session.kits.find((k) => k.num === num);
       if (entry) entry.name = saved.name;
     } catch (err) {
-      error = `Modification refusée : ${err.message}`;
+      error = t("changeRefused", { message: err.message });
       if (num === currentNum) await loadKit(num, false);
     } finally {
       syncing = false;
@@ -121,7 +142,7 @@
 
   // Après une modification de paramètres faite par l'éditeur (PUT, qui ne
   // renvoie que le kit) : une étape de plus à annuler, plus rien à rétablir.
-  function edited(history = { undo: "dernière modification", redo: null }) {
+  function edited(history = { undo: t("lastChange"), redo: null }) {
     session.dirty = true;
     session.history = history;
   }
@@ -141,10 +162,10 @@
     edited(history);
     copyFrom = null;
     const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
-    notice = `Réglages de ${updated.slots[request.source - 1]._label} copiés vers ${dest}.`;
+    notice = t("copied", { source: updated.slots[request.source - 1]._label, dest });
     if (skipped.length) {
       const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
-      notice += ` Champs illisibles dans ce kit, non copiés : ${list}.`;
+      notice += t("copySkipped", { list });
     }
   }
 
@@ -156,10 +177,10 @@
     edited(history);
     resetFrom = null;
     const dest = request.targets.map((n) => updated.slots[n - 1]._label).join(", ");
-    notice = `Valeurs par défaut remises sur ${dest}.`;
+    notice = t("resetDone", { dest });
     if (skipped.length) {
       const list = skipped.map((s) => `${updated.slots[s.slot - 1]._label} ${s.field}`).join(", ");
-      notice += ` Champs illisibles dans ce kit, non modifiés : ${list}.`;
+      notice += t("resetSkipped", { list });
     }
   }
 
@@ -170,10 +191,11 @@
     bulkFrom = null;
     await loadKit(currentNum, false);
     const dest = targets.map((n) => kit.slots[n - 1]._label).join(", ");
-    const where = kits.length === 1 ? `du kit ${kits[0]}` : `de ${kits.length} kits`;
-    notice = `${title} = ${value} appliqué à ${dest} ${where}.`;
+    const where = kits.length === 1 ? t("bulkOneKit", { kit: kits[0] }) : t("bulkKits", { n: kits.length });
+    notice = t("bulkDone", { title, value, dest, where });
     if (skipped.length) {
-      notice += ` Champ absent, non modifié : ${skipped.map((s) => `kit ${s.kit} ${kit.slots[s.slot - 1]._label}`).join(", ")}.`;
+      const list = skipped.map((s) => `kit ${s.kit} ${kit.slots[s.slot - 1]._label}`).join(", ");
+      notice += t("bulkSkipped", { list });
     }
   }
 
@@ -181,15 +203,15 @@
     await flush();
     const source = currentNum;
     const before = session.kits.find((k) => k.num === target)?.name;
-    let question = `Déplacer le kit ${source} en ${target} ?`;
-    if (mode === "copy") question = `Copier le kit ${source} en ${target} ?`;
-    else if (before !== "Empty") question = `Échanger les kits ${source} et ${target} ?`;
+    let question = t("askMove", { source, target });
+    if (mode === "copy") question = t("askCopy", { source, target });
+    else if (before !== "Empty") question = t("askSwap", { source, target });
     if (!(await outsideHistory(question))) return; // la fenêtre reste ouverte
     session = await api.transferKit(source, { target, mode });
     transferring = false;
-    if (mode === "copy") notice = `Kit ${source} copié en ${target}.`;
-    else if (before === "Empty") notice = `Kit ${source} déplacé en ${target}.`;
-    else notice = `Kits ${source} et ${target} échangés.`;
+    if (mode === "copy") notice = t("kitCopied", { source, target });
+    else if (before === "Empty") notice = t("kitMoved", { source, target });
+    else notice = t("kitsSwapped", { source, target });
     await loadKit(target);
   }
 
@@ -204,9 +226,9 @@
     if (c === i) shown = j;
     else if (j < i && j <= c && c < i) shown = c + 1;
     else if (i < j && i < c && c <= j) shown = c - 1;
-    if (!(await outsideHistory(`Déplacer le kit ${source} en ${target} ?`))) return;
+    if (!(await outsideHistory(t("askMove", { source, target })))) return;
     session = await api.moveKit(source, { target });
-    notice = `Kit ${source} déplacé en ${target}.`;
+    notice = t("kitMoved", { source, target });
     await loadKit(nums[shown], false);
   }
 
@@ -238,11 +260,11 @@
   // Supprimer = remplacer par le kit vide de l'appareil, après confirmation.
   async function clearKit() {
     const num = currentNum;
-    const question = `Supprimer le kit ${num} « ${kit.name} » ? Il sera remplacé par un kit vide.`;
+    const question = t("askClear", { num, name: kit.name });
     await flush();
     if (canUndo || canRedo ? !(await outsideHistory(question)) : !confirm(question)) return;
     session = await api.clearKit(num);
-    notice = `Kit ${num} supprimé.`;
+    notice = t("kitCleared", { num });
     await loadKit(num);
   }
 
@@ -269,7 +291,7 @@
       await flush(); // la modification en attente devient une étape
       const { done, detail, changed, ...state } = await api[name]();
       await applied(state, changed);
-      notice = `${name === "undo" ? "Annulé" : "Rétabli"} : ${done}${detail ? ` (${detail})` : ""}`;
+      notice = t(name === "undo" ? "undone" : "redone", { label: `${done}${detail ? ` (${detail})` : ""}` });
     } catch (err) {
       if (err.status !== 409) error = err.message;
       session = await api.state(); // rien à annuler : l'interface se remet à jour
@@ -356,7 +378,7 @@
       await loadKit(first.num);
     } catch (err) {
       // le serveur refuse d'abandonner des modifications non enregistrées sans confirmation
-      if (err.status === 409 && confirm("Des modifications ne sont pas enregistrées. Ouvrir quand même ?")) {
+      if (err.status === 409 && confirm(t("askOpenUnsaved"))) {
         return openBackup(path, true);
       }
       error = err.message;
@@ -366,7 +388,7 @@
   // Recharger : relit le fichier ouvert et abandonne les modifications non
   // enregistrées (après confirmation) ; le kit affiché reste le même.
   async function reload() {
-    if (session.dirty && !confirm("Abandonner toutes les modifications non enregistrées et relire le fichier ?")) return;
+    if (session.dirty && !confirm(t("askReload"))) return;
     clearTimeout(timer); // une modification en attente ne doit pas être renvoyée
     error = notice = "";
     try {
@@ -374,7 +396,7 @@
       session = await api.open(session.path, true);
       samples = await api.samples();
       await loadKit(session.kits.some((k) => k.num === num) ? num : session.kits[0].num, false);
-      notice = "Fichier rechargé : modifications non enregistrées abandonnées.";
+      notice = t("reloaded");
     } catch (err) {
       error = err.message;
     }
@@ -390,10 +412,10 @@
       session = await api.save(path, overwrite);
       if (path != null) await refreshPrefs(); // « Enregistrer sous » : nouveau fichier récent
       openPath = session.path; // « Enregistrer sous » : le nouveau fichier devient le fichier ouvert
-      notice = `Enregistré dans ${session.path}`;
+      notice = t("savedTo", { path: session.path });
       savePath = nextName(session.path);
     } catch (err) {
-      if (err.status === 409 && confirm(`${err.message}\nL'écraser ?`)) return save(path, true);
+      if (err.status === 409 && confirm(t("askOverwrite", { message: err.message }))) return save(path, true);
       error = err.message;
     } finally {
       saving = false;
@@ -444,7 +466,7 @@
         await save();
         return { saved: !session?.dirty };
       default:
-        return { error: `commande inconnue : ${command}` };
+        return { error: t("unknownCommand", { command }) };
     }
   }
 
@@ -468,7 +490,10 @@
 
   onMount(async () => {
     try {
-      [meta, session, prefs] = await Promise.all([api.meta(), api.state(), api.preferences()]);
+      // langue d'abord : les textes du serveur en dépendent
+      prefs = await api.preferences();
+      setLanguage(resolveLanguage(prefs.language));
+      [meta, session] = await Promise.all([api.meta(), api.state()]);
       // navigateur : chemin proposé, la dernière sauvegarde ouverte
       openPath = recentFiles[0] ?? "";
       if (session.path) {
@@ -480,10 +505,8 @@
       }
     } catch (err) {
       error = err.status === 403
-        ? desktop
-          ? "Accès refusé : jeton de l'application refusé par le serveur."
-          : "Accès refusé : ouvrir l'éditeur par l'adresse affichée au lancement (avec #token=…)."
-        : `Serveur injoignable : ${err.message}`;
+        ? t(desktop ? "tokenRefusedDesktop" : "tokenRefusedBrowser")
+        : t("serverUnreachable", { message: err.message });
     }
     // après le chargement initial, pour qu'un fichier transmis au lancement ne
     // soit pas remplacé par l'état lu ci-dessus
@@ -497,14 +520,14 @@
   <h1>{__APP_NAMES__.long} <span class="version">v{__APP_NAMES__.version}</span></h1>
   <div class="open">
     {#if desktop}
-      <button onclick={openDialog}>Ouvrir…</button>
+      <button onclick={openDialog}>{t("openDialog")}</button>
     {:else}
-      <input type="text" bind:value={openPath} placeholder="/chemin/vers/Backup001.bkf" aria-label="Sauvegarde à ouvrir (chemin absolu)" />
-      <button onclick={() => openBackup(openPath.trim())} disabled={!openPath.trim()}>Ouvrir</button>
+      <input type="text" bind:value={openPath} placeholder={t("openPlaceholder")} aria-label={t("openLabel")} />
+      <button onclick={() => openBackup(openPath.trim())} disabled={!openPath.trim()}>{t("open")}</button>
     {/if}
     <span class="recent">
       <button class="icon chevron" onclick={() => (recentOpen = !recentOpen)} disabled={!recentFiles.length}
-        aria-label="Fichiers récents" aria-expanded={recentOpen} title="Fichiers récents">▾</button>
+        aria-label={t("recentFiles")} aria-expanded={recentOpen} title={t("recentFiles")}>▾</button>
       {#if recentOpen}
         <RecentMenu files={recentFiles} onselect={(path) => openBackup(path)} onclose={() => (recentOpen = false)} />
       {/if}
@@ -514,31 +537,31 @@
   {#if session?.path}
     <div class="save">
       <span class="status" class:dirty={session.dirty}>
-        {syncing ? "Synchronisation…" : session.dirty ? "Modifications non enregistrées" : "À jour"}
+        {t(syncing ? "syncing" : session.dirty ? "unsaved" : "upToDate")}
       </span>
-      <button class="icon" onclick={() => step("undo")} disabled={saving || !canUndo} aria-label="Annuler"
-        title={`Annuler${canUndo ? ` : ${session.history.undo}` : ""} (${SHORTCUTS.undo})`}>↶</button>
-      <button class="icon" onclick={() => step("redo")} disabled={saving || !canRedo} aria-label="Rétablir"
-        title={`Rétablir${canRedo ? ` : ${session.history.redo}` : ""} (${SHORTCUTS.redo})`}>↷</button>
+      <button class="icon" onclick={() => step("undo")} disabled={saving || !canUndo} aria-label={t("undo")}
+        title={t(canUndo ? "undoTitleLabel" : "undoTitle", { label: session.history.undo, keys: SHORTCUTS.undo })}>↶</button>
+      <button class="icon" onclick={() => step("redo")} disabled={saving || !canRedo} aria-label={t("redo")}
+        title={t(canRedo ? "redoTitleLabel" : "redoTitle", { label: session.history.redo, keys: t(isMac ? "redoKeysMac" : "redoKeys") })}>↷</button>
       <span class="history">
         <button class="icon chevron" onclick={toggleHistory} disabled={saving || (!canUndo && !canRedo)}
-          aria-label="Historique" aria-expanded={Boolean(historyList)} title="Historique des modifications">▾</button>
+          aria-label={t("history")} aria-expanded={Boolean(historyList)} title={t("historyTitle")}>▾</button>
         {#if historyList}
           <HistoryMenu listing={historyList} onselect={gotoStep} onclose={() => (historyList = null)} />
         {/if}
       </span>
-      <button onclick={reload} disabled={saving} title="Relire le fichier ouvert et annuler toutes les modifications non enregistrées">Recharger</button>
-      {#if !desktop}<input type="text" bind:value={savePath} aria-label="Fichier de destination" />{/if}
-      <button class="primary" onclick={() => save()} disabled={saving} title="Écrit dans le fichier ouvert ; au premier enregistrement, une copie .bak de l'original est conservée">Enregistrer</button>
+      <button onclick={reload} disabled={saving} title={t("reloadTitle")}>{t("reload")}</button>
+      {#if !desktop}<input type="text" bind:value={savePath} aria-label={t("destination")} />{/if}
+      <button class="primary" onclick={() => save()} disabled={saving} title={t("saveTitle")}>{t("save")}</button>
       {#if desktop}
-        <button onclick={saveAsDialog} disabled={saving}>Enregistrer sous…</button>
+        <button onclick={saveAsDialog} disabled={saving}>{t("saveAsDialog")}</button>
       {:else}
-        <button onclick={() => save(savePath)} disabled={saving}>Enregistrer sous</button>
+        <button onclick={() => save(savePath)} disabled={saving}>{t("saveAs")}</button>
       {/if}
     </div>
   {/if}
-  <button class="icon prefs" class:alone={!session?.path} onclick={() => (prefsOpen = true)} aria-label="Préférences"
-    title="Préférences">⚙</button>
+  <button class="icon prefs" class:alone={!session?.path} onclick={() => (prefsOpen = true)} aria-label={t("preferences")}
+    title={t("preferences")}>⚙</button>
 </header>
 
 <!-- Messages en toasts (en haut, au milieu, au-dessus des fenêtres) : les erreurs
@@ -546,12 +569,12 @@
 <div class="toasts">
   {#if error}
     <div class="toast error" role="alert" transition:fly={{ y: -16, duration: 150 }}>
-      <span>{error}</span><button onclick={() => (error = "")} aria-label="Fermer">✕</button>
+      <span>{error}</span><button onclick={() => (error = "")} aria-label={t("close")}>✕</button>
     </div>
   {/if}
   {#if notice}
     <div class="toast ok" role="status" transition:fly={{ y: -16, duration: 150 }}>
-      <span>{notice}</span><button onclick={() => (notice = "")} aria-label="Fermer">✕</button>
+      <span>{notice}</span><button onclick={() => (notice = "")} aria-label={t("close")}>✕</button>
     </div>
   {/if}
 </div>
@@ -560,11 +583,11 @@
   <main class="layout">
     <aside>
       <div class="aside-head">
-        <h2>Kits</h2>
+        <h2>{t("kits")}</h2>
         <label class="muted"><input type="checkbox" checked={hideEmpty}
-          onchange={(e) => setPrefs({ hide_empty: e.target.checked }).catch((err) => (error = err.message))} /> masquer les vides</label>
+          onchange={(e) => setPrefs({ hide_empty: e.target.checked }).catch((err) => (error = err.message))} /> {t("hideEmptyShort")}</label>
       </div>
-      <p class="muted info">{session.path} · {session.kind} · {session.user_samples} sample(s) perso</p>
+      <p class="muted info">{t("fileInfo", { path: session.path, kind: session.kind, n: session.user_samples })}</p>
       <ul>
         {#each visibleKits as k (k.num)}
           <li
@@ -585,8 +608,8 @@
                 role="button"
                 tabindex="-1"
                 draggable="true"
-                title="Glisser pour déplacer le kit (les kits suivants se décalent)"
-                aria-label="Déplacer le kit {k.num}"
+                title={t("dragKitTitle")}
+                aria-label={t("dragKitLabel", { num: k.num })}
                 ondragstart={(e) => dragStart(e, k.num)}
                 ondragend={dragEnd}
               >⠿</span>
@@ -604,9 +627,11 @@
 {:else if meta}
   <main class="welcome">
     {#if desktop}
-      <p>Ouvrez une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code> avec <strong>Ouvrir…</strong>.</p>
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -- texte fixe de messages.js -->
+      <p>{@html t("welcomeDesktop")}</p>
     {:else}
-      <p>Indiquez le chemin complet d'une sauvegarde <code>.bkf</code> (kits et samples utilisateur) ou <code>.fac</code>, puis cliquez sur <strong>Ouvrir</strong>.</p>
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -- texte fixe de messages.js -->
+      <p>{@html t("welcomeBrowser")}</p>
     {/if}
   </main>
 {/if}

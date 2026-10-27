@@ -10,6 +10,8 @@
 //   setDirty(dirty)        signale les modifications non enregistrées, pour que
 //                          l'application confirme la fermeture de la fenêtre
 //   setRecent(files)       fichiers récents, pour le menu Fichier › Ouvrir récent
+//   setLanguage(lang)      langue de l'interface ("en" | "fr"), pour les menus et
+//                          les boîtes de dialogue de l'application
 //   onCommand(handler)     reçoit les commandes de l'application, { command, path? } ;
 //                          la valeur renvoyée par handler (ou sa promesse) est la réponse :
 //                            open, save, save-as   menu Fichier

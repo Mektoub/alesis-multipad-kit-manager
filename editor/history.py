@@ -14,11 +14,15 @@ pas (`untracked`).
 
 Les envois rapprochés de l'éditeur sur les mêmes paramètres d'un kit (curseur,
 saisie d'un nom) ne font qu'une étape : voir `MERGE_SECONDS`.
+
+Les libellés des étapes sont des textes à traduire (editor/i18n.py), rendus
+dans la langue de la requête qui les lit.
 """
 
 import time
 from dataclasses import dataclass, field
 
+from editor.i18n import Msg
 from editor.meta import LABELS, LIGHT_LABELS, TITLES
 
 # nombre maximal d'étapes gardées par défaut (préférence history_limit) ; les
@@ -28,7 +32,7 @@ LIMIT = 100
 # l'un de l'autre, sont fusionnés en une étape
 MERGE_SECONDS = 1.5
 
-KIT_TITLES = {"name": "Nom du kit", "level": "Volume du kit", "tempo": "Tempo"}
+KIT_TITLES = {"name": Msg("kit_name"), "level": Msg("kit_level"), "tempo": Msg("tempo")}
 PART_TITLES = {"wave_a": "Wave A", "wave_b": "Wave B"}
 
 
@@ -64,7 +68,7 @@ def value_text(key, value, samples):
     if key == "sample":
         return samples.get(value, str(value))
     if isinstance(value, str):
-        return "« %s »" % value
+        return Msg("quoted", text=value)
     labels = LABELS[key][0] if key in LABELS else LIGHT_LABELS.get(key)
     if labels and isinstance(value, int) and 0 <= value < len(labels) and labels[value]:
         return labels[value]
@@ -74,15 +78,25 @@ def value_text(key, value, samples):
 @dataclass
 class Entry:
     id: int
-    label: str
+    title: object  # libellé : str ou Msg, voir `label`
     changes: list  # [(kit, chemin, ancienne valeur, nouvelle valeur)]
-    detail: str = ""  # « 90 → 50 » quand l'étape ne modifie qu'un paramètre
+    values: tuple = ()  # (ancienne, nouvelle) quand l'étape ne modifie qu'un paramètre
     merge_key: object = None  # étape d'éditeur fusionnable
     time: float = 0.0
     kits: list = field(init=False)
 
     def __post_init__(self):
         self.kits = list(dict.fromkeys(c[0] for c in self.changes))
+
+    @property
+    def label(self):
+        """« Kit 033 · Nom du kit », dans la langue en cours."""
+        return str(self.title)
+
+    @property
+    def detail(self):
+        """« 90 → 50 » quand l'étape ne modifie qu'un paramètre, sinon ""."""
+        return "%s → %s" % tuple(str(v) for v in self.values) if self.values else ""
 
 
 class History:
@@ -111,7 +125,8 @@ class History:
     def track(self, backup, nums, fn, label=None, merge=False):
         """Exécute `fn` (modification des kits `nums`) et en garde une étape.
 
-        `label` : libellé de l'action quand elle modifie plusieurs paramètres ;
+        `label` : libellé de l'action (str ou Msg) quand elle modifie plusieurs
+        paramètres ;
         `merge` : envoi de l'éditeur, fusionnable avec le précédent.
         """
         before = {n: backup.decode(n) for n in nums}
@@ -165,15 +180,15 @@ class History:
                 return
             found = merged
         nums = list(dict.fromkeys(c[0] for c in found))
-        detail = ""
+        values = ()
         if len(found) == 1:
             num, path, old, new = found[0]
             text = describe(path, before[num])
-            detail = "%s → %s" % (value_text(path[-1], old, samples), value_text(path[-1], new, samples))
+            values = (value_text(path[-1], old, samples), value_text(path[-1], new, samples))
         else:
-            text = label or "%d paramètres" % len(found)
-        text = "Kit %s · %s" % (nums[0], text) if len(nums) == 1 else "%s · %d kits" % (text, len(nums))
-        self.done.append(Entry(self.next_id, text, found, detail, key, now))
+            text = label or Msg("n_params", n=len(found))
+        text = Msg("kit_step", kit=nums[0], text=text) if len(nums) == 1 else Msg("kits_step", text=text, n=len(nums))
+        self.done.append(Entry(self.next_id, text, found, values, key, now))
         self.next_id += 1
         if len(self.done) > self.limit:
             self.base = self.done.pop(0).id

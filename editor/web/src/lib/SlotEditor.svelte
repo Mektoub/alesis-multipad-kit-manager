@@ -5,6 +5,7 @@
   import ParamField from "./ParamField.svelte";
   import WaveEditor from "./WaveEditor.svelte";
   import { tooltip } from "./format.js";
+  import { t } from "./locale.svelte.js";
 
   let { slot, meta, sampleIndex, onpick } = $props();
 
@@ -52,7 +53,7 @@
   {#if unknown.length}
     <section>
       <details>
-        <summary class="muted">Paramètres non identifiés ({unknown.length})</summary>
+        <summary class="muted">{t("unknownParams", { n: unknown.length })}</summary>
         {#each unknown as def (def.name)}
           <ParamField {def} bind:value={slot.params[def.name]} defaultValue={defaults.params[def.name]} />
         {/each}

@@ -2,6 +2,7 @@
   // Kit : réglages généraux, grille des 9 pads, autres entrées, emplacement choisi.
   import SlotEditor from "./SlotEditor.svelte";
   import { tooltip } from "./format.js";
+  import { t } from "./locale.svelte.js";
 
   let { kit, meta, sampleIndex, selected = $bindable(), onpick, oncopy, onreset, ontransfer, onclear, empty, onbulk } = $props();
 
@@ -37,21 +38,21 @@
 <div class="kit">
   <div class="settings">
     <label title={meta.help.name}>
-      <span class="muted">Nom</span>
+      <span class="muted">{t("kitName")}</span>
       <input type="text" maxlength={meta.kit_name_max} bind:value={kit.name} />
     </label>
     <label title={tooltip(meta.help.level, {}, meta.defaults.kit.level)}>
-      <span class="muted">Volume du kit</span>
+      <span class="muted">{t("kitLevel")}</span>
       <input type="range" min="0" max="100" bind:value={kit.level} />
       <span class="num">{kit.level}</span>
     </label>
-    <label title={tooltip(`${meta.help.tempo} Flèches : ±1 BPM ; une décimale peut être saisie (ex. 98.5).`, {}, meta.defaults.kit.tempo)}>
-      <span class="muted">Tempo (BPM)</span>
+    <label title={tooltip(`${meta.help.tempo} ${t("tempoHint")}`, {}, meta.defaults.kit.tempo)}>
+      <span class="muted">{t("tempo")}</span>
       <input type="number" min="30" max="280" step="any" bind:value={kit.tempo} />
     </label>
-    <span class="format muted" title="KITC : format écrit par l'appareil quand on enregistre un kit">{kit.format}</span>
-    <button onclick={ontransfer}>Déplacer / copier le kit…</button>
-    <button onclick={onclear} disabled={empty} title={empty ? "Ce kit est déjà vide" : "Remplacer ce kit par un kit vide (les samples restent dans la sauvegarde)"}>Supprimer le kit…</button>
+    <span class="format muted" title={t("formatTitle")}>{kit.format}</span>
+    <button onclick={ontransfer}>{t("transferKit")}</button>
+    <button onclick={onclear} disabled={empty} title={t(empty ? "clearKitEmpty" : "clearKitTitle")}>{t("clearKit")}</button>
   </div>
 
   <div class="pads">
@@ -62,7 +63,7 @@
         <span class="sample">{sampleName(s.wave_a.sample)}</span>
         {#if s.wave_b.sample != null}<span class="sample b">{sampleName(s.wave_b.sample)}</span>{/if}
         {#if controlBadge(s)}
-          <span class="control" class:click={s.params.control === CLICK} title="Mode : {controlBadge(s)}">{controlBadge(s)}</span>
+          <span class="control" class:click={s.params.control === CLICK} title={t("controlTitle", { mode: controlBadge(s) })}>{controlBadge(s)}</span>
         {/if}
       </button>
     {/each}
@@ -70,7 +71,7 @@
 
   <div class="others">
     <div class="chips">
-      <span class="muted">Entrées :</span>
+      <span class="muted">{t("inputs")}</span>
       {#each inputs as s (s.slot)}
         <button class="chip" class:selected={selected === s.slot - 1} class:used={used(s)} onclick={() => (selected = s.slot - 1)}>
           {s._label}
@@ -78,7 +79,7 @@
       {/each}
     </div>
     <button class="link" onclick={() => (showUnknown = !showUnknown)}>
-      {showUnknown ? "masquer" : "afficher"} les {unknown.length} emplacements non identifiés
+      {t(showUnknown ? "hideUnknown" : "showUnknown", { n: unknown.length })}
     </button>
     {#if showUnknown}
       <div class="chips">
@@ -95,9 +96,9 @@
     <div class="editor-head">
       <h2>{slot._label}</h2>
       <span class="actions">
-        <button onclick={() => onbulk(selected + 1)} title="Donner une même valeur à un réglage de plusieurs pads">Modifier plusieurs pads…</button>
-        <button onclick={() => oncopy(selected + 1)}>Copier vers…</button>
-        <button onclick={() => onreset(selected + 1)} title="Remettre des réglages aux valeurs par défaut">Valeurs par défaut…</button>
+        <button onclick={() => onbulk(selected + 1)} title={t("bulkEditTitle")}>{t("bulkEdit")}</button>
+        <button onclick={() => oncopy(selected + 1)}>{t("copyTo")}</button>
+        <button onclick={() => onreset(selected + 1)} title={t("defaultsTitle")}>{t("defaultsButton")}</button>
       </span>
     </div>
     {#key selected}

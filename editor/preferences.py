@@ -15,12 +15,15 @@ import os
 import sys
 from pathlib import Path
 
+from editor.i18n import LANGUAGES, tr
+
 FILE_NAME = "preferences.json"
 RECENT_MAX = 10  # fichiers récents gardés
 HISTORY_MIN, HISTORY_MAX = 10, 1000  # bornes de la taille de l'historique
 
 DEFAULTS = {
     "theme": "system",  # "system" | "light" | "dark"
+    "language": "system",  # "system" (celle du système) | "en" | "fr"
     "hide_empty": True,  # kits vides masqués dans la liste
     "reopen_last": False,  # rouvrir la dernière sauvegarde au lancement
     "history_limit": 100,  # étapes gardées pour annuler / rétablir
@@ -32,6 +35,8 @@ DEFAULTS = {
 def _valid(key, value):
     if key == "theme":
         return value in ("system", "light", "dark")
+    if key == "language":
+        return value == "system" or value in LANGUAGES
     if key in ("hide_empty", "reopen_last"):
         return isinstance(value, bool)
     if key == "history_limit":
@@ -85,9 +90,9 @@ class Preferences:
         """Modifie les clés données, toutes valides, ou aucune (ValueError)."""
         for key, value in changes.items():
             if key not in DEFAULTS:
-                raise ValueError("préférence inconnue : %s" % key)
+                raise ValueError(tr("unknown_preference", key=key))
             if not _valid(key, value):
-                raise ValueError("valeur invalide pour %s : %r" % (key, value))
+                raise ValueError(tr("invalid_preference", key=key, value=repr(value)))
         self.values.update(changes)
         self._write()
         return self.get()

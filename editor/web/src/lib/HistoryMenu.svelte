@@ -5,13 +5,13 @@
   //
   // `listing` : réponse de GET /api/history ; `onselect({ id, message })`, avec
   // le message de confirmation à afficher.
+  import { t } from "./locale.svelte.js";
+
   let { listing, onselect, onclose } = $props();
 
   let menu;
-  let start = $derived(listing.base === 0 ? "Ouverture du fichier" : "Début de l'historique");
-  let startMessage = $derived(
-    listing.base === 0 ? "Retour à l'ouverture du fichier" : "Retour au début de l'historique",
-  );
+  let start = $derived(t(listing.base === 0 ? "historyFileOpened" : "historyStart"));
+  let startMessage = $derived(t(listing.base === 0 ? "backToFileOpened" : "backToStart"));
   let rows = $derived([
     ...listing.entries.toReversed(),
     { id: listing.base, label: start, detail: "", done: true, start: true },
@@ -36,7 +36,7 @@
 
 <svelte:window {onpointerdown} {onkeydown} />
 
-<div class="menu" role="menu" aria-label="Historique des modifications" bind:this={menu}>
+<div class="menu" role="menu" aria-label={t("historyTitle")} bind:this={menu}>
   {#each rows as row (row.id)}
     {@const current = row.id === listing.position}
     <button
@@ -45,12 +45,12 @@
       class:current
       class:start={row.start}
       disabled={current}
-      onclick={() => onselect({ id: row.id, message: row.start ? startMessage : `Retour à : ${row.label}` })}
-      title={current ? "Position actuelle" : row.done ? "Annuler jusqu'ici" : "Rétablir jusqu'ici"}
+      onclick={() => onselect({ id: row.id, message: row.start ? startMessage : t("backTo", { label: row.label }) })}
+      title={t(current ? "currentPosition" : row.done ? "undoToHere" : "redoToHere")}
     >
       <span class="label">{row.label}</span>
       {#if row.detail}<span class="detail">{row.detail}</span>{/if}
-      {#if row.id === listing.saved}<span class="saved">Enregistré</span>{/if}
+      {#if row.id === listing.saved}<span class="saved">{t("saved")}</span>{/if}
     </button>
   {/each}
 </div>

@@ -4,6 +4,7 @@
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
   import { formatValue } from "./format.js";
+  import { t } from "./locale.svelte.js";
   let { kit, meta, source, kits, currentNum, onapply, onclose } = $props();
 
   // même disposition que la grille de l'éditeur
@@ -27,14 +28,14 @@
     const unknown = (params) => params.filter((d) => !d.known);
     return [
       ...meta.pad_sections.flatMap((s) => s.fields.map((f) => fromDef(f, `Pad · ${s.title}`, pad.get(f)))),
-      ...unknown(meta.pad_params).map((d) => fromDef(`params.${d.name}`, "Pad · non identifiés", d)),
+      ...unknown(meta.pad_params).map((d) => fromDef(`params.${d.name}`, t("unidentified", { part: "Pad" }), d)),
       ...["wave_a", "wave_b"].flatMap((w) => {
         const title = w === "wave_a" ? "Wave A" : "Wave B";
         return [
           ...meta.wave_sections.flatMap((s) =>
             s.fields.map((f) => fromDef(`${w}.${f}`, `${title} · ${s.title}`, wave.get(f))),
           ),
-          ...unknown(meta.wave_params).map((d) => fromDef(`${w}.params.${d.name}`, `${title} · non identifiés`, d)),
+          ...unknown(meta.wave_params).map((d) => fromDef(`${w}.params.${d.name}`, t("unidentified", { part: title }), d)),
         ];
       }),
     ];
@@ -117,15 +118,15 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Modifier plusieurs pads">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t("bulkTitle")}>
     <header>
-      <h2>Modifier plusieurs pads</h2>
-      <button onclick={onclose} aria-label="Fermer">✕</button>
+      <h2>{t("bulkTitle")}</h2>
+      <button onclick={onclose} aria-label={t("close")}>✕</button>
     </header>
 
     <section>
       <label class="row">
-        <span class="muted">Réglage</span>
+        <span class="muted">{t("setting")}</span>
         <select value={fieldName} onchange={changeField}>
           {#each GROUPS as g (g)}
             <optgroup label={g}>
@@ -138,14 +139,14 @@
       </label>
       <p class="muted help">
         {def.description}
-        {#if defaultValue != null}<br />Par défaut sur {sourceLabel} : {formatValue({ ...def, name: fieldName.split(".").pop() }, defaultValue)}{/if}
+        {#if defaultValue != null}<br />{t("defaultOn", { slot: sourceLabel, value: formatValue({ ...def, name: fieldName.split(".").pop() }, defaultValue) })}{/if}
       </p>
       <label class="row">
-        <span class="muted">Valeur</span>
+        <span class="muted">{t("value")}</span>
         {#if def.labels}
           <select bind:value>
             {#each { length: def.max - def.min + 1 } as _, i (i)}
-              <option value={def.min + i}>{def.labels[def.min + i] ?? `Valeur ${def.min + i}`}</option>
+              <option value={def.min + i}>{def.labels[def.min + i] ?? t("valueN", { n: def.min + i })}</option>
             {/each}
           </select>
         {:else}
@@ -155,15 +156,15 @@
           </span>
         {/if}
       </label>
-      {#if !def.labels}<p class="muted help">Plage : {def.min} à {def.max}</p>{/if}
+      {#if !def.labels}<p class="muted help">{t("range", { min: def.min, max: def.max })}</p>{/if}
     </section>
 
     <section>
       <div class="head">
-        <h3>Pads</h3>
+        <h3>{t("pads")}</h3>
         <span>
-          <button class="link" onclick={() => selectPads(true)}>tous les pads</button>
-          <button class="link" onclick={() => selectPads(false)}>aucun</button>
+          <button class="link" onclick={() => selectPads(true)}>{t("allPads")}</button>
+          <button class="link" onclick={() => selectPads(false)}>{t("none")}</button>
         </span>
       </div>
       <div class="pads">
@@ -176,7 +177,7 @@
         {/each}
       </div>
       <details>
-        <summary class="muted">Autres entrées (10 à 24)</summary>
+        <summary class="muted">{t("otherInputs")}</summary>
         <div class="others">
           {#each others as n (n)}
             <button class="target small" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(targets, n)}>
@@ -189,20 +190,20 @@
 
     <section>
       <div class="head">
-        <h3>Kits ({chosenKits.size})</h3>
+        <h3>{t("kitsCount", { n: chosenKits.size })}</h3>
         <span>
-          <button class="link" onclick={() => selectKits("current")}>kit courant</button>
-          <button class="link" onclick={() => selectKits("used")}>kits non vides</button>
-          <button class="link" onclick={() => selectKits("none")}>aucun</button>
+          <button class="link" onclick={() => selectKits("current")}>{t("currentKit")}</button>
+          <button class="link" onclick={() => selectKits("used")}>{t("usedKits")}</button>
+          <button class="link" onclick={() => selectKits("none")}>{t("none")}</button>
         </span>
       </div>
-      <p class="muted help kits-help">Les mêmes pads sont modifiés dans chaque kit coché.</p>
+      <p class="muted help kits-help">{t("kitsHelp")}</p>
       <ul class="kits">
         {#each kits as k (k.num)}
           <li>
             <label class:empty={k.name === "Empty"}>
               <input type="checkbox" checked={chosenKits.has(k.num)} onchange={() => toggle(chosenKits, k.num)} />
-              <span class="num">{k.num}</span> {k.name}{k.num === currentNum ? " (courant)" : ""}
+              <span class="num">{k.num}</span> {k.name}{k.num === currentNum ? t("current") : ""}
             </label>
           </li>
         {/each}
@@ -212,9 +213,9 @@
     {#if error}<p class="error">{error}</p>{/if}
 
     <footer>
-      <button onclick={onclose}>Annuler</button>
+      <button onclick={onclose}>{t("cancel")}</button>
       <button class="primary" onclick={submit} disabled={busy || !targets.size || !chosenKits.size || !valid}>
-        Appliquer à {targets.size} pad(s){chosenKits.size > 1 ? ` × ${chosenKits.size} kits` : ""}
+        {t("applyTo", { n: targets.size })}{chosenKits.size > 1 ? ` × ${chosenKits.size} kits` : ""}
       </button>
     </footer>
   </div>

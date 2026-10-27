@@ -10,22 +10,24 @@
 | `editor/server.py` | API FastAPI de l'éditeur |
 | `editor/history.py` | historique des modifications (annuler / rétablir) |
 | `editor/preferences.py` | préférences de l'utilisateur (`preferences.json`) |
+| `editor/i18n.py` | textes du serveur en anglais et en français (erreurs, libellés de l'historique) |
 | `editor/meta.py` | description des paramètres pour l'interface (libellés, couleurs) |
 | `editor/__main__.py` | lancement (`python -m editor`) |
 | `app-names.json` | noms de l'application : long, court, identifiant des chemins, dossier de configuration (voir [Application de bureau](desktop-app.md#noms-de-lapplication)) |
 | `dev.sh` | lancement de l'éditeur (navigateur ou application de bureau), avec préparation automatique du venv et de l'interface ; analyse, tests et build en local, comme la CI |
 | `desktop/` | application de bureau Electron (voir [Application de bureau](desktop-app.md)) |
-| `editor/web/` | interface Svelte (Vite) |
+| `editor/web/` | interface Svelte (Vite) ; textes en anglais et en français dans `src/lib/messages.js` |
 | `editor/web/src/**/*.test.js` | tests de l'interface (Vitest, jsdom) |
 | `tests/test_strike_kits.py` | tests du format et de la ligne de commande |
 | `tests/test_editor.py` | tests de l'API |
 | `tests/test_history.py` | tests de l'historique (annuler / rétablir) |
 | `tests/test_preferences.py` | tests des préférences (fichier, API, effets sur l'éditeur) |
+| `tests/test_i18n.py` | tests des traductions (catalogues, langue de la requête) |
 | `tests/outils.py` | outils communs aux tests (sauvegarde de référence, WAV et `.fac` synthétiques) |
 | `tests/ressources/Backup001.bkf` | sauvegarde de référence des tests |
 | `tests/construire_reference.py` | script qui a construit cette sauvegarde |
 | `docs/fr/*-format.md` (`docs/en/` en anglais) | ce que l'on sait des formats binaires |
-| `docs/images/` | captures d'écran, communes aux deux langues |
+| `docs/images/en/`, `docs/images/fr/` | captures d'écran, interface dans la langue de la documentation |
 | `desktop/e2e/screenshots.js` | captures d'écran de la documentation (`./dev.sh screenshots`) |
 
 Dans `strike_kits/__init__.py` :
@@ -49,7 +51,7 @@ installe `requirements-dev.txt` et les paquets de l'interface (`npm ci`).
 | `./dev.sh test` | tous les tests, Python et interface |
 | `./dev.sh test tests.test_editor.Lancement` | seulement les tests Python indiqués |
 | `./dev.sh e2e` | test de bout en bout de l'application de bureau (voir [Application de bureau](desktop-app.md#test-de-bout-en-bout)) |
-| `./dev.sh screenshots` | captures d'écran de la documentation dans `docs/images/`, prises dans l'application de bureau sur la sauvegarde de référence des tests (Playwright, thème clair, fenêtre de 1400×900) ; à relancer après un changement de l'interface ; la fenêtre s'affiche pendant les captures : ne pas taper au clavier |
+| `./dev.sh screenshots` | captures d'écran de la documentation dans `docs/images/en/` et `docs/images/fr/`, prises dans l'application de bureau sur la sauvegarde de référence des tests (Playwright, thème clair, fenêtre de 1400×900) ; à relancer après un changement de l'interface ; la fenêtre s'affiche pendant les captures : ne pas taper au clavier |
 | `./dev.sh build` | build de l'interface dans `editor/web/dist` |
 | `./dev.sh serve FICHIER [--port N] [--host ADRESSE] [--no-browser]` | éditeur dans le navigateur sur cette sauvegarde |
 | `./dev.sh package` | paquet .deb de l'application dans `desktop/dist/` (voir [Application de bureau](desktop-app.md#paquet-deb)) |

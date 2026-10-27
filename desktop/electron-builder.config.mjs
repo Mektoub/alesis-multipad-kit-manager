@@ -19,7 +19,7 @@ export default {
   // ajoutés au package.json de l'application empaquetée : main.js y lit les noms
   extraMetadata: { desktopName: `${names.id}.desktop`, appNames: names },
   directories: { output: "dist", buildResources: "build-resources" },
-  files: ["main.js", "menu.js", "preload.cjs", "server.js", "window-state.js", "package.json"],
+  files: ["main.js", "menu.js", "messages.js", "preload.cjs", "server.js", "window-state.js", "package.json"],
   extraResources: [{ from: `build/${server}`, to: server }],
   fileAssociations: [
     { ext: "bkf", name: "Sauvegarde Strike (kits et samples)", mimeType: "application/x-kitmanager-bkf" },

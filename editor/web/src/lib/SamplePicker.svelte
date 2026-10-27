@@ -1,6 +1,7 @@
 <script>
   // Fenêtre de choix d'un sample : recherche, filtre, écoute, ajout d'un WAV.
   import { onPlaying, toggle } from "./player.js";
+  import { t } from "./locale.svelte.js";
 
   let { samples, current, onselect, onclose, onupload } = $props();
 
@@ -48,25 +49,25 @@
 <svelte:window {onkeydown} />
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
-  <div class="dialog" role="dialog" aria-modal="true" aria-label="Choisir un sample">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label={t("chooseSample")}>
     <header>
-      <h2>Choisir un sample</h2>
-      <button onclick={onclose} aria-label="Fermer">✕</button>
+      <h2>{t("chooseSample")}</h2>
+      <button onclick={onclose} aria-label={t("close")}>✕</button>
     </header>
 
     <div class="toolbar">
-      <input type="search" placeholder="Rechercher par nom ou id…" bind:value={query} bind:this={input} />
+      <input type="search" placeholder={t("searchSample")} bind:value={query} bind:this={input} />
       <select bind:value={scope}>
-        <option value="all">Tous</option>
-        <option value="user">Mes samples</option>
-        <option value="factory">Usine</option>
+        <option value="all">{t("scopeAll")}</option>
+        <option value="user">{t("scopeUser")}</option>
+        <option value="factory">{t("scopeFactory")}</option>
       </select>
     </div>
 
     <ul class="list">
       <li>
         <button class="row" class:active={current === null} onclick={() => onselect(null)}>
-          <span class="name muted">— Aucun sample —</span>
+          <span class="name muted">{t("noSample")}</span>
         </button>
       </li>
       {#each filtered.slice(0, LIMIT) as s (s.id)}
@@ -74,10 +75,10 @@
           <button class="row" class:active={current === s.id} onclick={() => onselect(s.id)}>
             <span class="id">{s.id}</span>
             <span class="name">{s.name}</span>
-            {#if s.user}<span class="badge">perso</span>{/if}
+            {#if s.user}<span class="badge">{t("userBadge")}</span>{/if}
           </button>
           {#if s.user}
-            <button class="play" onclick={() => toggle(s.id)} aria-label="Écouter {s.name}">
+            <button class="play" onclick={() => toggle(s.id)} aria-label={t("listenTo", { name: s.name })}>
               {playing === s.id ? "■" : "▶"}
             </button>
           {/if}
@@ -85,8 +86,8 @@
       {/each}
     </ul>
     <p class="count muted">
-      {filtered.length} sample(s){filtered.length > LIMIT ? `, ${LIMIT} affichés : affinez la recherche` : ""}.
-      Seuls les samples perso peuvent être écoutés.
+      {t("sampleCount", { n: filtered.length })}{filtered.length > LIMIT ? t("samplesShown", { limit: LIMIT }) : ""}.
+      {t("onlyUserPlayable")}
     </p>
 
     <label
@@ -104,7 +105,7 @@
       }}
     >
       <input type="file" accept=".wav,audio/wav" multiple hidden onchange={(e) => upload([...e.target.files])} />
-      {uploading ? "Ajout en cours…" : "Ajouter un WAV : glisser-déposer ici ou cliquer (16 bits, 44,1 kHz)"}
+      {t(uploading ? "uploading" : "dropWav")}
     </label>
     {#if uploadError}<p class="error">{uploadError}</p>{/if}
   </div>
