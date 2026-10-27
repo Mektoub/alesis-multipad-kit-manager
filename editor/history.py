@@ -21,7 +21,8 @@ from dataclasses import dataclass, field
 
 from editor.meta import LABELS, LIGHT_LABELS, TITLES
 
-# nombre maximal d'étapes gardées ; les plus anciennes sont oubliées au-delà
+# nombre maximal d'étapes gardées par défaut (préférence history_limit) ; les
+# plus anciennes sont oubliées au-delà
 LIMIT = 100
 # deux envois de l'éditeur sur les mêmes paramètres d'un kit, à moins de ce délai
 # l'un de l'autre, sont fusionnés en une étape
@@ -202,6 +203,13 @@ class History:
         self.done.append(entry)
         self._apply(backup, entry, 1)
         return entry
+
+    def set_limit(self, limit):
+        """Nouvelle taille (préférences) ; les étapes les plus anciennes en trop
+        sont oubliées."""
+        self.limit = limit
+        while len(self.done) > limit:
+            self.base = self.done.pop(0).id
 
     def mark_saved(self):
         self.saved = self.position

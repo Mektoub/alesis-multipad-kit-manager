@@ -9,6 +9,7 @@
 | `strike_kits/` | reading and writing the formats (`__init__.py`), `export` / `import` commands (`python3 -m strike_kits`, `__main__.py`); standard library only |
 | `editor/server.py` | the editor's FastAPI API |
 | `editor/history.py` | edit history (undo / redo) |
+| `editor/preferences.py` | user preferences (`preferences.json`) |
 | `editor/meta.py` | parameter descriptions for the UI (labels, colors) |
 | `editor/__main__.py` | entry point (`python -m editor`) |
 | `app-names.json` | application names: long, short, path identifier, configuration folder (see [Desktop app](desktop-app.md#application-names)) |
@@ -19,6 +20,7 @@
 | `tests/test_strike_kits.py` | format and command-line tests |
 | `tests/test_editor.py` | API tests |
 | `tests/test_history.py` | history tests (undo / redo) |
+| `tests/test_preferences.py` | preferences tests (file, API, effects on the editor) |
 | `tests/outils.py` | shared test helpers (reference backup, synthetic WAV and `.fac` files) |
 | `tests/ressources/Backup001.bkf` | the tests' reference backup |
 | `tests/construire_reference.py` | script that built this backup |

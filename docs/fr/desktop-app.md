@@ -278,7 +278,8 @@ Les dossiers autorisés par défaut dépendent du système (voir
 
 - **Serveur** : l'application lance le serveur (`python -m editor` ou le serveur
   figé) avec `--port 0 --watch-stdin`
-  avec un jeton aléatoire (`KITMANAGER_TOKEN`), attend la ligne
+  avec un jeton aléatoire (`KITMANAGER_TOKEN`) et son dossier de configuration
+  (`KITMANAGER_CONFIG`, où le serveur garde les préférences), attend la ligne
   `{"ready": true, "port": N}` (30 s au plus), puis ouvre la fenêtre sur
   `http://127.0.0.1:N`. Si le serveur ne démarre pas, une boîte d'erreur affiche
   la fin de sa sortie d'erreur.
@@ -286,18 +287,23 @@ Les dossiers autorisés par défaut dépendent du système (voir
   s'arrête (puis `SIGTERM`, `SIGKILL` au besoin). Si l'application plante,
   l'entrée standard se ferme aussi : le serveur ne lui survit pas. S'il s'arrête
   de lui-même, l'application le signale et se ferme.
-- **Fenêtre** : ouverte maximisée ; *Restaurer* la ramène à 1400×900.
+- **Fenêtre** : sa taille, sa position et son état maximisé sont retenus d'un
+  lancement à l'autre (`window-state.json` dans le dossier de configuration de
+  l'application, voir [Préférences](web-editor.md#préférences)) ; une position
+  hors des écrans actuels est abandonnée. Au premier lancement, elle s'ouvre
+  maximisée ; *Restaurer* la ramène à 1400×900.
 - **Une seule instance** : relancer l'application avec un fichier l'ouvre dans la
   fenêtre existante.
 - **Menu** : barre masquée, la touche `Alt` l'affiche ; les raccourcis restent
-  actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Enregistrer `Ctrl+S`, Enregistrer
-  sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`), *Édition* (Annuler `Ctrl+Z`, Rétablir
-  `Ctrl+Y`, voir [Annuler / Rétablir](web-editor.md#annuler--rétablir) ; couper,
-  copier, coller), *Affichage* (zoom, outils de
+  actifs quand elle est masquée. *Fichier* (Ouvrir… `Ctrl+O`, Ouvrir récent,
+  Enregistrer `Ctrl+S`, Enregistrer sous… `Ctrl+Maj+S`, Quitter `Ctrl+Q`),
+  *Édition* (Annuler `Ctrl+Z`, Rétablir `Ctrl+Y`, voir
+  [Annuler / Rétablir](web-editor.md#annuler--rétablir) ; couper, copier,
+  coller ; Préférences… `Ctrl+,`), *Affichage* (zoom, outils de
   développement), *Aide* (À propos : nom et version). Sous macOS, un menu de
   l'application vient en tête, comme pour toute application Mac : À propos,
-  Masquer, Masquer les autres, Tout afficher, Quitter (`Cmd+Q`) ; Quitter n'est
-  alors plus dans *Fichier*, et le menu *Aide* disparaît. Modèle du menu :
+  Préférences… (`Cmd+,`), Masquer, Masquer les autres, Tout afficher, Quitter
+  (`Cmd+Q`) ; Quitter n'est alors plus dans *Fichier*, Préférences… plus dans *Édition*, et le menu *Aide* disparaît. Modèle du menu :
   `desktop/menu.js`.
 - **Version** : affichée à côté du titre de l'interface et dans *Aide › À
   propos* ; `alesis-kit-manager --version` l'écrit dans le terminal et quitte
@@ -326,6 +332,7 @@ Les dossiers autorisés par défaut dépendent du système (voir
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
 | `desktop/menu.js` | modèle du menu (menu de l'application en tête sous macOS) |
 | `desktop/preload.cjs` | pont `window.kitManagerDesktop` |
+| `desktop/window-state.js` | taille, position et état maximisé de la fenêtre, gardés d'un lancement à l'autre |
 | `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |
 | `desktop/electron-builder.config.mjs` | configuration d'electron-builder : paquet .deb, types de fichier, icône |
 | `desktop/build-resources/` | icône (SVG source, PNG 512 px et script de rendu) |
