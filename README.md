@@ -1,54 +1,58 @@
 # Alesis Strike MultiPad - Kit Manager
 
-Outils pour créer et modifier sur ordinateur les « user kits » de l'Alesis
-Strike MultiPad, à partir de ses sauvegardes USB :
+**English** · [Français](README.fr.md)
 
-- `.bkf` : *Save All User Kits* (`Strike/All User Kit And Sample Backup/`) : kits et samples utilisateur ;
-- `.fac` : `Strike/BackUp/…/STRIKE_BACKUP_KIT.fac` : kits seulement.
+Tools for creating and editing the Alesis Strike MultiPad "user kits" on a
+computer, from its USB backups:
 
-Le format n'est pas documenté par Alesis : il a été rétro-ingénié. **Garder une
-copie de la sauvegarde d'origine** avant de charger un fichier produit par ces outils.
+- `.bkf`: *Save All User Kits* (`Strike/All User Kit And Sample Backup/`): user kits and samples;
+- `.fac`: `Strike/BackUp/…/STRIKE_BACKUP_KIT.fac`: kits only.
 
-## Commandes
+The format is not documented by Alesis: it was reverse-engineered. **Keep a
+copy of the original backup** before loading a file produced by these tools.
 
-| Commande | Rôle |
+![Web editor: kit list, grid of the 9 pads and settings of the selected pad](docs/images/overview.png)
+
+## Commands
+
+| Command | Purpose |
 |---|---|
-| `python3 -m strike_kits export SAUVEGARDE DOSSIER [--no-wav]` | exporte les kits en JSON et les samples utilisateur en WAV |
-| `python3 -m strike_kits import SAUVEGARDE DOSSIER -o NOUVELLE` | applique les JSON et les nouveaux WAV, écrit une nouvelle sauvegarde |
-| `./dev.sh serve SAUVEGARDE` | lance l'éditeur dans le navigateur sur cette sauvegarde (lancement rapide) |
-| `./dev.sh start [--frozen] [SAUVEGARDE]` | lance l'application de bureau (Electron), en développement |
-| `./dev.sh package` | construit le paquet .deb de l'application de bureau (`sudo apt install ./desktop/dist/alesis-kit-manager_*.deb`) |
-| `./dev.sh release X.Y.Z` | nouvelle version : versions mises à jour, commit et tag `vX.Y.Z` (non poussé) |
+| `python3 -m strike_kits export BACKUP FOLDER [--no-wav]` | exports the kits as JSON and the user samples as WAV |
+| `python3 -m strike_kits import BACKUP FOLDER -o NEW` | applies the JSON files and the new WAVs, writes a new backup |
+| `./dev.sh serve BACKUP` | starts the editor in the browser on this backup (quick start) |
+| `./dev.sh start [--frozen] [BACKUP]` | starts the desktop app (Electron), in development |
+| `./dev.sh package` | builds the desktop app's .deb package (`sudo apt install ./desktop/dist/alesis-kit-manager_*.deb`) |
+| `./dev.sh release X.Y.Z` | new release: versions updated, commit and tag `vX.Y.Z` (not pushed) |
 
-`strike_kits` n'a besoin que de Python 3. `./dev.sh serve` et `./dev.sh start`
-demandent en plus Node.js : au premier lancement, ils créent l'environnement
-virtuel `.venv`, installent les dépendances et construisent l'interface ;
-ensuite, ils ne refont que ce qui a changé.
+`strike_kits` only needs Python 3. `./dev.sh serve` and `./dev.sh start`
+also require Node.js: on first run, they create the `.venv` virtual
+environment, install the dependencies and build the interface; after that,
+they only redo what has changed.
 
-## Exemple
+## Example
 
 ```bash
-python3 -m strike_kits export Backup001.bkf mes_kits
-# modifier mes_kits/kits/032_Empty.json, déposer des WAV dans mes_kits/wav/
-python3 -m strike_kits import Backup001.bkf mes_kits -o Backup002.bkf
+python3 -m strike_kits export Backup001.bkf my_kits
+# edit my_kits/kits/032_Empty.json, drop WAVs into my_kits/wav/
+python3 -m strike_kits import Backup001.bkf my_kits -o Backup002.bkf
 ```
 
 ## Documentation
 
-| Guide | Contenu |
+| Guide | Contents |
 |---|---|
-| [Modifier un kit](docs/modifier-un-kit.md) | de la sauvegarde sur l'appareil au rechargement, en passant par les JSON |
-| [Ajouter un sample](docs/ajouter-un-sample.md) | format requis, dossier `wav/`, règles et limites |
-| [Éditeur web](docs/editeur-web.md) | installation, lancement, utilisation, API |
-| [Application de bureau](docs/application-bureau.md) | lancement, fonctionnement, dépannage |
-| [Contenu de l'export](docs/contenu-export.md) | `kits/*.json`, `samples.json`, `wav/` |
-| [Paramètres](docs/parametres.md) | sens et plage de chaque champ, et méthode pour en identifier d'autres |
-| [Limites connues](docs/limites.md) | ce qui n'est pas encore couvert ou vérifié |
-| [Développement](docs/developpement.md) | organisation du code, tests, sauvegardes de référence |
+| [Editing a kit](docs/en/editing-a-kit.md) | from the backup on the device to reloading it, through the JSON files |
+| [Adding a sample](docs/en/adding-a-sample.md) | required format, `wav/` folder, rules and limits |
+| [Web editor](docs/en/web-editor.md) | installation, launch, usage, API |
+| [Desktop app](docs/en/desktop-app.md) | launch, how it works, troubleshooting |
+| [Export contents](docs/en/export-contents.md) | `kits/*.json`, `samples.json`, `wav/` |
+| [Parameters](docs/en/parameters.md) | meaning and range of each field, and a method for identifying more |
+| [Known limitations](docs/en/limitations.md) | what is not yet covered or verified |
+| [Development](docs/en/development.md) | code layout, tests, reference backups |
 
-Formats binaires :
+Binary formats:
 
-- [docs/format-bkf.md](docs/format-bkf.md) : conteneur `.bkf`, samples, listes d'index et format des kits ;
-- [docs/format-fac.md](docs/format-fac.md) : conteneur `.fac`.
+- [docs/en/bkf-format.md](docs/en/bkf-format.md): `.bkf` container, samples, index lists and kit format;
+- [docs/en/fac-format.md](docs/en/fac-format.md): `.fac` container.
 
-Historique des versions : [CHANGELOG.md](CHANGELOG.md).
+Release history: [CHANGELOG.md](CHANGELOG.md).

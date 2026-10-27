@@ -1,6 +1,8 @@
 # Modifier un kit
 
-Deux façons de faire : l'[éditeur web](editeur-web.md), ou la ligne de commande
+[English](../en/editing-a-kit.md) · **Français**
+
+Deux façons de faire : l'[éditeur web](web-editor.md), ou la ligne de commande
 décrite ici, qui passe par des fichiers JSON.
 
 ## 1. Faire une sauvegarde sur l'appareil
@@ -18,7 +20,7 @@ python3 -m strike_kits export "Strike/All User Kit And Sample Backup/Backup001.b
 ```
 
 Le dossier `mes_kits/` contient un JSON par kit, le catalogue des samples et les
-WAV de tes samples (voir [Contenu de l'export](contenu-export.md)). L'option
+WAV de tes samples (voir [Contenu de l'export](export-contents.md)). L'option
 `--no-wav` évite de copier les WAV.
 
 ## 3. Modifier les JSON
@@ -47,11 +49,11 @@ sont les emplacements 1 à 9 de la liste `slots`. Quelques exemples :
 
 Il suffit de modifier les valeurs existantes : on n'a pas besoin de supprimer les
 autres champs, et ceux qui ne changent pas sont réécrits à l'identique. Le sens
-et la plage de chaque champ sont décrits dans [Paramètres](parametres.md).
+et la plage de chaque champ sont décrits dans [Paramètres](parameters.md).
 
 Un sample se désigne par son id ou par son nom exact (voir `samples.json`) ;
 `null` retire le sample. Pour utiliser un nouveau WAV, voir
-[Ajouter un sample](ajouter-un-sample.md).
+[Ajouter un sample](adding-a-sample.md).
 
 ## 4. Produire une nouvelle sauvegarde
 
@@ -78,7 +80,7 @@ USB, puis le charger depuis le menu *Utility > Backup* de l'appareil.
 Quand on enregistre un kit sur l'appareil, il est écrit dans une variante (`KITC`)
 où, pour les pads 1 à 8, seules les valeurs sont stockées. Tous les champs restent
 lisibles et modifiables, comme dans les kits vides (`KITH`). Détails :
-[format des kits](format-bkf.md#particularités-de-la-variante-kitc).
+[format des kits](bkf-format.md#particularités-de-la-variante-kitc).
 
 ## Sauvegardes `.fac`
 

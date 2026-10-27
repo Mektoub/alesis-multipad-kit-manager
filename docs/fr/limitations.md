@@ -1,5 +1,7 @@
 # Limites connues
 
+[English](../en/limitations.md) · **Français**
+
 Le format des sauvegardes a été rétro-ingénié à partir de quelques fichiers réels.
 Ce qui suit n'est pas encore couvert ou vérifié.
 
@@ -18,7 +20,7 @@ Ce qui suit n'est pas encore couvert ou vérifié.
 - **Emplacements 10 à 24** : leur correspondance exacte avec les déclencheurs
   externes et les pédales n'est pas vérifiée.
 - Plusieurs paramètres ne sont pas encore identifiés (voir
-  [Paramètres](parametres.md#paramètres-non-identifiés)), ni les réglages du kit
+  [Paramètres](parameters.md#paramètres-non-identifiés)), ni les réglages du kit
   autres que le nom, le volume et le tempo (signature rythmique, logo, effets).
 
 ## Samples

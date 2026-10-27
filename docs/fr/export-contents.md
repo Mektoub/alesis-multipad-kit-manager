@@ -1,5 +1,7 @@
 # Contenu de l'export
 
+[English](../en/export-contents.md) · **Français**
+
 `python3 -m strike_kits export SAUVEGARDE DOSSIER` produit :
 
 ```
@@ -44,7 +46,7 @@ libre : on peut renommer le fichier.
 }
 ```
 
-- Le sens de chaque champ est décrit dans [Paramètres](parametres.md).
+- Le sens de chaque champ est décrit dans [Paramètres](parameters.md).
 - Les clés qui commencent par `_` sont informatives et ignorées à l'import.
 - `sample` vaut un id de sample ou `null` (aucun sample). À l'import, il accepte aussi
   le nom exact d'un sample, y compris ceux ajoutés depuis `wav/`.
@@ -77,5 +79,5 @@ Les samples utilisateur, copiés tels quels depuis la sauvegarde, nommés
 (`/ \ : * ? " < > |`) sont remplacés par `_`. Les samples d'usine ne sont pas
 dans la sauvegarde.
 
-Le même dossier sert à [ajouter des samples](ajouter-un-sample.md) : les fichiers
+Le même dossier sert à [ajouter des samples](adding-a-sample.md) : les fichiers
 déjà présents dans la sauvegarde sont ignorés à l'import.

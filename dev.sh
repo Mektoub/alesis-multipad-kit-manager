@@ -18,6 +18,8 @@
 #                                Python indiqués (ex. tests.test_editor.Lancement)
 #   ./dev.sh e2e                 test de bout en bout de l'application de bureau
 #                                (Playwright : ouvrir, modifier, enregistrer, fermer)
+#   ./dev.sh screenshots         captures d'écran de la documentation (docs/images/),
+#                                prises dans l'application de bureau (Playwright)
 #   ./dev.sh build               build de l'interface (editor/web/dist)
 #   ./dev.sh freeze              serveur figé (PyInstaller) dans
 #                                desktop/build/<id>-server/, puis test de fumée
@@ -170,6 +172,14 @@ step_e2e() {
     (cd "$DESKTOP" && ./apparmor.sh --check && npm run --silent e2e)
 }
 
+step_screenshots() {
+    desktop_deps
+    python_deps
+    web_ready
+    info "Captures d'écran de la documentation (docs/images/)"
+    (cd "$DESKTOP" && ./apparmor.sh --check && node e2e/screenshots.js "$PROJECT/docs/images")
+}
+
 step_build() {
     web_deps
     info "Build de l'interface"
@@ -304,6 +314,7 @@ declare -A LABELS=(
     [lint_desktop]="analyse de l'application de bureau"
     [test_desktop]="tests de l'application de bureau"
     [e2e]="test de bout en bout de l'application"
+    [screenshots]="captures d'écran de la documentation"
     [build]="build de l'interface"
     [package]="paquet de l'application"
     [test_deb]="test d'installation du paquet"
@@ -404,7 +415,7 @@ case "$COMMAND" in
             esac
         done
         ;;
-    build | e2e | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
+    build | e2e | screenshots | freeze | package | test-deb) (($# == 0)) || die "$COMMAND n'accepte pas d'argument" ;;
     release)
         (($# == 1)) || die "version attendue : ./dev.sh release X.Y.Z"
         VERSION="$1"
@@ -419,6 +430,7 @@ case "$COMMAND" in
     test) if [[ -n "$TESTS" ]]; then run_steps test; else run_steps test test_web test_desktop; fi ;;
     build) run_steps build ;;
     e2e) run_steps e2e ;;
+    screenshots) run_steps screenshots ;;
     freeze) step_build && step_freeze && run_steps test_frozen ;;
     package) step_build && step_freeze && step_test_frozen && run_steps package ;;
     test-deb)
