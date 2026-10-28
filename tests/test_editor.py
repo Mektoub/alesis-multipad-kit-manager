@@ -122,7 +122,7 @@ class Api(unittest.TestCase):
         self.assertIn({"id": 8072, "name": "Sample Stuck", "user": True}, samples)
         r = self.client.get("/api/samples/8072/wav")
         self.assertEqual((r.status_code, r.headers["content-type"]), (200, "audio/wav"))
-        self.assertEqual(len(r.content), 525602)
+        self.assertEqual(len(r.content), 52964)
         self.assertEqual(self.client.get("/api/samples/7903/wav").status_code, 404)
 
     def test_ajout_sample(self):
@@ -201,7 +201,7 @@ class Api(unittest.TestCase):
         r = self.client.post("/api/kits/040/move", json={"target": "032"})
         self.assertEqual(r.status_code, 200, r.text)
         names = {k["num"]: k["name"] for k in r.json()["kits"]}
-        self.assertEqual((names["031"], names["032"], names["033"]), ("WhereIs", "Ham & Beans", "CrazyInLove"))
+        self.assertEqual((names["031"], names["032"], names["033"]), ("WhereIs", "Layer Demo", "CrazyInLove"))
         self.assertTrue(r.json()["dirty"])
         self.assertEqual(self.client.post("/api/kits/040/move", json={"target": "200"}).status_code, 400)
         self.assertEqual(self.client.post("/api/kits/999/move", json={"target": "031"}).status_code, 404)

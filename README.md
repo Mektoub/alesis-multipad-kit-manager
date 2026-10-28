@@ -56,3 +56,17 @@ Binary formats:
 - [docs/en/fac-format.md](docs/en/fac-format.md): `.fac` container.
 
 Release history: [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+Copyright © 2026 Mektoub.
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. It is distributed WITHOUT ANY WARRANTY; see [LICENSE](LICENSE).
+
+This project is not affiliated with, endorsed by or sponsored by Alesis or inMusic.
+*Alesis* and *Strike* are trademarks of their respective owners. The test backup
+(`tests/ressources/Backup001.bkf`) contains only synthetic sounds; factory samples
+are referenced by number, their audio stays on the device.

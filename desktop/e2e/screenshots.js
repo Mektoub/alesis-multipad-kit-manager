@@ -95,10 +95,10 @@ async function capture(lang) {
     }
     const dialog = () => page.locator(".dialog");
 
-    // Vue d'ensemble : kit d'usine « Ham & Beans », pad P1
-    await page.getByRole("button", { name: /040\s*Ham & Beans/ }).click();
+    // Vue d'ensemble : kit « Layer Demo » (couches de vélocité), pad P1
+    await page.getByRole("button", { name: /040\s*Layer Demo/ }).click();
     const kitName = page.getByRole("textbox", { name: t("kitName") });
-    while ((await kitName.inputValue()) !== "Ham & Beans") await page.waitForTimeout(50);
+    while ((await kitName.inputValue()) !== "Layer Demo") await page.waitForTimeout(50);
     await shot("overview");
 
     // Fenêtres d'action du pad et du kit
@@ -124,7 +124,7 @@ async function capture(lang) {
     await close();
 
     // Historique : trois modifications, une annulée, puis la liste déroulante
-    await kitName.fill("Ham & Beans 2");
+    await kitName.fill("Layer Demo 2");
     await page.waitForTimeout(2000); // étapes distinctes (envois rapprochés fusionnés)
     await page.getByRole("combobox").first().selectOption({ index: 2 });
     await page.waitForTimeout(2000);
