@@ -116,20 +116,22 @@ Node 24, caches pip et npm) est l'action composite `.github/actions/setup` :
 les versions de Python et de Node ne sont écrites que là.
 
 Tous les tests reposent sur **une seule sauvegarde**, `tests/ressources/Backup001.bkf`
-(5 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été
+(3,4 Mo), indépendante des sauvegardes de travail du dossier `Backups/`. Elle a été
 construite par `tests/construire_reference.py` à partir d'une vraie sauvegarde de
-l'appareil :
+l'appareil, dont elle garde la structure ; aucun son d'origine n'y reste, elle est
+donc diffusable avec le code :
 
 | Contenu | Sert à vérifier |
 |---|---|
 | kit 031 « WhereIs » (`KITC`) : Control Click sur P7–P9 | kits écrits par l'appareil, pads masqués |
 | kit 032 « CrazyInLove » (`KITC`, créé sur l'appareil) : P9 Click et Aux+Phone | `control`, `audio_output`, champs recouverts |
-| kit 040 « Ham & Beans » (kit d'usine copié du `.fac`) | couches de vélocité |
+| kit 040 « Layer Demo » (construit par le script à partir d'un kit vide : samples d'usine référencés par numéro, couches de vélocité sur P4–P6) | couches de vélocité |
 | kits vides (`KITH`) | modifications, copie et échange de kits |
-| samples 8071 « SnareUF » et 8072 « Sample Stuck » | export des WAV, ajout et retrait de sample |
+| 34 samples utilisateur synthétiques (sinus amorti, bruit, clic), dont 8071 « SnareUF » et 8072 « Sample Stuck » | export des WAV, ajout et retrait de sample |
 
-Les deux gros samples d'origine (61 Mo) y ont été remplacés par ces deux WAV
-courts, sous les mêmes ids, pour que les kits continuent de les référencer.
+Les samples utilisateur gardent leur id, pour que les kits continuent de les
+référencer ; leur audio et leurs métadonnées sont remplacés, et ils sont renommés
+(« Sine 01 », « Noise 02 »…).
 
 Le `.fac` des tests est construit en mémoire à partir des kits de la référence
 (`tests/outils.py`, `make_fac`). Cette construction reproduit octet pour octet le

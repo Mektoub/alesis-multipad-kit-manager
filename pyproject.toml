@@ -1,4 +1,5 @@
 # Configuration des outils de développement (le projet n'est pas un paquet installable).
+# Licence du projet : GPL-3.0-or-later (fichier LICENSE).
 
 [tool.ruff]
 line-length = 120

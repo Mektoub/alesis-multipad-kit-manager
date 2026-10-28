@@ -113,20 +113,22 @@ The setup shared by all jobs (Python 3.14 and `requirements-dev.txt`, Node 24,
 pip and npm caches) is the composite action `.github/actions/setup`: the Python
 and Node versions are written there only.
 
-All tests rely on **a single backup**, `tests/ressources/Backup001.bkf` (5 MB),
+All tests rely on **a single backup**, `tests/ressources/Backup001.bkf` (3.4 MB),
 independent of the working backups in the `Backups/` folder. It was built by
-`tests/construire_reference.py` from a real backup of the device:
+`tests/construire_reference.py` from a real backup of the device, whose
+structure it keeps; no original sound is left in it, so it can be distributed with
+the code:
 
 | Content | Used to check |
 |---|---|
 | kit 031 “WhereIs” (`KITC`): Control Click on P7–P9 | kits written by the device, hidden pads |
 | kit 032 “CrazyInLove” (`KITC`, created on the device): P9 Click and Aux+Phone | `control`, `audio_output`, overlapped fields |
-| kit 040 “Ham & Beans” (factory kit copied from the `.fac`) | velocity layers |
+| kit 040 “Layer Demo” (built by the script from an empty kit: factory samples referenced by number, velocity layers on P4–P6) | velocity layers |
 | empty kits (`KITH`) | edits, copying and swapping kits |
-| samples 8071 “SnareUF” and 8072 “Sample Stuck” | WAV export, adding and removing a sample |
+| 34 user samples, synthetic (damped sine, noise, click), including 8071 “SnareUF” and 8072 “Sample Stuck” | WAV export, adding and removing a sample |
 
-The two large original samples (61 MB) were replaced with these two short WAV
-files, under the same ids, so that the kits still reference them.
+The user samples keep their ids, so that the kits still reference them; their
+audio and metadata are replaced, and they are renamed (“Sine 01”, “Noise 02”…).
 
 The tests' `.fac` is built in memory from the reference kits (`tests/outils.py`,
 `make_fac`). Given its 100 kits, this construction reproduces the device's real

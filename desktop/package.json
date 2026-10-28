@@ -8,7 +8,7 @@
     "email": "Mektoub@users.noreply.github.com"
   },
   "homepage": "https://github.com/Mektoub/alesis-multipad-kit-manager",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "main": "main.js",
   "scripts": {

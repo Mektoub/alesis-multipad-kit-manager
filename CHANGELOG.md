@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — License, synthetic test backup
+
+- License: GNU GPL 3.0 or later (`LICENSE`, `license` field of the `package.json` files, *License* section of the READMEs with a notice that the project is not affiliated with Alesis).
+- Tests: the reference backup (`tests/ressources/Backup001.bkf`, 5.2 → 3.4 MB) no longer contains any third-party sound: its 34 user samples are synthetic (renamed “Sine 01”, “Noise 02”…, except “SnareUF” and “Sample Stuck”), and the factory kit “Ham & Beans” is replaced with “Layer Demo”, built from an empty kit (velocity layers). `tests/construire_reference.py` rebuilds it from a device backup.
+
 ## 0.5.0 — English documentation, preferences, English interface
 
 - Documentation in English (`README.md`, `docs/en/`) and in French (`README.fr.md`, `docs/fr/`), with the same English file names in both languages and a language switch at the top of each page. The changelog is now kept in English only.

@@ -67,6 +67,6 @@ def make_fac(kits):
 
 def ref_fac():
     """.fac contenant les 70 kits de la référence : 001 = WhereIs, 002 = CrazyInLove,
-    010 = Ham & Beans (kit d'usine), les autres vides."""
+    010 = Layer Demo (couches de vélocité), les autres vides."""
     kits = kits_of(REF.read_bytes())
     return make_fac([("%03d" % (i + 1), kits[n]) for i, n in enumerate(sorted(kits))])

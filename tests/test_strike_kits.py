@@ -3,8 +3,9 @@
 Contenu de la référence (voir construire_reference.py) :
   - 031 « WhereIs » (KITC) : P1 sample 8071, note 38 ; Control Click sur P7–P9 ;
   - 032 « CrazyInLove » (KITC, créé sur l'appareil) : P5 sample 8072 ; P9 Click, Aux+Phone ;
-  - 040 « Ham & Beans » (kit d'usine) : P5 wave B sample 107, vélocité 126–127 ;
-  - autres kits vides (KITH) ; samples utilisateur 8071 « SnareUF » et 8072 « Sample Stuck ».
+  - 040 « Layer Demo » (couches de vélocité) : P5 wave B sample 107, vélocité 126–127 ;
+  - autres kits vides (KITH) ; 34 samples utilisateur synthétiques, dont 8071 « SnareUF »
+    et 8072 « Sample Stuck ».
 """
 
 import json
@@ -42,7 +43,7 @@ class Velocite(unittest.TestCase):
         cls.kit = kits_of(REF.read_bytes())["040.kit"]
 
     def test_sample_lu_quelle_que_soit_la_velocite(self):
-        # kit d'usine « Ham & Beans », pad 5, wave B : sample 107, vélocité 126–127
+        # kit « Layer Demo », pad 5, wave B : sample 107, vélocité 126–127
         w = sk.decode_kit(self.kit)["slots"][4]["wave_b"]
         self.assertEqual((w["sample"], w["velocity_low"], w["velocity_high"]), (107, 126, 127))
 
@@ -315,7 +316,7 @@ class AjoutSample(unittest.TestCase):
     def test_nom_deja_utilise(self):
         bkf = sk.Bkf.parse(self.data)
         with self.assertRaisesRegex(sk.StrikeError, "existe déjà"):
-            bkf.add_sample("Kick (27)", self.wav)
+            bkf.add_sample("Sine 01", self.wav)
 
     def test_retrait_impossible_si_aucun_sample(self):
         bkf = sk.Bkf.parse(self.data)
@@ -483,7 +484,7 @@ class BackupEnMemoire(unittest.TestCase):
         fac = ref_fac()
         b = sk.Backup(fac)
         self.assertEqual((b.kind, len(b.kit_numbers())), ("fac", 70))
-        self.assertEqual((b.decode("001")["name"], b.decode("010")["name"]), ("WhereIs", "Ham & Beans"))
+        self.assertEqual((b.decode("001")["name"], b.decode("010")["name"]), ("WhereIs", "Layer Demo"))
         self.assertEqual(b.user_sample_ids(), [])
         with self.assertRaisesRegex(sk.StrikeError, ".bkf"):
             b.add_sample("x", b"")
@@ -700,7 +701,7 @@ class DeplacementKit(unittest.TestCase):
         return ["%03d" % n for n in range(first, last + 1)]
 
     def test_vers_le_haut(self):
-        self.b.move_kit("040", "033")  # Ham & Beans en 033, 033…039 -> 034…040
+        self.b.move_kit("040", "033")  # Layer Demo en 033, 033…039 -> 034…040
         self.assertEqual(self.b.get_raw("033"), self.raw["040"])
         for old, new in zip(self.nums(33, 39), self.nums(34, 40), strict=True):
             self.assertEqual(self.b.get_raw(new), self.raw[old], new)
@@ -708,7 +709,7 @@ class DeplacementKit(unittest.TestCase):
             if not "033" <= n <= "040":
                 self.assertEqual(self.b.get_raw(n), self.raw[n], n)
         self.assertTrue(self.b.dirty)
-        self.assertEqual(sk.Backup(self.b.serialize()).decode("033")["name"], "Ham & Beans")
+        self.assertEqual(sk.Backup(self.b.serialize()).decode("033")["name"], "Layer Demo")
 
     def test_vers_le_bas(self):
         self.b.move_kit("031", "035")  # WhereIs en 035, 032…035 -> 031…034
@@ -803,7 +804,7 @@ class ReinitialisationEmplacements(unittest.TestCase):
         self.assertTrue(self.b.dirty)
 
     def test_valeurs_propres_a_chaque_emplacement(self):
-        # kit d'usine : tous les champs identifiés de tous les emplacements -> ceux du kit vide
+        # kit 040 : tous les champs identifiés de tous les emplacements -> ceux du kit vide
         # (les paramètres non identifiés, que l'interface ne propose pas, sont laissés de côté :
         # le kit vide y a des valeurs au-delà du max déclaré, refusées à l'encodage)
         def known(field):
