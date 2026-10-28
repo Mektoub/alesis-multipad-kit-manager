@@ -1,7 +1,7 @@
 {
   "name": "alesis-kit-manager",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Éditeur des kits de l'Alesis Strike MultiPad",
   "author": {
     "name": "Mektoub",
