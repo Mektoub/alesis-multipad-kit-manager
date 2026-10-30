@@ -49,6 +49,7 @@ python3 -m strike_kits import Backup001.bkf my_kits -o Backup002.bkf
 | [Parameters](docs/en/parameters.md) | meaning and range of each field, and a method for identifying more |
 | [Known limitations](docs/en/limitations.md) | what is not yet covered or verified |
 | [Development](docs/en/development.md) | code layout, tests, reference backups |
+| [Code signing policy](docs/en/code-signing.md) | signing of the Windows packages, team roles, privacy |
 
 Binary formats:
 
@@ -56,6 +57,14 @@ Binary formats:
 - [docs/en/fac-format.md](docs/en/fac-format.md): `.fac` container.
 
 Release history: [CHANGELOG.md](CHANGELOG.md).
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/),
+certificate by [SignPath Foundation](https://signpath.org/) (application in
+progress). Team roles, what is signed and privacy policy:
+[Code signing policy](docs/en/code-signing.md). The program transfers no
+information to other networked systems unless requested by the user.
 
 ## License
 

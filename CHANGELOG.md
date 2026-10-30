@@ -7,6 +7,10 @@
 - Deleting a user sample (trash can in the sample manager), as observed on the device (byte for byte); after a warning listing the kits and pads using it, these pads are emptied (the device leaves them pointing to the deleted sample). Clears the history. API: `DELETE /api/samples/{id}`; `Bkf.remove_sample`, `Backup.remove_sample`. Adding a sample after a deletion is refused until observed.
 - Rear inputs located using device backups: 12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5 (was “Trigger In 4/5”): one slot per trigger of the dual jacks; 10 and 11 remain unidentified.
 
+## 0.7.0 — Code signing policy, sample renaming
+
+- Code signing policy (`docs/en/code-signing.md`, `docs/fr/code-signing.md`) required by SignPath Foundation, for the signing of the Windows packages: what is signed, team roles, privacy policy, uninstallation. Linked from the READMEs (*Code signing policy* section) and from each GitHub release's notes.
+
 ## 0.6.0 — License
 
 - License: GNU GPL 3.0 or later (`LICENSE`, `license` field of the `package.json` files, *License* section of the READMEs with a notice that the project is not affiliated with Alesis).
