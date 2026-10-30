@@ -128,8 +128,14 @@
             class="icon"
             onclick={() => startRename(s)}
             title={t("renameSample", { name: s.name })}
-            aria-label={t("renameSample", { name: s.name })}>✎</button
+            aria-label={t("renameSample", { name: s.name })}
           >
+            <!-- crayon : le caractère ✎ est trop petit dans la plupart des polices -->
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M4 20h4L19 9l-4-4L4 16v4z" />
+              <path d="M13.5 6.5l4 4" />
+            </svg>
+          </button>
           <button class="icon" onclick={() => toggle(s.id)} aria-label={t("listenTo", { name: s.name })}>
             {playing === s.id ? "■" : "▶"}
           </button>
@@ -239,6 +245,15 @@
     width: 40px;
     background: transparent;
     flex: none;
+  }
+  .icon svg {
+    display: block;
+    margin: auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   .count {
     margin: 0;
