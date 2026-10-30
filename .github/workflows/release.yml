@@ -45,6 +45,9 @@ jobs:
         run: |
           tag="$GITHUB_REF_NAME"
           python3 scripts/verifier-version.py --notes "${tag#v}" > notes.md
+          # page exigée par SignPath Foundation, citée sur chaque page de release
+          printf '\n\n---\n\n[Code signing policy](%s/%s/blob/%s/docs/en/code-signing.md)\n' \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$tag" >> notes.md
           ls -l paquets
           if gh release view "$tag" >/dev/null 2>&1; then
             # relance du workflow : paquets remplacés, release inchangée

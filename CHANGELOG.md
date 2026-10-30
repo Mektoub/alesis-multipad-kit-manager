@@ -20,6 +20,10 @@
 - Web editor: rear inputs below the pads on two rows: Trigger In 1–5 and HH, then FootSwitch 1–4, under a bold “Inputs” label.
 - Web editor: the copy, *Edit several pads* and *Default values* dialogs name the rear inputs (Trigger In 1–5 and HH, FootSwitch 1–4) instead of their slot number; unidentified slots keep their number.
 
+## 0.7.0 — Code signing policy, sample renaming
+
+- Code signing policy (`docs/en/code-signing.md`, `docs/fr/code-signing.md`) required by SignPath Foundation, for the signing of the Windows packages: what is signed, team roles, privacy policy, uninstallation. Linked from the READMEs (*Code signing policy* section) and from each GitHub release's notes.
+
 ## 0.6.0 — License
 
 - License: GNU GPL 3.0 or later (`LICENSE`, `license` field of the `package.json` files, *License* section of the READMEs with a notice that the project is not affiliated with Alesis).

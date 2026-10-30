@@ -257,7 +257,8 @@ Locally, `npm run package` builds the packages for the current system (targets i
   double-click. The `.zip` archive is used without installation.
 - **macOS**: `Alesis Kit Manager.app`, for Apple Silicon Macs only.
 
-The packages are not signed (no certificate). Windows SmartScreen shows
+The packages are not signed yet (application to SignPath Foundation in progress, see
+the [code signing policy](code-signing.md)). Windows SmartScreen shows
 "Windows protected your PC": *More info*, then *Run anyway*. On macOS, the app
 only has an ad hoc signature (required on Apple Silicon) and is not notarized:
 Gatekeeper blocks it on first launch; right-click the app, *Open*, or
