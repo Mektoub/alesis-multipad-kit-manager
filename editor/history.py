@@ -9,8 +9,8 @@ est annulée, toutes celles qui la suivaient le sont déjà.
 Seules les modifications de paramètres y entrent (éditeur, copie de réglages,
 valeurs par défaut, modification de plusieurs pads ou kits). Déplacer,
 transférer ou supprimer un kit remplace des kits entiers, octets non identifiés
-compris : l'historique est alors vidé (`clear`). L'ajout d'un sample ne s'annule
-pas (`untracked`).
+compris : l'historique est alors vidé (`clear`). L'ajout ou le renommage d'un sample ne
+s'annule pas (`untracked`).
 
 Les envois rapprochés de l'éditeur sur les mêmes paramètres d'un kit (curseur,
 saisie d'un nom) ne font qu'une étape : voir `MERGE_SECONDS`.
@@ -230,7 +230,7 @@ class History:
         self.saved = self.position
 
     def untracked(self):
-        """Modification hors historique (ajout de sample) : l'état enregistré
+        """Modification hors historique (ajout ou renommage de sample) : l'état enregistré
         n'est plus atteignable par annuler / rétablir."""
         self.saved = None
 

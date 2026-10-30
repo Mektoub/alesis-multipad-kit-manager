@@ -181,7 +181,14 @@ cd editor/web && npm ci && npm run build && cd ../..
 
    ![Fenêtre de choix d'un sample](../images/fr/sample-picker.png)
 
-10. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
+10. **Gérer les samples utilisateur** : le bouton *Samples* de l'en-tête (menu
+    *Édition › Samples…* de l'application de bureau ; `.bkf` seulement) ouvre la
+    liste des samples utilisateur, avec la taille du WAV et les kits et pads qui
+    les utilisent. ▶ écoute un sample, ✎ le renomme (Entrée valide, Échap annule ;
+    voir [Renommer un sample](adding-a-sample.md#renommer-un-sample)), la zone du
+    bas ajoute un WAV.
+
+11. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
    chaque session sur un fichier d'origine, son état précédent est copié dans
    `<fichier>.N.bak` (`Backup001.bkf.1.bak`, puis `.2.bak` à la session suivante) :
    rien n'est perdu. **Enregistrer sous** écrit dans un autre fichier (le nom
@@ -189,7 +196,7 @@ cd editor/web && npm ci && npm run build && cd ../..
    fichier ouvert ; si ce fichier existe, une confirmation est demandée.
    **Recharger** relit le fichier ouvert et abandonne toutes les modifications non
    enregistrées, après confirmation s'il y en a ; le kit affiché reste le même.
-11. **Annuler / Rétablir** : boutons ↶ ↷ et liste ▾ de l'en-tête (voir ci-dessous).
+12. **Annuler / Rétablir** : boutons ↶ ↷ et liste ▾ de l'en-tête (voir ci-dessous).
 
 Chaque modification est envoyée au serveur et validée aussitôt. Une valeur refusée
 (hors plage, par exemple) affiche un message et le kit revient à son dernier état
@@ -228,8 +235,8 @@ l'historique* quand l'historique a été vidé), annule tout.
   kit remplace des kits entiers et vide l'historique. S'il reste des actions à
   annuler ou à rétablir, une alerte propose *Annuler* (renoncer à l'action),
   *Enregistrer et continuer* ou *Continuer* ; les modifications non enregistrées
-  sont conservées dans tous les cas. L'ajout d'un sample ne s'annule pas non plus,
-  mais garde l'historique : le sample reste dans la sauvegarde.
+  sont conservées dans tous les cas. L'ajout ou le renommage d'un sample ne
+  s'annule pas non plus, mais garde l'historique : le sample reste dans la sauvegarde.
 
   ![Alerte avant une action hors historique](../images/fr/history-alert.png)
 
@@ -297,6 +304,8 @@ langue des messages d'erreur, des libellés de l'historique et des infobulles :
 | GET | `/api/samples` | catalogue des samples |
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
+| GET | `/api/samples/user` | samples utilisateur : id, nom, taille du WAV, kits et pads qui les utilisent (`uses`) |
+| PATCH | `/api/samples/{id}` | renommer un sample utilisateur (`{"name": "Nouveau nom"}`) |
 | POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action), `detail` (« 90 → 50 », vide si l'action modifie plusieurs paramètres) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
 | GET | `/api/history` | actions de l'historique, de la plus ancienne à la plus récente (`entries` : `id`, `label`, `detail`, `done` faite ou annulée) ; `base` : id de l'état avant la plus ancienne, `position` : dernière action faite, `saved` : action du dernier enregistrement (`null` si l'état enregistré n'est plus atteignable) |
 | POST | `/api/history/goto` | revenir à une action (`{"id": 12}`, ou `base` pour tout annuler) ; renvoie l'état et `changed` ; 404 si l'action n'est pas dans l'historique |

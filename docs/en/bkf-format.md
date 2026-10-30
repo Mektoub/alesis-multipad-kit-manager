@@ -184,6 +184,19 @@ number of samples (8,072 in the example):
 
 Byte 0x08 of the lists does not change.
 
+### Renaming a sample (not observed)
+
+No device backups made before and after a rename have been compared. The tool
+(`Bkf.rename_sample`) applies the rules of adding:
+
+1. `sort_name`: the entry is removed (counter of the following entries − 1), then
+   inserted again at its new alphabetical place (counter of the following ones + 1),
+   with the new name at +0x10. The +0x04 field (length of the original name) is kept.
+2. `.had`: name length at 0x3F, name truncated to 16 characters at 0x40, checksum.
+
+The other lists and the `.wav` do not change. Renaming then restoring the old name
+gives back an identical backup.
+
 ## Kit format (`.kit`)
 
 Shared by the `.bkf` and [`.fac`](fac-format.md) formats. Fixed size of

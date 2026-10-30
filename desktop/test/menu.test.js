@@ -59,6 +59,13 @@ describe("menu de l'application", () => {
     assert.ok(!items(mac, "É&dition").some((i) => i.click?.() === "preferences"));
   });
 
+  it("Samples… : Édition, commande samples", () => {
+    for (const platform of ["linux", "darwin"]) {
+      const item = items(template(platform), "É&dition").find((i) => i.label === "&Samples…");
+      assert.equal(item?.click(), "samples", platform);
+    }
+  });
+
   it("Ouvrir récent : un élément par fichier, puis Effacer la liste", () => {
     const openRecent = (file) => () => `ouvrir ${file}`;
     const menu = menuTemplate({ platform: "linux", appName: "A", about, send, recent: ["/a.bkf", "/b.fac"], openRecent, lang: "fr" });

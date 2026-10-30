@@ -17,6 +17,7 @@
 //                            open, save, save-as   menu Fichier
 //                            open-file (path)      fichier passé au lancement, ou fichier récent
 //                            preferences           fenêtre Préférences
+//                            samples               gestionnaire des samples utilisateur
 //                            clear-recent          vide la liste des fichiers récents
 //                            prepare-close         → { dirty } après envoi des modifications en attente
 //                            save-before-close     → { saved } (« Enregistrer » à la fermeture)

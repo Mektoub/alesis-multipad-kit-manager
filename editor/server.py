@@ -76,6 +76,10 @@ class ResetRequest(BaseModel):
     fields: list[str]
 
 
+class RenameRequest(BaseModel):
+    name: str
+
+
 class MoveRequest(BaseModel):
     target: str
 
@@ -365,6 +369,26 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             user = set(b.user_sample_ids())
             return [{"id": sid, "name": name, "user": sid in user} for sid, name in sorted(b.samples().items())]
 
+    @app.get("/api/samples/user")
+    def user_samples():
+        """Samples utilisateur, avec la taille du WAV et les kits qui les utilisent."""
+        with s.lock:
+            b = s.require()
+            names, uses = b.samples(), b.sample_uses()
+            kit_names = {num: sk.decode_kit(b.get_raw(num))["name"] for num in b.kit_numbers()}
+            return [
+                {
+                    "id": sid,
+                    "name": names.get(sid, ""),
+                    "size": len(b.user_wav(sid)),
+                    "uses": [
+                        {"kit": num, "kit_name": kit_names[num], "slot": sk.slot_label(i), "wave": wave}
+                        for num, i, wave in uses.get(sid, [])
+                    ],
+                }
+                for sid in b.user_sample_ids()
+            ]
+
     @app.get("/api/samples/{sid}/wav")
     def sample_wav(sid: int):
         with s.lock:
@@ -382,6 +406,16 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             sid = strike_errors(lambda: b.add_sample(name, content))
             s.history.untracked()  # l'ajout d'un sample ne s'annule pas
             return {"id": sid, "name": name, "user": True}
+
+    @app.patch("/api/samples/{sid}")
+    def rename_sample(sid: int, req: RenameRequest):
+        with s.lock:
+            b = s.require()
+            if sid not in b.user_sample_ids():
+                raise HTTPException(404, tr("user_samples_only"))
+            strike_errors(lambda: b.rename_sample(sid, req.name))
+            s.history.untracked()  # le renommage d'un sample ne s'annule pas
+            return {"id": sid, "name": req.name, "user": True}
 
     @app.post("/api/save")
     def save(req: SaveRequest):

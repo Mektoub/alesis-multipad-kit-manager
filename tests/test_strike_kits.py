@@ -318,6 +318,60 @@ class AjoutSample(unittest.TestCase):
         with self.assertRaisesRegex(sk.StrikeError, "existe déjà"):
             bkf.add_sample("Sine 01", self.wav)
 
+    def sort_name_entry(self, bkf, sid):
+        """(position, octets de l'entrée) de `sid` dans wave_list_sort_name.lst."""
+        data = bkf.get_file("WAV/LIST/wave_list_sort_name.lst")
+        n = struct.unpack(">H", data[0x0A:0x0C])[0]
+        pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == sid)
+        return pos, data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)]
+
+    def test_renommage(self):
+        bkf = sk.Bkf.parse(self.data)
+        _, old = self.sort_name_entry(bkf, 8072)
+        bkf.rename_sample(8072, "Zzz nouveau nom un peu long")
+        out = bkf.serialize()
+        self.assertEqual(sk.sample_catalog(out, sk.parse_bkf(out))[8072], "Zzz nouveau nom un peu long")
+        # sort_name : entrée déplacée à sa place alphabétique, longueur d'origine (+0x04) conservée
+        pos, entry = self.sort_name_entry(bkf, 8072)
+        data = bkf.get_file("WAV/LIST/wave_list_sort_name.lst")
+        prev = data[0x20 + 0x90 * (pos - 1) + 0x10 : 0x20 + 0x90 * pos].split(b"\0")[0].lower()
+        self.assertLessEqual(prev, b"zzz nouveau nom un peu long")
+        self.assertEqual(struct.unpack(">3H", entry[0:6]), (pos, 8072, struct.unpack(">H", old[4:6])[0]))
+        self.assertEqual(entry[0x10:0x90], b"Zzz nouveau nom un peu long".ljust(0x80, b"\0"))
+        self.assertEqual(len(data), len(self.data_file("WAV/LIST/wave_list_sort_name.lst")))
+        # .had : nom tronqué à 16 caractères, longueur complète, somme de contrôle
+        had = files_of(out)["WAV/HEAD/080/72.had"]
+        self.assertEqual((had[0x3F], had[0x40:0x50]), (27, b"Zzz nouveau nom "))
+        self.assertEqual(had[8], sk.kit_checksum(had))
+        # les autres listes ne changent pas
+        for name in ("Wave_list.lst", "wave_list_sort_num.lst", "wave_list_sort_group.lst"):
+            self.assertEqual(bkf.get_file("WAV/LIST/" + name), self.data_file("WAV/LIST/" + name), name)
+
+    def data_file(self, full):
+        return files_of(self.data)[full]
+
+    def test_renommage_puis_retour_identique(self):
+        bkf = sk.Bkf.parse(self.data)
+        bkf.rename_sample(8072, "Aaa premier")
+        bkf.rename_sample(8072, "Sample Stuck")
+        self.assertEqual(bkf.serialize(), self.data)
+
+    def test_renommage_casse_seule(self):
+        bkf = sk.Bkf.parse(self.data)
+        bkf.rename_sample(8072, "SAMPLE STUCK")
+        self.assertEqual(self.sort_name_entry(bkf, 8072)[1][0x10:0x1C], b"SAMPLE STUCK")
+
+    def test_renommage_refuse(self):
+        bkf = sk.Bkf.parse(self.data)
+        with self.assertRaisesRegex(sk.StrikeError, "existe déjà"):
+            bkf.rename_sample(8072, "Sine 01")
+        for name in ("", "x" * 128, "a\0b", "€uro"):
+            with self.assertRaisesRegex(sk.StrikeError, "invalide"):
+                bkf.rename_sample(8072, name)
+        with self.assertRaisesRegex(sk.StrikeError, "utilisateur"):
+            bkf.rename_sample(7903, "Usine")
+        self.assertEqual(bkf.serialize(), self.data)
+
     def test_retrait_impossible_si_aucun_sample(self):
         bkf = sk.Bkf.parse(self.data)
         wl = bytearray(bkf.get_file("WAV/LIST/Wave_list.lst"))
@@ -479,6 +533,13 @@ class BackupEnMemoire(unittest.TestCase):
         self.assertEqual((sid, b.samples()[sid]), (8073, "Nouveau sample"))
         self.assertIn(sid, b.user_sample_ids())
         self.assertTrue(b.dirty)
+        uses = b.sample_uses()
+        self.assertIn(("032", 4, "wave_a"), uses[8072])
+        self.assertTrue(all(sid != 0xFFFF for sid in uses))
+        self.assertEqual(uses.get(sid), None)  # sample ajouté, encore inutilisé
+        b.rename_sample(8072, "Renomme")
+        self.assertEqual(b.samples()[8072], "Renomme")
+        self.assertEqual(b.decode("032")["slots"][4]["wave_a"]["_sample_name"], "Renomme")
 
     def test_fac(self):
         fac = ref_fac()
@@ -488,6 +549,8 @@ class BackupEnMemoire(unittest.TestCase):
         self.assertEqual(b.user_sample_ids(), [])
         with self.assertRaisesRegex(sk.StrikeError, ".bkf"):
             b.add_sample("x", b"")
+        with self.assertRaisesRegex(sk.StrikeError, ".bkf"):
+            b.rename_sample(8072, "x")
         self.assertEqual(b.serialize(), fac)
 
 

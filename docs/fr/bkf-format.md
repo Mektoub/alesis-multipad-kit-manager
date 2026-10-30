@@ -184,6 +184,20 @@ actuel de samples (8 072 dans l'exemple) :
 
 L'octet 0x08 des listes ne change pas.
 
+### Renommage d'un sample (non observé)
+
+Aucune sauvegarde de l'appareil avant et après un renommage n'a été comparée.
+L'outil (`Bkf.rename_sample`) applique les règles de l'ajout :
+
+1. `sort_name` : l'entrée est retirée (compteur des entrées suivantes − 1), puis
+   réinsérée à sa nouvelle place alphabétique (compteur des suivantes + 1), avec le
+   nouveau nom en +0x10. Le champ +0x04 (longueur du nom d'origine) est conservé.
+2. `.had` : longueur du nom en 0x3F, nom tronqué à 16 caractères en 0x40, somme de
+   contrôle.
+
+Les autres listes et le `.wav` ne changent pas. Renommer puis redonner l'ancien nom
+rend la sauvegarde identique.
+
 ## Format d'un kit (`.kit`)
 
 Commun aux formats `.bkf` et [`.fac`](fac-format.md). Taille fixe de

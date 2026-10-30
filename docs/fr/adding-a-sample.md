@@ -50,6 +50,22 @@ python3 -m strike_kits import Backup001.bkf mes_kits -o Backup002.bkf
   l'outil reproduit ce résultat octet pour octet. Détails :
   [ajout d'un sample](bkf-format.md#ajout-dun-sample-observé-sur-lappareil).
 
+## Renommer un sample
+
+Dans l'éditeur, le bouton ✎ du gestionnaire de samples (bouton *Samples* de
+l'en-tête) renomme un sample utilisateur ; les samples d'usine ne peuvent pas être renommés. Le nouveau nom
+suit les mêmes règles qu'à l'ajout (unique, 127 caractères au plus, latin-1). Les
+kits désignent les samples par leur id : ils ne changent pas.
+
+- Le renommage n'a **pas été observé sur l'appareil**. L'outil applique les règles
+  de l'ajout : le nom complet change dans `wave_list_sort_name.lst`, où l'entrée
+  est déplacée à sa nouvelle place alphabétique, et le nom tronqué à 16 caractères
+  change dans le `.had`. Détails :
+  [renommage d'un sample](bkf-format.md#renommage-dun-sample-non-observé).
+- Un export JSON fait avant le renommage désigne le sample par son ancien nom :
+  le réimporter échoue (« sample introuvable »). Refaire l'export, ou remplacer le
+  nom par l'id dans le JSON.
+
 ## Limites
 
 - Ajout vérifié jusqu'à l'id 8099 (dossier `080`). Au-delà, l'outil refuse par

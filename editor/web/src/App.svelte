@@ -9,6 +9,7 @@
   import KitTransferDialog from "./lib/KitTransferDialog.svelte";
   import BulkEditDialog from "./lib/BulkEditDialog.svelte";
   import SamplePicker from "./lib/SamplePicker.svelte";
+  import SampleManager from "./lib/SampleManager.svelte";
   import HistoryAlert from "./lib/HistoryAlert.svelte";
   import HistoryMenu from "./lib/HistoryMenu.svelte";
   import PreferencesDialog from "./lib/PreferencesDialog.svelte";
@@ -41,6 +42,7 @@
   let historyList = $state(null); // liste déroulante de l'historique (GET /api/history), ouverte
   let historyAlert = $state(null); // { question, resolve } : alerte avant une action hors historique
   let prefsOpen = $state(false); // fenêtre Préférences
+  let samplesOpen = $state(false); // gestionnaire des samples utilisateur
   let recentOpen = $state(false); // liste déroulante des fichiers récents
 
   let fileName = $derived(session?.path?.split(/[\\/]/).pop() ?? "");
@@ -343,7 +345,7 @@
     if (!name || isTextField(document.activeElement)) return;
     if (desktop && e.metaKey && e.key.toLowerCase() === "z") return;
     if (copyFrom || resetFrom || bulkFrom || transferring || picking || historyAlert || historyList) return;
-    if (prefsOpen || recentOpen) return;
+    if (prefsOpen || recentOpen || samplesOpen) return;
     e.preventDefault();
     step(name);
   }
@@ -456,6 +458,9 @@
       case "preferences":
         prefsOpen = true;
         return null;
+      case "samples":
+        openSamples();
+        return null;
       case "clear-recent":
         await setPrefs({ recent_files: [] }).catch((err) => (error = err.message));
         return null;
@@ -470,11 +475,22 @@
     }
   }
 
+  function openSamples() {
+    if (session?.kind === "bkf") samplesOpen = true;
+    else if (session?.path) error = t("samplesBkfOnly");
+  }
+
   async function uploadSample(file) {
     const added = await api.addSample(file);
     samples = await api.samples();
     session = await api.state(); // ajout hors historique (editor/history.py)
     return added;
+  }
+
+  async function renameSample(id, name) {
+    await api.renameSample(id, name);
+    samples = await api.samples();
+    session = await api.state(); // renommage hors historique (editor/history.py)
   }
 
   function selectSample(id) {
@@ -550,6 +566,9 @@
           <HistoryMenu listing={historyList} onselect={gotoStep} onclose={() => (historyList = null)} />
         {/if}
       </span>
+      {#if session.kind === "bkf"}
+        <button onclick={openSamples} title={t("samplesTitle")}>{t("samplesButton")}</button>
+      {/if}
       <button onclick={reload} disabled={saving} title={t("reloadTitle")}>{t("reload")}</button>
       {#if !desktop}<input type="text" bind:value={savePath} aria-label={t("destination")} />{/if}
       <button class="primary" onclick={() => save()} disabled={saving} title={t("saveTitle")}>{t("save")}</button>
@@ -659,6 +678,15 @@
   <HistoryAlert question={historyAlert.question} onchoose={historyAlert.resolve} />
 {/if}
 
+{#if samplesOpen}
+  <SampleManager
+    load={api.userSamples}
+    onrename={renameSample}
+    onupload={uploadSample}
+    onclose={() => (samplesOpen = false)}
+  />
+{/if}
+
 {#if picking && kit}
   <SamplePicker
     {samples}
@@ -666,6 +694,7 @@
     onselect={selectSample}
     onclose={() => (picking = null)}
     onupload={uploadSample}
+    onrename={renameSample}
   />
 {/if}
 
