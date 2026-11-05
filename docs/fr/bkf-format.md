@@ -184,6 +184,31 @@ actuel de samples (8 072 dans l'exemple) :
 
 L'octet 0x08 des listes ne change pas.
 
+### Suppression d'un sample (observé sur l'appareil)
+
+Règles déduites de deux sauvegardes faites avant et après la suppression d'un sample
+(8076, pas le dernier ajouté) sur l'appareil. L'outil (`Bkf.remove_sample`) les
+applique et reproduit la sauvegarde de l'appareil octet pour octet. Avec `rang` = le
+rang du sample dans `Wave_list.lst` :
+
+1. Le `.had` et le `.wav` sont retirés.
+2. `Wave_list.lst` : l'entrée reçoit le drapeau `0x8000` (emplacement et rang
+   conservés) ; les entrées utilisées de rang supérieur perdent 1 ; nombre d'entrées − 1.
+   Ce nombre ne donne alors plus l'id du prochain sample (non observé : l'outil
+   refuse l'ajout).
+3. `sort_num` : la paire est retirée ; les rangs des paires suivantes perdent 1.
+4. `sort_name` : l'entrée est retirée. Le compteur des entrées suivantes devient
+   **octet faible − 1 (modulo 256), octet fort à 0** : `0x0101` devient `0x0000`,
+   pas `0x0100`.
+5. `sort_group` : le membre est retiré de son groupe, dont le nombre de membres
+   perd 1 ; les positions des membres suivants sont renumérotées.
+6. `SortSize` : la paire est retirée, la liste garde sa taille fixe (zéros à la fin).
+7. L'en-tête `.bkf` est mis à jour : nombre de fichiers − 2, nombre de `.wav` − 1,
+   sommes de contrôle.
+8. **Les kits ne changent pas** : ceux qui utilisaient le sample y font toujours
+   référence. L'outil (`Backup.remove_sample`) met ces waves à `0xFFFF` (aucun
+   sample).
+
 ### Renommage d'un sample (non observé)
 
 Aucune sauvegarde de l'appareil avant et après un renommage n'a été comparée.

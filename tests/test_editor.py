@@ -139,6 +139,19 @@ class Api(unittest.TestCase):
         self.assertEqual((stuck["name"], stuck["size"]), ("Sample Stuck", 52964))
         self.assertIn({"kit": "032", "kit_name": "CrazyInLove", "slot": "P5", "wave": "wave_a"}, stuck["uses"])
 
+    def test_suppression_sample(self):
+        self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": 20})
+        r = self.client.delete("/api/samples/8072")
+        self.assertEqual(r.status_code, 200, r.text)
+        body = r.json()
+        self.assertEqual(body["cleaned"], [{"kit": "032", "kit_name": "CrazyInLove", "slot": "P5", "wave": "wave_a"}])
+        self.assertEqual((body["state"]["user_samples"], body["state"]["dirty"]), (33, True))
+        self.assertEqual(body["state"]["history"], {"undo": None, "redo": None})  # historique vidé
+        self.assertNotIn(8072, [s["id"] for s in self.client.get("/api/samples").json()])
+        self.assertIsNone(self.client.get("/api/kits/032").json()["slots"][4]["wave_a"]["sample"])
+        self.assertEqual(self.client.delete("/api/samples/8072").status_code, 404)
+        self.assertEqual(self.client.delete("/api/samples/7903").status_code, 404)
+
     def test_renommage_sample(self):
         r = self.client.patch("/api/samples/8072", json={"name": "Coincé"})
         self.assertEqual(r.status_code, 200, r.text)

@@ -713,15 +713,22 @@ class Bkf:
         had[8] = kit_checksum(had)
         self.set_file("WAV/HEAD/%03d/%d.had" % (folder, fileno), had)
 
-    def _remove_sort_name(self, sid):
-        """Retire l'entrée de `sid` de wave_list_sort_name.lst ; la retourne."""
+    def _remove_sort_name(self, sid, low_byte=False):
+        """Retire l'entrée de `sid` de wave_list_sort_name.lst ; la retourne.
+
+        Compteur des entrées suivantes : - 1 ; avec `low_byte`, comme l'appareil à
+        la suppression d'un sample, octet faible - 1 (modulo 256) et octet fort à 0.
+        """
         data, n = self._list("wave_list_sort_name.lst")
         pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == sid)
         entry = bytes(data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)])
         del data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)]
         for k in range(pos, n - 1):
             p = 0x20 + 0x90 * k
-            data[p : p + 2] = struct.pack(">H", (struct.unpack(">H", data[p : p + 2])[0] - 1) & 0xFFFF)
+            if low_byte:
+                data[p : p + 2] = struct.pack(">H", (data[p + 1] - 1) & 0xFF)
+            else:
+                data[p : p + 2] = struct.pack(">H", (struct.unpack(">H", data[p : p + 2])[0] - 1) & 0xFFFF)
         self._save_list("wave_list_sort_name.lst", data, n - 1)
         return entry
 
@@ -773,6 +780,69 @@ class Bkf:
             raise StrikeError("liste des samples utilisateur pleine")
         del data[size_total:]
         self._save_list("WaveList_User_SortSize.lst", data, count + 1)
+
+    def remove_sample(self, sid):
+        """Supprime un sample utilisateur comme le fait l'appareil.
+
+        Les kits ne sont pas modifiés : l'appareil y laisse les références au
+        sample supprimé (voir Backup.remove_sample, qui les retire).
+        """
+        folder, fileno = divmod(sid, 100)
+        try:
+            self.find("WAV/HEAD/%03d/%d.had" % (folder, fileno))
+        except StrikeError:
+            raise StrikeError("seuls les samples utilisateur peuvent être supprimés (id %r)" % sid) from None
+
+        # Wave_list : entrée libérée (rang conservé), rangs suivants - 1
+        wl = bytearray(self.get_file("WAV/LIST/Wave_list.lst"))
+        count = struct.unpack(">H", wl[0x0A:0x0C])[0]
+        o = 0x20 + 8 * sid
+        rank = struct.unpack(">H", wl[o + 6 : o + 8])[0]
+        wl[o : o + 2] = struct.pack(">H", 0x8000 | sid)
+        for p in range(0x20, len(wl) - 7, 8):
+            r = struct.unpack(">H", wl[p + 6 : p + 8])[0]
+            if not wl[p] & 0x80 and r > rank:
+                wl[p + 6 : p + 8] = struct.pack(">H", r - 1)
+        wl[0x0A:0x0C] = struct.pack(">H", count - 1)
+        self.set_file("WAV/LIST/Wave_list.lst", wl)
+
+        # sort_num : paire retirée, rangs suivants - 1
+        data, n = self._list("wave_list_sort_num.lst")
+        k = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 4 * k : 0x24 + 4 * k])[0] == sid)
+        del data[0x20 + 4 * k : 0x24 + 4 * k]
+        for j in range(k, n - 1):
+            p = 0x20 + 4 * j
+            data[p : p + 2] = struct.pack(">H", struct.unpack(">H", data[p : p + 2])[0] - 1)
+        self._save_list("wave_list_sort_num.lst", data, n - 1)
+
+        self._remove_sort_name(sid, low_byte=True)
+
+        # groupe du sample : membre retiré, positions renumérotées
+        data, groups = self._list("wave_list_sort_group.lst")
+        p = 0x20
+        for _ in range(groups):
+            members = struct.unpack(">H", data[p + 1 : p + 3])[0]
+            ids = [struct.unpack(">H", data[p + 0x1A + 4 * j : p + 0x1C + 4 * j])[0] for j in range(members)]
+            if sid in ids:
+                j = ids.index(sid)
+                del data[p + 0x18 + 4 * j : p + 0x1C + 4 * j]
+                for q in range(j, members - 1):
+                    data[p + 0x18 + 4 * q : p + 0x1A + 4 * q] = struct.pack(">H", q)
+                data[p + 1 : p + 3] = struct.pack(">H", members - 1)
+                break
+            p += 0x18 + 4 * members
+        self._save_list("wave_list_sort_group.lst", data, groups)
+
+        # SortSize : paire retirée, taille fixe
+        data, n = self._list("WaveList_User_SortSize.lst")
+        size_total = len(data)
+        k = next(k for k in range(n) if struct.unpack(">I", data[0x20 + 8 * k : 0x24 + 8 * k])[0] == sid)
+        del data[0x20 + 8 * k : 0x28 + 8 * k]
+        data += bytes(size_total - len(data))
+        self._save_list("WaveList_User_SortSize.lst", data, n - 1)
+
+        for kind, ext in (("HEAD", "had"), ("DATA", "wav")):
+            self.records.remove(self.find("WAV/%s/%03d/%d.%s" % (kind, folder, fileno, ext)))
 
     def remove_last_sample(self):
         """Annule `add_sample` pour le dernier sample ajouté ; retourne son id.
@@ -1080,6 +1150,25 @@ class Backup:
         self._catalog = None
         self.dirty = True
         return sid
+
+    def remove_sample(self, sid):
+        """Supprime un sample utilisateur ; les waves des kits qui l'utilisaient
+        passent à « aucun sample ». Retourne ces utilisations [(kit, indice, wave)]."""
+        if self.bkf is None:
+            raise StrikeError("la suppression de samples n'est possible qu'avec un .bkf")
+        self.bkf.remove_sample(sid)
+        uses = self.sample_uses().get(sid, [])
+        for num in dict.fromkeys(num for num, _, _ in uses):
+            kit = bytearray(self.get_raw(num))
+            for n, i, wave in uses:
+                if n == num:
+                    w = SLOT_BASE + i * SLOT_SIZE + WAVES[wave]
+                    kit[w : w + 2] = struct.pack(">H", NO_SAMPLE)
+            kit[8] = kit_checksum(kit)
+            self._set_raw(num, bytes(kit))
+        self._catalog = None
+        self.dirty = True
+        return uses
 
     def rename_sample(self, sid, name):
         if self.bkf is None:

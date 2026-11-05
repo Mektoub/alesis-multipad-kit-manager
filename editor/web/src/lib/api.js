@@ -77,6 +77,7 @@ export const api = {
     return request("POST", "/api/samples", form);
   },
   userSamples: () => request("GET", "/api/samples/user"),
+  deleteSample: (id) => request("DELETE", `/api/samples/${id}`),
   renameSample: (id, name) => request("PATCH", `/api/samples/${id}`, { name }),
   // sans chemin : « Enregistrer » dans le fichier ouvert ; avec : « Enregistrer sous »
   save: (path = null, overwrite = false) => request("POST", "/api/save", path == null ? {} : { path, overwrite }),

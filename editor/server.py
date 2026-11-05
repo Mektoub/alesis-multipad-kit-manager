@@ -369,22 +369,25 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             user = set(b.user_sample_ids())
             return [{"id": sid, "name": name, "user": sid in user} for sid, name in sorted(b.samples().items())]
 
+    def describe_uses(b, uses):
+        """[(kit, indice, wave)] -> descriptions lisibles pour l'interface."""
+        kit_names = {num: sk.decode_kit(b.get_raw(num))["name"] for num in dict.fromkeys(n for n, _, _ in uses)}
+        return [
+            {"kit": num, "kit_name": kit_names[num], "slot": sk.slot_label(i), "wave": wave} for num, i, wave in uses
+        ]
+
     @app.get("/api/samples/user")
     def user_samples():
         """Samples utilisateur, avec la taille du WAV et les kits qui les utilisent."""
         with s.lock:
             b = s.require()
             names, uses = b.samples(), b.sample_uses()
-            kit_names = {num: sk.decode_kit(b.get_raw(num))["name"] for num in b.kit_numbers()}
             return [
                 {
                     "id": sid,
                     "name": names.get(sid, ""),
                     "size": len(b.user_wav(sid)),
-                    "uses": [
-                        {"kit": num, "kit_name": kit_names[num], "slot": sk.slot_label(i), "wave": wave}
-                        for num, i, wave in uses.get(sid, [])
-                    ],
+                    "uses": describe_uses(b, uses.get(sid, [])),
                 }
                 for sid in b.user_sample_ids()
             ]
@@ -406,6 +409,21 @@ def create_app(token, open_file=None, allow=(), preferences=None):
             sid = strike_errors(lambda: b.add_sample(name, content))
             s.history.untracked()  # l'ajout d'un sample ne s'annule pas
             return {"id": sid, "name": name, "user": True}
+
+    @app.delete("/api/samples/{sid}")
+    def remove_sample(sid: int):
+        """Supprime un sample utilisateur ; les pads qui l'utilisaient passent à
+        « aucun sample ». L'historique est vidé : ses étapes pourraient y faire
+        référence."""
+        with s.lock:
+            b = s.require()
+            if sid not in b.user_sample_ids():
+                raise HTTPException(404, tr("user_samples_only"))
+            uses = b.sample_uses().get(sid, [])
+            cleaned = describe_uses(b, uses)
+            strike_errors(lambda: b.remove_sample(sid))
+            s.history.clear()
+            return {"cleaned": cleaned, "state": s.state()}
 
     @app.patch("/api/samples/{sid}")
     def rename_sample(sid: int, req: RenameRequest):

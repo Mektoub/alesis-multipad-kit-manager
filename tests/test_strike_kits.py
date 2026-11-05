@@ -381,6 +381,132 @@ class AjoutSample(unittest.TestCase):
             bkf.remove_last_sample()
 
 
+class SuppressionSample(unittest.TestCase):
+    """Règles relevées en comparant deux sauvegardes faites par l'appareil avant et
+    après la suppression d'un sample (docs/fr/bkf-format.md, « Suppression d'un
+    sample »), appliquées à un sample du milieu de la référence (8050)."""
+
+    SID = 8050
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data = REF.read_bytes()
+        cls.before = files_of(cls.data)
+        bkf = sk.Bkf.parse(cls.data)
+        bkf.remove_sample(cls.SID)
+        cls.out = bkf.serialize()
+        cls.after = files_of(cls.out)
+
+    @staticmethod
+    def lst(files, name):
+        data = files["WAV/LIST/" + name]
+        return data, struct.unpack(">H", data[0x0A:0x0C])[0]
+
+    def test_fichiers_et_en_tete(self):
+        self.assertNotIn("WAV/HEAD/080/50.had", self.after)
+        self.assertNotIn("WAV/DATA/080/50.wav", self.after)
+        self.assertEqual(
+            struct.unpack("<2I", self.out[0x10:0x18]),
+            (struct.unpack("<I", self.data[0x10:0x14])[0] - 2, struct.unpack("<I", self.data[0x14:0x18])[0] - 1),
+        )
+        self.assertEqual(self.out[0x0F], sum(self.out[0x10:0x40]) & 0xFF)
+
+    def test_wave_list(self):
+        old, n = self.lst(self.before, "Wave_list.lst")
+        new, m = self.lst(self.after, "Wave_list.lst")
+        self.assertEqual(m, n - 1)
+        o = 0x20 + 8 * self.SID
+        # entrée libérée : drapeau 0x8000, emplacement et rang conservés
+        self.assertEqual(new[o : o + 8], struct.pack(">H", 0x8000 | self.SID) + old[o + 2 : o + 8])
+        rank = struct.unpack(">H", old[o + 6 : o + 8])[0]
+        for sid in range(len(old) // 8 - 4):
+            p = 0x20 + 8 * sid
+            if sid == self.SID:
+                continue
+            r_old, r_new = struct.unpack(">H", old[p + 6 : p + 8])[0], struct.unpack(">H", new[p + 6 : p + 8])[0]
+            used = not struct.unpack(">H", old[p : p + 2])[0] & 0x8000
+            self.assertEqual(r_new, r_old - 1 if used and r_old > rank else r_old, sid)
+
+    def test_sort_num(self):
+        old, n = self.lst(self.before, "wave_list_sort_num.lst")
+        new, m = self.lst(self.after, "wave_list_sort_num.lst")
+        pairs = [struct.unpack(">2H", old[0x20 + 4 * k : 0x24 + 4 * k]) for k in range(n + 1)]
+        k = next(k for k, (_, sid) in enumerate(pairs) if sid == self.SID)
+        want = pairs[:k] + [(r - 1, sid) for r, sid in pairs[k + 1 : n]] + [(0, 0)]
+        self.assertEqual((m, len(new)), (n - 1, len(old) - 4))
+        self.assertEqual([struct.unpack(">2H", new[0x20 + 4 * j : 0x24 + 4 * j]) for j in range(m + 1)], want)
+
+    def test_sort_name(self):
+        old, n = self.lst(self.before, "wave_list_sort_name.lst")
+        new, m = self.lst(self.after, "wave_list_sort_name.lst")
+        self.assertEqual((m, len(new)), (n - 1, len(old) - 0x90))
+        pos = next(k for k in range(n) if struct.unpack(">H", old[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == self.SID)
+        self.assertEqual(new[: 0x20 + 0x90 * pos][0x0C:], old[: 0x20 + 0x90 * pos][0x0C:])
+        for k in range(pos, m):
+            o, p = 0x20 + 0x90 * k, 0x20 + 0x90 * (k + 1)
+            # compteur : octet faible - 1 (modulo 256), octet fort à 0, comme l'appareil
+            self.assertEqual(new[o : o + 2], bytes([0, (old[p + 1] - 1) & 0xFF]), k)
+            self.assertEqual(new[o + 2 : o + 0x90], old[p + 2 : p + 0x90], k)
+
+    def test_groupe(self):
+        old, groups = self.lst(self.before, "wave_list_sort_group.lst")
+        new, _ = self.lst(self.after, "wave_list_sort_group.lst")
+        i = old.index(b"New Sample") - 8
+        members = struct.unpack(">H", old[i + 1 : i + 3])[0]
+        ids = [struct.unpack(">H", old[i + 0x1A + 4 * j : i + 0x1C + 4 * j])[0] for j in range(members)]
+        ids.remove(self.SID)
+        self.assertEqual(struct.unpack(">H", new[i + 1 : i + 3])[0], members - 1)
+        self.assertEqual(
+            [struct.unpack(">2H", new[i + 0x18 + 4 * j : i + 0x1C + 4 * j]) for j in range(members - 1)],
+            list(enumerate(ids)),
+        )
+        self.assertEqual(len(new), len(old) - 4)
+
+    def test_sort_size(self):
+        old, n = self.lst(self.before, "WaveList_User_SortSize.lst")
+        new, m = self.lst(self.after, "WaveList_User_SortSize.lst")
+        pairs = [struct.unpack(">2I", old[0x20 + 8 * k : 0x28 + 8 * k]) for k in range(n)]
+        want = [p for p in pairs if p[0] != self.SID]
+        self.assertEqual((m, len(new)), (n - 1, len(old)))
+        self.assertEqual([struct.unpack(">2I", new[0x20 + 8 * k : 0x28 + 8 * k]) for k in range(m)], want)
+        self.assertFalse(any(new[0x20 + 8 * m :]))
+
+    def test_kits_inchanges(self):
+        self.assertEqual(kits_of(self.out), kits_of(self.data))
+
+    def test_sample_d_usine_refuse(self):
+        with self.assertRaisesRegex(sk.StrikeError, "utilisateur"):
+            sk.Bkf.parse(self.data).remove_sample(7903)
+
+    def test_ajout_apres_suppression_refuse(self):
+        # id du sample ajouté après une suppression pas encore observé : refus
+        bkf = sk.Bkf.parse(self.out)
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "n.wav"
+            make_wav(p)
+            with self.assertRaisesRegex(sk.StrikeError, "non contiguë"):
+                bkf.add_sample("Nouveau", p.read_bytes())
+
+    def test_backup_nettoie_les_kits(self):
+        b = sk.Backup(self.data)
+        uses = b.remove_sample(8072)
+        self.assertEqual(uses, [("032", 4, "wave_a")])
+        self.assertNotIn(8072, b.user_sample_ids())
+        self.assertNotIn(8072, b.samples())
+        self.assertIsNone(b.decode("032")["slots"][4]["wave_a"]["sample"])
+        self.assertNotIn(8072, b.sample_uses())
+        self.assertTrue(b.dirty)
+        # seul l'identifiant du sample change dans le kit (et sa somme de contrôle)
+        before, after = kits_of(self.data)["032.kit"], b.get_raw("032")
+        w = sk.SLOT_BASE + 4 * sk.SLOT_SIZE + sk.WAVES["wave_a"]
+        self.assertEqual({i for i in range(len(before)) if before[i] != after[i]}, {8, w, w + 1})
+        self.assertEqual(after[w : w + 2], b"\xff\xff")
+
+    def test_backup_fac(self):
+        with self.assertRaisesRegex(sk.StrikeError, ".bkf"):
+            sk.Backup(ref_fac()).remove_sample(8072)
+
+
 class KitcChampsRecouverts(unittest.TestCase):
     """Dans les pads 1–8 des kits KITC, des structures recouvrent id/min/max de
     certains enregistrements, mais l'octet valeur reste à sa place."""
