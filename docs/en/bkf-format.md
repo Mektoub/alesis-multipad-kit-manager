@@ -184,6 +184,29 @@ number of samples (8,072 in the example):
 
 Byte 0x08 of the lists does not change.
 
+### Deleting a sample (observed on the device)
+
+Rules deduced from two backups made before and after deleting a sample (8076, not
+the last one added) on the device. The tool (`Bkf.remove_sample`) applies them and
+reproduces the device's backup byte for byte. With `rank` = the sample's rank in
+`Wave_list.lst`:
+
+1. The `.had` and the `.wav` are removed.
+2. `Wave_list.lst`: the entry gets the `0x8000` flag (location and rank kept); the
+   used entries of higher rank lose 1; number of entries − 1. This number then no
+   longer gives the id of the next sample (not observed: the tool refuses to add).
+3. `sort_num`: the pair is removed; the ranks of the following pairs lose 1.
+4. `sort_name`: the entry is removed. The counter of the following entries becomes
+   **low byte − 1 (modulo 256), high byte set to 0**: `0x0101` becomes `0x0000`,
+   not `0x0100`.
+5. `sort_group`: the member is removed from its group, whose member count loses 1;
+   the positions of the following members are renumbered.
+6. `SortSize`: the pair is removed, the list keeps its fixed size (zeros at the end).
+7. The `.bkf` header is updated: number of files − 2, number of `.wav` − 1,
+   checksums.
+8. **The kits do not change**: those that used the sample still refer to it. The
+   tool (`Backup.remove_sample`) sets these waves to `0xFFFF` (no sample).
+
 ### Renaming a sample (not observed)
 
 No device backups made before and after a rename have been compared. The tool

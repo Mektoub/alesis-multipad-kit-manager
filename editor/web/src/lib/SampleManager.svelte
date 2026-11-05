@@ -1,11 +1,11 @@
 <script>
-  // Gestionnaire des samples utilisateur : écoute, renommage, ajout d'un WAV,
-  // kits qui utilisent chaque sample (GET /api/samples/user).
+  // Gestionnaire des samples utilisateur : écoute, renommage, suppression, ajout
+  // d'un WAV, kits qui utilisent chaque sample (GET /api/samples/user).
   import { onMount } from "svelte";
   import { onPlaying, toggle } from "./player.js";
   import { t } from "./locale.svelte.js";
 
-  let { load, onrename, onupload, onclose } = $props();
+  let { load, onrename, onupload, ondelete, describe, onclose } = $props();
 
   let samples = $state(null);
   let query = $state("");
@@ -83,8 +83,13 @@
     }
   }
 
-  function uses(s) {
-    return s.uses.map((u) => `${u.kit} ${u.kit_name} · ${u.slot} ${u.wave === "wave_a" ? "A" : "B"}`).join(", ");
+  async function remove(s) {
+    error = "";
+    try {
+      if (await ondelete(s)) await refresh();
+    } catch (err) {
+      error = err.message;
+    }
   }
 
   function onkeydown(e) {
@@ -121,7 +126,7 @@
             {:else}
               <span class="name">{s.name}</span>
             {/if}
-            <span class="uses muted" title={uses(s)}>{s.uses.length ? uses(s) : t("sampleUnused")}</span>
+            <span class="uses muted" title={describe(s.uses)}>{s.uses.length ? describe(s.uses) : t("sampleUnused")}</span>
           </div>
           <span class="size muted">{t("sizeKb", { n: Math.max(1, Math.round(s.size / 1024)) })}</span>
           <button
@@ -138,6 +143,20 @@
           </button>
           <button class="icon" onclick={() => toggle(s.id)} aria-label={t("listenTo", { name: s.name })}>
             {playing === s.id ? "■" : "▶"}
+          </button>
+          <button
+            class="icon danger"
+            onclick={() => remove(s)}
+            title={t("deleteSample", { name: s.name })}
+            aria-label={t("deleteSample", { name: s.name })}
+          >
+            <!-- corbeille -->
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M4 7h16" />
+              <path d="M9 7V4h6v3" />
+              <path d="M6 7l1 13h10l1-13" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
           </button>
         </li>
       {:else}
@@ -245,6 +264,9 @@
     width: 40px;
     background: transparent;
     flex: none;
+  }
+  .icon.danger:hover {
+    color: var(--danger);
   }
   .icon svg {
     display: block;

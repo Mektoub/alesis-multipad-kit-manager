@@ -66,10 +66,27 @@ kits désignent les samples par leur id : ils ne changent pas.
   le réimporter échoue (« sample introuvable »). Refaire l'export, ou remplacer le
   nom par l'id dans le JSON.
 
+## Supprimer un sample
+
+Dans le gestionnaire de samples, la corbeille supprime un sample utilisateur, après
+confirmation. Si des kits l'utilisent, l'alerte liste les kits et pads concernés :
+après la suppression, ces pads n'ont plus de sample. L'historique des modifications
+est vidé.
+
+- La suppression reproduit octet pour octet une sauvegarde faite par l'appareil
+  avant et après la suppression d'un sample. Détails :
+  [suppression d'un sample](bkf-format.md#suppression-dun-sample-observé-sur-lappareil).
+- L'appareil, lui, laisse les kits pointer vers le sample supprimé ; l'outil les
+  nettoie.
+- Après une suppression, l'ajout d'un sample est refusé tant que l'id que lui
+  donnerait l'appareil n'a pas été observé (« table des samples non contiguë »).
+
 ## Limites
 
 - Ajout vérifié jusqu'à l'id 8099 (dossier `080`). Au-delà, l'outil refuse par
   prudence : la façon dont l'appareil nomme les dossiers suivants n'a pas été observée.
-- Supprimer ou remplacer un sample n'est pas pris en charge.
+- Remplacer le WAV d'un sample n'est pas pris en charge.
+- Ajouter un sample après une suppression n'est pas encore possible (voir
+  [Supprimer un sample](#supprimer-un-sample)).
 - Les samples d'usine ne sont pas dans la sauvegarde : on ne peut ni les écouter ni
   les exporter, seulement les référencer par leur id ou leur nom.

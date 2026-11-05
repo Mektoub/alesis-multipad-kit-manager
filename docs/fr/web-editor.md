@@ -185,8 +185,9 @@ cd editor/web && npm ci && npm run build && cd ../..
     *Édition › Samples…* de l'application de bureau ; `.bkf` seulement) ouvre la
     liste des samples utilisateur, avec la taille du WAV et les kits et pads qui
     les utilisent. ▶ écoute un sample, ✎ le renomme (Entrée valide, Échap annule ;
-    voir [Renommer un sample](adding-a-sample.md#renommer-un-sample)), la zone du
-    bas ajoute un WAV.
+    voir [Renommer un sample](adding-a-sample.md#renommer-un-sample)), la corbeille
+    le supprime (voir [Supprimer un sample](adding-a-sample.md#supprimer-un-sample)),
+    la zone du bas ajoute un WAV.
 
 11. **Enregistrer** écrit dans le fichier ouvert. Au premier enregistrement de
    chaque session sur un fichier d'origine, son état précédent est copié dans
@@ -237,6 +238,7 @@ l'historique* quand l'historique a été vidé), annule tout.
   *Enregistrer et continuer* ou *Continuer* ; les modifications non enregistrées
   sont conservées dans tous les cas. L'ajout ou le renommage d'un sample ne
   s'annule pas non plus, mais garde l'historique : le sample reste dans la sauvegarde.
+  Supprimer un sample vide l'historique, après la même alerte.
 
   ![Alerte avant une action hors historique](../images/fr/history-alert.png)
 
@@ -305,6 +307,7 @@ langue des messages d'erreur, des libellés de l'historique et des infobulles :
 | GET | `/api/samples/{id}/wav` | WAV d'un sample utilisateur |
 | POST | `/api/samples` | ajouter un WAV (formulaire multipart, champ `file`) |
 | GET | `/api/samples/user` | samples utilisateur : id, nom, taille du WAV, kits et pads qui les utilisent (`uses`) |
+| DELETE | `/api/samples/{id}` | supprimer un sample utilisateur ; les pads qui l'utilisaient n'ont plus de sample (`cleaned`), l'historique est vidé ; renvoie aussi l'état (`state`) |
 | PATCH | `/api/samples/{id}` | renommer un sample utilisateur (`{"name": "Nouveau nom"}`) |
 | POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action), `detail` (« 90 → 50 », vide si l'action modifie plusieurs paramètres) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
 | GET | `/api/history` | actions de l'historique, de la plus ancienne à la plus récente (`entries` : `id`, `label`, `detail`, `done` faite ou annulée) ; `base` : id de l'état avant la plus ancienne, `position` : dernière action faite, `saved` : action du dernier enregistrement (`null` si l'état enregistré n'est plus atteignable) |

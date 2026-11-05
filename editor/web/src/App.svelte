@@ -487,6 +487,29 @@
     return added;
   }
 
+  // Utilisations d'un sample (GET /api/samples/user), lisibles : « 032 CrazyInLove · P5 A »
+  function describeUses(uses) {
+    return uses.map((u) => `${u.kit} ${u.kit_name} · ${u.slot} ${u.wave === "wave_a" ? "A" : "B"}`).join(", ");
+  }
+
+  // Supprime un sample utilisateur après confirmation ; les pads qui l'utilisaient
+  // sont vidés et l'historique aussi. Vrai si le sample a été supprimé.
+  async function deleteSample(s) {
+    const question = s.uses.length
+      ? t("askDeleteSampleUsed", { name: s.name, n: s.uses.length, uses: describeUses(s.uses) })
+      : t("askDeleteSample", { name: s.name });
+    await flush();
+    if (canUndo || canRedo ? !(await outsideHistory(question)) : !confirm(question)) return false;
+    const { cleaned, state } = await api.deleteSample(s.id);
+    session = state;
+    samples = await api.samples();
+    notice = cleaned.length
+      ? t("sampleDeletedCleaned", { name: s.name, n: cleaned.length })
+      : t("sampleDeleted", { name: s.name });
+    if (kit && cleaned.some((u) => u.kit === currentNum)) await loadKit(currentNum, false);
+    return true;
+  }
+
   async function renameSample(id, name) {
     await api.renameSample(id, name);
     samples = await api.samples();
@@ -674,17 +697,19 @@
   <PreferencesDialog {prefs} onchange={setPrefs} onclose={() => (prefsOpen = false)} />
 {/if}
 
-{#if historyAlert}
-  <HistoryAlert question={historyAlert.question} onchoose={historyAlert.resolve} />
-{/if}
-
 {#if samplesOpen}
   <SampleManager
     load={api.userSamples}
     onrename={renameSample}
     onupload={uploadSample}
-    onclose={() => (samplesOpen = false)}
+    ondelete={deleteSample}
+    describe={describeUses}
+    onclose={() => !historyAlert && (samplesOpen = false)}
   />
+{/if}
+
+{#if historyAlert}
+  <HistoryAlert question={historyAlert.question} onchoose={historyAlert.resolve} />
 {/if}
 
 {#if picking && kit}

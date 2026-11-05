@@ -185,8 +185,9 @@ cd editor/web && npm ci && npm run build && cd ../..
     Samples…* menu of the desktop app; `.bkf` only) opens the list of the user
     samples, with the WAV size and the kits and pads that use them. ▶ plays a
     sample, ✎ renames it (Enter confirms, Escape cancels; see
-    [Renaming a sample](adding-a-sample.md#renaming-a-sample)), the bottom area
-    adds a WAV.
+    [Renaming a sample](adding-a-sample.md#renaming-a-sample)), the trash can
+    deletes it (see [Deleting a sample](adding-a-sample.md#deleting-a-sample)), the
+    bottom area adds a WAV.
 
 11. ***Save*** writes to the open file. On the first save of
    each session to an original file, its previous state is copied to
@@ -236,7 +237,8 @@ history* when the history has been cleared), undoes everything.
   undo or redo, an alert offers *Cancel* (give up the action),
   *Save and continue* or *Continue*; unsaved changes
   are kept in every case. Adding or renaming a sample cannot be undone
-  either, but keeps the history: the sample stays in the backup.
+  either, but keeps the history: the sample stays in the backup. Deleting a sample
+  clears the history, after the same alert.
 
   ![Warning before an action outside the history](../images/en/history-alert.png)
 
@@ -304,6 +306,7 @@ language of error messages, history labels and tooltips:
 | GET | `/api/samples/{id}/wav` | WAV of a user sample |
 | POST | `/api/samples` | add a WAV (multipart form, `file` field) |
 | GET | `/api/samples/user` | user samples: id, name, WAV size, kits and pads that use them (`uses`) |
+| DELETE | `/api/samples/{id}` | delete a user sample; the pads that used it have no sample any more (`cleaned`), the history is cleared; also returns the state (`state`) |
 | PATCH | `/api/samples/{id}` | rename a user sample (`{"name": "New name"}`) |
 | POST | `/api/undo` / `/api/redo` | undo / redo the last action in the history; returns the state, `done` (action label), `detail` (“90 → 50”, empty if the action changes several parameters) and `changed` (modified kits); 409 if there is nothing to undo or redo |
 | GET | `/api/history` | history actions, from oldest to most recent (`entries`: `id`, `label`, `detail`, `done` done or undone); `base`: id of the state before the oldest one, `position`: last action done, `saved`: action of the last save (`null` if the saved state can no longer be reached) |
