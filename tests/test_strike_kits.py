@@ -731,7 +731,8 @@ class EntreesExternes(unittest.TestCase):
         ("032.kit", 20): {0x08: 51, 0x1F35: 3},  # FootSwitch 3/4
     }
     # Kits vides (KITH) réécrits en KITC par l'appareil : seule la valeur décodée
-    # du Control/Mode change (Trigger In 4/5 en 15, Trigger In HH en 17).
+    # du Control/Mode change (Trigger In 4/5 en 15, Trigger In HH en 17). Le
+    # Control/Mode de la prise 4/5 est en 15, l'emplacement du Trigger 5.
 
     def test_click_comme_l_appareil(self):
         kits = kits_of(REF.read_bytes())
@@ -745,11 +746,22 @@ class EntreesExternes(unittest.TestCase):
     def test_libelles(self):
         labels = [s["_label"] for s in sk.decode_kit(kits_of(REF.read_bytes())["031.kit"])["slots"]]
         self.assertEqual(labels[:9], ["P%d" % n for n in range(1, 10)])
+        # 12 à 15 : localisés en choisissant un sample sur Trigger 2 à 5 de l'appareil
         self.assertEqual(
-            labels[14:20],
-            ["Trigger In 4/5", "Trigger In 1", "Trigger In HH", "FootSwitch 1/2", "slot 19", "FootSwitch 3/4"],
+            labels[11:20],
+            [
+                "Trigger In 2",
+                "Trigger In 3",
+                "Trigger In 4",
+                "Trigger In 5",
+                "Trigger In 1",
+                "Trigger In HH",
+                "FootSwitch 1/2",
+                "slot 19",
+                "FootSwitch 3/4",
+            ],
         )
-        self.assertEqual(labels[9], "slot 10")  # pas encore localisé
+        self.assertEqual(labels[9:11], ["slot 10", "slot 11"])  # pas encore localisés
 
 
 class DeplacementKit(unittest.TestCase):

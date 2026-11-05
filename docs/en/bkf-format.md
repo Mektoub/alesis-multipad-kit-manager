@@ -237,7 +237,7 @@ Based on the MIDI notes of the factory kits:
 | Slots | Factory MIDI notes | Role |
 |---|---|---|
 | 1–9 | 36–46 | pads P1–P9 (certain) |
-| 10–17 | 39–51 | external triggers: **15 = Trigger In 4/5, 16 = Trigger In 1, 17 = Trigger In HH** (verified); Trigger In 2/3 not located yet |
+| 10–17 | 39–51 | external triggers: **12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5, 16 = Trigger In 1, 17 = Trigger In HH** (verified: one slot per trigger, two per dual jack 2/3 and 4/5); 10 and 11 unknown |
 | 18–21 | 53–57, 124–127 | pedals: **18 = FootSwitch 1/2, 20 = FootSwitch 3/4** (verified); 19 and 21 unknown (second contact of dual inputs?) |
 | 22–24 | 60–63 | unknown |
 
