@@ -265,7 +265,7 @@ class Api(unittest.TestCase):
         self.assertEqual(len(meta["colors"]), 17)
         self.assertEqual(len(meta["slots"]), 24)
         # entrées identifiées, dans l'ordre de l'arrière de l'appareil
-        self.assertEqual(meta["inputs"], [18, 20, 16, 15, 17])
+        self.assertEqual(meta["inputs"], [18, 20, 16, 12, 13, 14, 15, 17])
 
     def test_meta_parametres_identifies(self):
         meta = self.client.get("/api/meta").json()

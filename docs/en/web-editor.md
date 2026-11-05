@@ -106,8 +106,8 @@ cd editor/web && npm ci && npm run build && cd ../..
 4. **Choose a pad** in the grid of 9 pads, laid out as on the device (7-8-9 at the top,
    4-5-6 in the middle, 1-2-3 at the bottom). It shows the sample, the LED color and,
    if the pad has a Mode (Control), a badge ("Click" for Click On/Off). Below the grid
-   are the identified rear inputs (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1,
-   4/5, HH, in that order); the other slots (10 to 24) are shown through the
+   are the identified rear inputs (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1
+   to 5, HH, in that order); the other slots (10 to 24) are shown through the
    *show the unidentified slots* link.
 5. **Set up the pad**:
    - pad sections, as on the device: *Feel* (Sensitivity, Curve, Threshold,

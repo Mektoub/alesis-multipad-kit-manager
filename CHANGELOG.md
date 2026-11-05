@@ -4,6 +4,7 @@
 
 - Web editor: sample manager (*Samples* button in the header, *Edit › Samples…* menu of the desktop app): list of the user samples with WAV size and the kits and pads using them, play, rename (outside the undo history), add a WAV. API: `GET /api/samples/user`, `Backup.sample_uses`.
 - Renaming a user sample: API: `PATCH /api/samples/{id}`; `Backup.rename_sample` / `Bkf.rename_sample`, which moves the entry in `wave_list_sort_name.lst` and updates the `.had` (not observed on the device).
+- Rear inputs located using device backups: 12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5 (was “Trigger In 4/5”): one slot per trigger of the dual jacks; 10 and 11 remain unidentified.
 
 ## 0.6.0 — License
 
