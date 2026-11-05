@@ -69,6 +69,8 @@ export function menuTemplate({ platform, appName, about, send, recent = [], open
         { label: t("copy"), role: "copy" },
         { label: t("paste"), role: "paste" },
         { label: t("selectAll"), role: "selectAll" },
+        { type: "separator" },
+        { label: t("samples"), click: send("samples") },
         // sous macOS, Préférences… est dans le menu de l'application
         ...(mac ? [] : [{ type: "separator" }, preferences]),
       ],

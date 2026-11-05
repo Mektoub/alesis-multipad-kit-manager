@@ -622,14 +622,22 @@ class Bkf:
     def sample_names(self):
         return set(sample_catalog_from_list(self.get_file("WAV/LIST/wave_list_sort_name.lst")).values())
 
+    def _check_sample_name(self, name, sid=None):
+        """Refuse un nom invalide ou déjà porté par un autre sample que `sid`."""
+        try:
+            raw = name.encode("latin-1", "strict") if name else b""
+        except UnicodeEncodeError:
+            raw = b""
+        if not raw or len(raw) > 0x7F or b"\0" in raw:
+            raise StrikeError("nom de sample invalide : %r" % name)
+        catalog = sample_catalog_from_list(self.get_file("WAV/LIST/wave_list_sort_name.lst"))
+        if any(other == name and i != sid for i, other in catalog.items()):
+            raise StrikeError("un sample nommé %r existe déjà" % name)
+
     def add_sample(self, name, wav):
         """Ajoute un sample utilisateur comme le fait l'appareil ; retourne son id."""
         channels, data_off, data_len = wav_info(wav)
-        raw = name.encode("latin-1", "strict") if name else b""
-        if not raw or len(raw) > 0x7F or b"\0" in raw:
-            raise StrikeError("nom de sample invalide : %r" % name)
-        if name in self.sample_names():
-            raise StrikeError("un sample nommé %r existe déjà" % name)
+        self._check_sample_name(name)
 
         wl = bytearray(self.get_file("WAV/LIST/Wave_list.lst"))
         count = struct.unpack(">H", wl[0x0A:0x0C])[0]
@@ -681,7 +689,41 @@ class Bkf:
         data[o:o] = struct.pack(">2H", rank, sid)
         self._save_list("wave_list_sort_num.lst", data, count + 1)
 
-    def _add_sort_name(self, sid, name):
+    def rename_sample(self, sid, name):
+        """Renomme un sample utilisateur.
+
+        Non observé sur l'appareil : l'entrée de wave_list_sort_name.lst est
+        retirée puis réinsérée à sa place alphabétique, comme à l'ajout, avec sa
+        longueur de nom d'origine (+0x04) ; le nom du .had est mis à jour.
+        """
+        folder, fileno = divmod(sid, 100)
+        try:
+            had = bytearray(self.get_file("WAV/HEAD/%03d/%d.had" % (folder, fileno)))
+        except StrikeError:
+            raise StrikeError("seuls les samples utilisateur peuvent être renommés (id %r)" % sid) from None
+        self._check_sample_name(name, sid)
+        entry = self._remove_sort_name(sid)
+        self._add_sort_name(sid, name, struct.unpack(">H", entry[4:6])[0])
+        raw = name.encode("latin-1")
+        had[0x3F] = len(raw)
+        had[0x40:0x50] = raw[:16].ljust(16, b"\0")
+        had[8] = kit_checksum(had)
+        self.set_file("WAV/HEAD/%03d/%d.had" % (folder, fileno), had)
+
+    def _remove_sort_name(self, sid):
+        """Retire l'entrée de `sid` de wave_list_sort_name.lst ; la retourne."""
+        data, n = self._list("wave_list_sort_name.lst")
+        pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == sid)
+        entry = bytes(data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)])
+        del data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)]
+        for k in range(pos, n - 1):
+            p = 0x20 + 0x90 * k
+            data[p : p + 2] = struct.pack(">H", (struct.unpack(">H", data[p : p + 2])[0] - 1) & 0xFFFF)
+        self._save_list("wave_list_sort_name.lst", data, n - 1)
+        return entry
+
+    def _add_sort_name(self, sid, name, length=None):
+        """`length` : champ +0x04, longueur du nom d'origine (par défaut, nom + « .wav »)."""
         data, count = self._list("wave_list_sort_name.lst")
         key = name.lower()
         pos = count
@@ -694,7 +736,7 @@ class Bkf:
             o = 0x20 + 0x90 * k
             data[o : o + 2] = struct.pack(">H", (struct.unpack(">H", data[o : o + 2])[0] + 1) & 0xFFFF)
         entry = bytearray(0x90)
-        entry[0:6] = struct.pack(">3H", pos, sid, len(name) + 4)
+        entry[0:6] = struct.pack(">3H", pos, sid, len(name) + 4 if length is None else length)
         entry[0x10:0x90] = name.encode("latin-1").ljust(0x80, b"\0")
         o = 0x20 + 0x90 * pos
         data[o:o] = entry
@@ -753,13 +795,7 @@ class Bkf:
         del data[last : last + 4]
         self._save_list("wave_list_sort_num.lst", data, n - 1)
 
-        data, n = self._list("wave_list_sort_name.lst")
-        pos = next(k for k in range(n) if struct.unpack(">H", data[0x22 + 0x90 * k : 0x24 + 0x90 * k])[0] == sid)
-        del data[0x20 + 0x90 * pos : 0x20 + 0x90 * (pos + 1)]
-        for k in range(pos, n - 1):
-            p = 0x20 + 0x90 * k
-            data[p : p + 2] = struct.pack(">H", (struct.unpack(">H", data[p : p + 2])[0] - 1) & 0xFFFF)
-        self._save_list("wave_list_sort_name.lst", data, n - 1)
+        self._remove_sort_name(sid)
 
         data, groups = self._list("wave_list_sort_group.lst")
         p = 0x20
@@ -917,6 +953,20 @@ class Backup:
                     return r.data
         raise StrikeError("sample %r absent de la sauvegarde (seuls les samples utilisateur y sont)" % sid)
 
+    def sample_uses(self):
+        """id -> [(kit, indice d'emplacement, wave)] des samples référencés par les kits."""
+        uses = {}
+        for num in self.kit_numbers():
+            kit = self.get_raw(num)
+            for i in range(SLOT_COUNT):
+                for wave, woff in WAVES.items():
+                    w = SLOT_BASE + i * SLOT_SIZE + woff
+                    if wave_header_readable(kit, w):
+                        sid = struct.unpack(">H", kit[w : w + 2])[0]
+                        if sid != NO_SAMPLE:
+                            uses.setdefault(sid, []).append((num, i, wave))
+        return uses
+
     def decode(self, num):
         return decode_kit(self.get_raw(num), self.samples())
 
@@ -1027,6 +1077,13 @@ class Backup:
         self._catalog = None
         self.dirty = True
         return sid
+
+    def rename_sample(self, sid, name):
+        if self.bkf is None:
+            raise StrikeError("le renommage de samples n'est possible qu'avec un .bkf")
+        self.bkf.rename_sample(sid, name)
+        self._catalog = None
+        self.dirty = True
 
     def serialize(self):
         return bytes(self.fac) if self.fac is not None else self.bkf.serialize()

@@ -76,6 +76,8 @@ export const api = {
     form.append("file", file);
     return request("POST", "/api/samples", form);
   },
+  userSamples: () => request("GET", "/api/samples/user"),
+  renameSample: (id, name) => request("PATCH", `/api/samples/${id}`, { name }),
   // sans chemin : « Enregistrer » dans le fichier ouvert ; avec : « Enregistrer sous »
   save: (path = null, overwrite = false) => request("POST", "/api/save", path == null ? {} : { path, overwrite }),
   // WAV d'un sample utilisateur, en Blob : une balise audio ne pourrait pas

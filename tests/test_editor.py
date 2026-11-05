@@ -132,6 +132,22 @@ class Api(unittest.TestCase):
         r = self.client.post("/api/samples", files={"file": ("Mauvais.wav", b"pas un wav", "audio/wav")})
         self.assertEqual(r.status_code, 400)
 
+    def test_samples_utilisateur(self):
+        user = self.client.get("/api/samples/user").json()
+        self.assertEqual(len(user), 34)
+        (stuck,) = [s for s in user if s["id"] == 8072]
+        self.assertEqual((stuck["name"], stuck["size"]), ("Sample Stuck", 52964))
+        self.assertIn({"kit": "032", "kit_name": "CrazyInLove", "slot": "P5", "wave": "wave_a"}, stuck["uses"])
+
+    def test_renommage_sample(self):
+        r = self.client.patch("/api/samples/8072", json={"name": "Coincé"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.json(), {"id": 8072, "name": "Coincé", "user": True})
+        self.assertIn({"id": 8072, "name": "Coincé", "user": True}, self.client.get("/api/samples").json())
+        self.assertTrue(self.client.get("/api/state").json()["dirty"])
+        self.assertEqual(self.client.patch("/api/samples/8072", json={"name": "Sine 01"}).status_code, 400)
+        self.assertEqual(self.client.patch("/api/samples/7903", json={"name": "Usine"}).status_code, 404)
+
     def test_enregistrement(self):
         kit = self.client.get("/api/kits/034").json()
         kit["name"] = "Enregistre"
@@ -342,6 +358,13 @@ class Api(unittest.TestCase):
         self.assertEqual((state["history"]["undo"], state["dirty"]), ("Kit 033 · P1 · Volume", True))
         self.client.post("/api/undo")
         self.assertTrue(self.client.post("/api/redo").json()["dirty"])  # le sample reste ajouté
+
+    def test_renommage_sample_hors_historique(self):
+        self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": 20})
+        self.client.post("/api/save", json={"path": str(self.root / "Historique3.bkf"), "overwrite": True})
+        self.client.patch("/api/samples/8072", json={"name": "Coincé"})
+        self.client.post("/api/undo")
+        self.assertTrue(self.client.post("/api/redo").json()["dirty"])  # le nom reste changé
 
     def test_ouverture_et_enregistrement(self):
         self.client.post("/api/kits/033/set", json={"targets": [1], "field": "params.volume", "value": 20})
