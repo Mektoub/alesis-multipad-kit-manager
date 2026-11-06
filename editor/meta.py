@@ -267,6 +267,10 @@ DEFAULT_WAVE = {
 }
 
 
+# Lignes des entrées identifiées sous la grille (préfixe du nom de l'emplacement)
+INPUT_ROWS = ("Trigger In", "FootSwitch")
+
+
 def default_slot(index):
     pad = dict(DEFAULT_PAD, midi_note=DEFAULT_MIDI_NOTES[index], sensitivity=DEFAULT_SENSITIVITY[index])
     names = [sk.param_name(sk.PAD_PARAMS, rid) for rid, _, _ in sk.PAD_LAYOUT] + list(sk.PAD_FIELDS)
@@ -372,6 +376,7 @@ def meta():
         "defaults": defaults(),
         "colors": [{"name": n, "css": c} for n, c in COLORS],
         "slots": [{"slot": i + 1, "label": sk.slot_label(i)} for i in range(sk.SLOT_COUNT)],
-        "inputs": list(sk.SLOT_NAMES),  # entrées identifiées, ordre de l'arrière de l'appareil
+        # entrées identifiées, en deux lignes : déclencheurs, puis pédales
+        "inputs": [[n for n, name in sk.SLOT_NAMES.items() if name.startswith(p)] for p in INPUT_ROWS],
         "kit_name_max": sk.NAME_LEN,
     }

@@ -11,10 +11,10 @@
   const PAD_ORDER = [6, 7, 8, 3, 4, 5, 0, 1, 2];
 
   let slot = $derived(kit.slots[selected]);
-  // Emplacements 10 à 24 : entrées identifiées (ordre de l'arrière de l'appareil),
-  // les autres masqués par défaut.
-  let inputs = $derived(meta.inputs.map((n) => kit.slots[n - 1]));
-  let unknown = $derived(kit.slots.slice(9).filter((s) => !meta.inputs.includes(s.slot)));
+  // Emplacements 10 à 24 : entrées identifiées, en lignes (déclencheurs, puis
+  // pédales), les autres masqués par défaut.
+  let inputRows = $derived(meta.inputs.map((row) => row.map((n) => kit.slots[n - 1])));
+  let unknown = $derived(kit.slots.slice(9).filter((s) => !meta.inputs.flat().includes(s.slot)));
   let showUnknown = $state(false);
   const used = (s) => s.wave_a.sample != null || s.wave_b.sample != null;
 
@@ -70,13 +70,19 @@
   </div>
 
   <div class="others">
-    <div class="chips">
-      <span class="muted">{t("inputs")}</span>
-      {#each inputs as s (s.slot)}
-        <button class="chip" class:selected={selected === s.slot - 1} class:used={used(s)} onclick={() => (selected = s.slot - 1)}>
-          {s._label}
-        </button>
-      {/each}
+    <div class="inputs">
+      <span class="muted label">{t("inputs")}</span>
+      <div class="rows">
+        {#each inputRows as row, i (i)}
+          <div class="chips">
+            {#each row as s (s.slot)}
+              <button class="chip" class:selected={selected === s.slot - 1} class:used={used(s)} onclick={() => (selected = s.slot - 1)}>
+                {s._label}
+              </button>
+            {/each}
+          </div>
+        {/each}
+      </div>
     </div>
     <button class="link" onclick={() => (showUnknown = !showUnknown)}>
       {t(showUnknown ? "hideUnknown" : "showUnknown", { n: unknown.length })}
@@ -232,6 +238,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 6px;
+  }
+  .inputs {
+    display: flex;
+    gap: 6px;
+  }
+  .inputs .label {
+    font-weight: 700;
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
     gap: 6px;
   }
   .chips {

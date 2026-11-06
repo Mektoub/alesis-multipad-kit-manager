@@ -208,20 +208,20 @@ def wave_header_readable(kit, w):
 
 # Entrées de l'arrière de l'appareil localisées par des sauvegardes de l'appareil
 # (Control/Mode réglé sur l'entrée, ou sample choisi sur FootSwitch 1 à 4, Trigger 1
-# à 5 et HiHat) : numéro d'emplacement -> nom, dans l'ordre de l'arrière de
-# l'appareil. Les prises doubles (FootSwitch 1/2 et 3/4, Trigger In 2/3 et 4/5) ont
-# un emplacement par contact ; leur Control/Mode est sur le premier.
+# à 5 et HiHat) : numéro d'emplacement -> nom, déclencheurs puis pédales. Les prises
+# doubles (FootSwitch 1/2 et 3/4, Trigger In 2/3 et 4/5) ont un emplacement par
+# contact ; leur Control/Mode est sur le premier.
 SLOT_NAMES = {
-    18: "FootSwitch 1",
-    19: "FootSwitch 2",
-    20: "FootSwitch 3",
-    21: "FootSwitch 4",
     16: "Trigger In 1",
     12: "Trigger In 2",
     13: "Trigger In 3",
     14: "Trigger In 4",
     15: "Trigger In 5",
     17: "Trigger In HH",
+    18: "FootSwitch 1",
+    19: "FootSwitch 2",
+    20: "FootSwitch 3",
+    21: "FootSwitch 4",
 }
 
 
