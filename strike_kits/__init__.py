@@ -642,15 +642,18 @@ class Bkf:
         channels, data_off, data_len = wav_info(wav)
         self._check_sample_name(name)
 
+        # id : la première entrée libre (celle d'un sample supprimé le cas échéant) ;
+        # rang : à la suite des samples existants (observé sur l'appareil)
         wl = bytearray(self.get_file("WAV/LIST/Wave_list.lst"))
         count = struct.unpack(">H", wl[0x0A:0x0C])[0]
-        o = 0x20 + 8 * count
+        sid = next((i for i in range(min(count + 1, (len(wl) - 0x20) // 8)) if wl[0x20 + 8 * i] & 0x80), None)
+        o = 0x20 + 8 * (count if sid is None else sid)
         if o + 8 > len(wl):
             raise StrikeError("table des samples pleine")
         flag_id, loc = struct.unpack(">2H", wl[o : o + 4])
-        if flag_id != 0x8000 | count:
-            raise StrikeError("table des samples non contiguë : cas non pris en charge")
-        sid, folder, fileno = count, loc >> 8, loc & 0xFF
+        if sid is None or flag_id != 0x8000 | sid:
+            raise StrikeError("table des samples incohérente : cas non pris en charge")
+        folder, fileno = loc >> 8, loc & 0xFF
         if folder != sid // 100 or fileno != sid % 100 or fileno < 10:
             raise StrikeError("emplacement de sample %03d/%d non vérifié : cas non pris en charge" % (folder, fileno))
         rank = count

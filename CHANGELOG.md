@@ -4,7 +4,8 @@
 
 - Web editor: sample manager (*Samples* button in the header, *Edit › Samples…* menu of the desktop app): list of the user samples with WAV size and the kits and pads using them, play, rename (outside the undo history), add a WAV. API: `GET /api/samples/user`, `Backup.sample_uses`.
 - Renaming a user sample: API: `PATCH /api/samples/{id}`; `Backup.rename_sample` / `Bkf.rename_sample`, which moves the entry in `wave_list_sort_name.lst` and updates the `.had` (not observed on the device).
-- Deleting a user sample (trash can in the sample manager), as observed on the device (byte for byte); after a warning listing the kits and pads using it, these pads are emptied (the device leaves them pointing to the deleted sample). Clears the history. API: `DELETE /api/samples/{id}`; `Bkf.remove_sample`, `Backup.remove_sample`. Adding a sample after a deletion is refused until observed.
+- Deleting a user sample (trash can in the sample manager), as observed on the device (byte for byte); after a warning listing the kits and pads using it, these pads are emptied (the device leaves them pointing to the deleted sample). Clears the history. API: `DELETE /api/samples/{id}`; `Bkf.remove_sample`, `Backup.remove_sample`.
+- Adding a sample after a deletion reuses the freed id, files appended at the end, as observed on the device.
 - Rear inputs located using device backups: 12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5 (was “Trigger In 4/5”): one slot per trigger of the dual jacks; 10 and 11 remain unidentified.
 
 ## 0.6.0 — License

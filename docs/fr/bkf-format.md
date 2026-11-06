@@ -194,8 +194,7 @@ rang du sample dans `Wave_list.lst` :
 1. Le `.had` et le `.wav` sont retirés.
 2. `Wave_list.lst` : l'entrée reçoit le drapeau `0x8000` (emplacement et rang
    conservés) ; les entrées utilisées de rang supérieur perdent 1 ; nombre d'entrées − 1.
-   Ce nombre ne donne alors plus l'id du prochain sample (non observé : l'outil
-   refuse l'ajout).
+   Ce nombre ne donne alors plus l'id du prochain sample (voir ci-dessous).
 3. `sort_num` : la paire est retirée ; les rangs des paires suivantes perdent 1.
 4. `sort_name` : l'entrée est retirée. Le compteur des entrées suivantes devient
    **octet faible − 1 (modulo 256), octet fort à 0** : `0x0101` devient `0x0000`,
@@ -208,6 +207,24 @@ rang du sample dans `Wave_list.lst` :
 8. **Les kits ne changent pas** : ceux qui utilisaient le sample y font toujours
    référence. L'outil (`Backup.remove_sample`) met ces waves à `0xFFFF` (aucun
    sample).
+
+### Ajout après une suppression (observé sur l'appareil)
+
+Sauvegardes faites avant et après l'import d'un WAV, à partir d'une sauvegarde où
+le sample 8076 avait été supprimé (8 079 samples). L'outil reproduit la sauvegarde
+de l'appareil octet pour octet, à un champ près du `.had` (voir plus bas).
+
+- **id** : la première entrée libre de `Wave_list.lst` (drapeau `0x8000`), ici
+  8076 ; le `.had` et le `.wav` reprennent son emplacement (`080\76`) mais sont
+  placés **à la fin** des `.had` et des `.wav`, pas dans l'ordre des ids.
+- **rang** : le nombre actuel de samples (8079), à la suite des autres ; la paire
+  (8079, 8076) est ajoutée en fin de `sort_num`.
+- Les autres listes suivent les règles de l'ajout. Dans `sort_name`, les compteurs
+  des entrées suivantes gagnent 1 sur 16 bits (`0x00ff` devient `0x0100`).
+- Sans entrée libérée, la première entrée libre est celle d'id = nombre de samples :
+  c'est le cas de l'ajout ordinaire.
+- Les octets 0x3C–0x3E du `.had` contiennent parfois des résidus (ici `0xFF` en
+  0x3E) ; l'outil y écrit des zéros.
 
 ### Renommage d'un sample (non observé)
 

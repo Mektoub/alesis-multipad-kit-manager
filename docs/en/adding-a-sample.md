@@ -78,8 +78,8 @@ pads have no sample. The change history is cleared.
   [deleting a sample](bkf-format.md#deleting-a-sample-observed-on-the-device).
 - The device itself leaves the kits pointing to the deleted sample; the tool
   cleans them.
-- After a deletion, adding a sample is refused until the id the device would give
-  it has been observed (“table des samples non contiguë”).
+- After a deletion, the next sample added takes the id that was freed, as the
+  device does ([details](bkf-format.md#adding-after-a-deletion-observed-on-the-device)).
 
 ## Limitations
 
@@ -87,7 +87,5 @@ pads have no sample. The change history is cleared.
   out of caution: how the device names the following folders has not been
   observed.
 - Replacing the WAV of a sample is not supported.
-- Adding a sample after a deletion is not possible yet (see
-  [Deleting a sample](#deleting-a-sample)).
 - Factory samples are not in the backup: they can be neither listened to nor
   exported, only referenced by their id or name.

@@ -194,7 +194,7 @@ reproduces the device's backup byte for byte. With `rank` = the sample's rank in
 1. The `.had` and the `.wav` are removed.
 2. `Wave_list.lst`: the entry gets the `0x8000` flag (location and rank kept); the
    used entries of higher rank lose 1; number of entries − 1. This number then no
-   longer gives the id of the next sample (not observed: the tool refuses to add).
+   longer gives the id of the next sample (see below).
 3. `sort_num`: the pair is removed; the ranks of the following pairs lose 1.
 4. `sort_name`: the entry is removed. The counter of the following entries becomes
    **low byte − 1 (modulo 256), high byte set to 0**: `0x0101` becomes `0x0000`,
@@ -206,6 +206,24 @@ reproduces the device's backup byte for byte. With `rank` = the sample's rank in
    checksums.
 8. **The kits do not change**: those that used the sample still refer to it. The
    tool (`Backup.remove_sample`) sets these waves to `0xFFFF` (no sample).
+
+### Adding after a deletion (observed on the device)
+
+Backups made before and after importing a WAV, starting from a backup where sample
+8076 had been deleted (8,079 samples). The tool reproduces the device's backup byte
+for byte, except for one `.had` field (see below).
+
+- **id**: the first free entry of `Wave_list.lst` (`0x8000` flag), here 8076; the
+  `.had` and `.wav` take its location (`080\76`) but are placed **at the end** of
+  the `.had` and `.wav` files, not in id order.
+- **rank**: the current number of samples (8079), after the others; the pair
+  (8079, 8076) is appended to `sort_num`.
+- The other lists follow the rules of adding. In `sort_name`, the counters of the
+  following entries gain 1 on 16 bits (`0x00ff` becomes `0x0100`).
+- Without a freed entry, the first free entry is the one with id = number of
+  samples: this is the ordinary addition.
+- Bytes 0x3C–0x3E of the `.had` sometimes contain leftovers (here `0xFF` at 0x3E);
+  the tool writes zeros there.
 
 ### Renaming a sample (not observed)
 

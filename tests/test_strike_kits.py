@@ -478,14 +478,33 @@ class SuppressionSample(unittest.TestCase):
         with self.assertRaisesRegex(sk.StrikeError, "utilisateur"):
             sk.Bkf.parse(self.data).remove_sample(7903)
 
-    def test_ajout_apres_suppression_refuse(self):
-        # id du sample ajouté après une suppression pas encore observé : refus
+    def test_ajout_apres_suppression(self):
+        # observé sur l'appareil : l'id libéré le plus bas est réutilisé, avec le rang
+        # suivant le dernier ; les fichiers sont ajoutés en fin de liste
         bkf = sk.Bkf.parse(self.out)
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "n.wav"
             make_wav(p)
-            with self.assertRaisesRegex(sk.StrikeError, "non contiguë"):
-                bkf.add_sample("Nouveau", p.read_bytes())
+            wav = p.read_bytes()
+        _, count = self.lst(self.after, "Wave_list.lst")
+        self.assertEqual(bkf.add_sample("Nouveau", wav), self.SID)
+        out = bkf.serialize()
+        files = files_of(out)
+        names = list(files)
+        self.assertEqual(names[-1], "WAV/DATA/080/50.wav")
+        self.assertEqual(files["WAV/DATA/080/50.wav"], wav)
+        heads = [n for n in names if n.startswith("WAV/HEAD/")]
+        self.assertEqual(heads[-1], "WAV/HEAD/080/50.had")
+        wl, m = self.lst(files, "Wave_list.lst")
+        self.assertEqual(m, count + 1)
+        o = 0x20 + 8 * self.SID
+        self.assertEqual(struct.unpack(">2H", wl[o : o + 4]), (self.SID, 0x5032))
+        self.assertEqual(struct.unpack(">H", wl[o + 6 : o + 8])[0], count)
+        num, n = self.lst(files, "wave_list_sort_num.lst")
+        self.assertEqual(struct.unpack(">2H", num[0x20 + 4 * (n - 1) : 0x24 + 4 * (n - 1)]), (count, self.SID))
+        self.assertEqual(sk.sample_catalog_from_list(files["WAV/LIST/wave_list_sort_name.lst"])[self.SID], "Nouveau")
+        # plus d'id libéré : l'ajout suivant reprend après le dernier sample
+        self.assertEqual(bkf.add_sample("Suivant", wav), 8073)
 
     def test_backup_nettoie_les_kits(self):
         b = sk.Backup(self.data)

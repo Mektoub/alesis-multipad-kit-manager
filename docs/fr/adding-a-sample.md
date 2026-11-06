@@ -78,15 +78,13 @@ est vidé.
   [suppression d'un sample](bkf-format.md#suppression-dun-sample-observé-sur-lappareil).
 - L'appareil, lui, laisse les kits pointer vers le sample supprimé ; l'outil les
   nettoie.
-- Après une suppression, l'ajout d'un sample est refusé tant que l'id que lui
-  donnerait l'appareil n'a pas été observé (« table des samples non contiguë »).
+- Après une suppression, le sample ajouté ensuite reprend l'id libéré, comme sur
+  l'appareil ([détails](bkf-format.md#ajout-après-une-suppression-observé-sur-lappareil)).
 
 ## Limites
 
 - Ajout vérifié jusqu'à l'id 8099 (dossier `080`). Au-delà, l'outil refuse par
   prudence : la façon dont l'appareil nomme les dossiers suivants n'a pas été observée.
 - Remplacer le WAV d'un sample n'est pas pris en charge.
-- Ajouter un sample après une suppression n'est pas encore possible (voir
-  [Supprimer un sample](#supprimer-un-sample)).
 - Les samples d'usine ne sont pas dans la sauvegarde : on ne peut ni les écouter ni
   les exporter, seulement les référencer par leur id ou leur nom.
