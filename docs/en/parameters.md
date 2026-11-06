@@ -88,7 +88,7 @@ finely split multisamples (0–30, 31–35…).
 |---|---|
 | 1–9 | pads P1–P9 (certain) |
 | 10–17 | external triggers: **12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5, 16 = Trigger In 1, 17 = Trigger In HH** (verified: one slot per trigger, two per dual jack 2/3 and 4/5); 10 and 11 unknown |
-| 18–21 | pedals: **18 = FootSwitch 1/2, 20 = FootSwitch 3/4** (verified); 19 and 21 unknown (second contact of the dual inputs?) |
+| 18–21 | pedals: **18 = FootSwitch 1, 19 = FootSwitch 2, 20 = FootSwitch 3, 21 = FootSwitch 4** (verified; Control/Mode of a dual jack on its first contact) |
 | 22–24 | unknown |
 
 ## Unidentified parameters

@@ -89,7 +89,7 @@ Les kits d'usine utilisent les vélocités pour superposer des couches (wave A
 |---|---|
 | 1–9 | pads P1–P9 (certain) |
 | 10–17 | déclencheurs externes : **12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5, 16 = Trigger In 1, 17 = Trigger In HH** (vérifiés : un emplacement par déclencheur, deux par prise double 2/3 et 4/5) ; 10 et 11 inconnus |
-| 18–21 | pédales : **18 = FootSwitch 1/2, 20 = FootSwitch 3/4** (vérifiés) ; 19 et 21 inconnus (deuxième contact des entrées doubles ?) |
+| 18–21 | pédales : **18 = FootSwitch 1, 19 = FootSwitch 2, 20 = FootSwitch 3, 21 = FootSwitch 4** (vérifiés ; Control/Mode d'une prise double sur son premier contact) |
 | 22–24 | inconnu |
 
 ## Paramètres non identifiés

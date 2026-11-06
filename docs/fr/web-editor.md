@@ -106,7 +106,7 @@ cd editor/web && npm ci && npm run build && cd ../..
 4. **Choisir un pad** dans la grille des 9 pads, disposée comme sur l'appareil (7-8-9 en haut,
    4-5-6 au milieu, 1-2-3 en bas). Elle montre le sample, la couleur de LED et,
    si le pad a un Mode (Control), un badge (« Click » pour Click On/Off). Sous la grille,
-   les entrées de l'arrière identifiées (FootSwitch 1/2, FootSwitch 3/4, Trigger In 1
+   les entrées de l'arrière identifiées (FootSwitch 1 à 4, Trigger In 1
    à 5, HH, dans cet ordre) ; les autres emplacements (10 à 24) s'affichent par le
    lien *afficher les emplacements non identifiés*.
 5. **Régler le pad** :

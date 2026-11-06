@@ -871,9 +871,9 @@ class EntreesExternes(unittest.TestCase):
     de contrôle)."""
 
     DEVICE = {
-        ("031.kit", 18): {0x08: 78, 0x1C35: 3},  # FootSwitch 1/2
+        ("031.kit", 18): {0x08: 78, 0x1C35: 3},  # prise FootSwitch 1/2 (emplacement du 1)
         ("032.kit", 16): {0x08: 51, 0x1935: 3},  # Trigger In 1
-        ("032.kit", 20): {0x08: 51, 0x1F35: 3},  # FootSwitch 3/4
+        ("032.kit", 20): {0x08: 51, 0x1F35: 3},  # prise FootSwitch 3/4 (emplacement du 3)
     }
     # Kits vides (KITH) réécrits en KITC par l'appareil : seule la valeur décodée
     # du Control/Mode change (Trigger In 4/5 en 15, Trigger In HH en 17). Le
@@ -893,7 +893,7 @@ class EntreesExternes(unittest.TestCase):
         self.assertEqual(labels[:9], ["P%d" % n for n in range(1, 10)])
         # 12 à 15 : localisés en choisissant un sample sur Trigger 2 à 5 de l'appareil
         self.assertEqual(
-            labels[11:20],
+            labels[11:21],
             [
                 "Trigger In 2",
                 "Trigger In 3",
@@ -901,12 +901,15 @@ class EntreesExternes(unittest.TestCase):
                 "Trigger In 5",
                 "Trigger In 1",
                 "Trigger In HH",
-                "FootSwitch 1/2",
-                "slot 19",
-                "FootSwitch 3/4",
+                "FootSwitch 1",
+                "FootSwitch 2",
+                "FootSwitch 3",
+                "FootSwitch 4",
             ],
         )
+        # 18 à 21 : localisés en choisissant un sample sur FootSwitch 1 à 4 de l'appareil
         self.assertEqual(labels[9:11], ["slot 10", "slot 11"])  # pas encore localisés
+        self.assertEqual(labels[21:], ["slot 22", "slot 23", "slot 24"])
 
 
 class DeplacementKit(unittest.TestCase):
