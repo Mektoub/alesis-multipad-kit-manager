@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0 — en cours
+## 0.7.0 — Gestion des samples
 
 - Web editor: sample manager (*Samples* button in the header, *Edit › Samples…* menu of the desktop app): list of the user samples with WAV size and the kits and pads using them, play, rename (outside the undo history), add a WAV. API: `GET /api/samples/user`, `Backup.sample_uses`.
 - Renaming a user sample: API: `PATCH /api/samples/{id}`; `Backup.rename_sample` / `Bkf.rename_sample`, which moves the entry in `wave_list_sort_name.lst` and updates the `.had` (not observed on the device).
