@@ -682,7 +682,7 @@
   <ResetDialog {kit} {meta} source={resetFrom} onreset={resetSlots} onclose={() => (resetFrom = null)} />
 {/if}
 {#if copyFrom && kit}
-  <CopyDialog {kit} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
+  <CopyDialog {kit} {meta} source={copyFrom} oncopy={copySlot} onclose={() => (copyFrom = null)} />
 {/if}
 
 {#if bulkFrom && kit}

@@ -127,7 +127,8 @@ cd editor/web && npm ci && npm run build && cd ../..
    settings to one or more other slots. You choose the sections (pad,
    lighting, wave A, wave B) and whether the MIDI note follows; by default, each pad keeps
    its own. A field missing from the target is not copied and is listed in the
-   confirmation message.
+   confirmation message. In this window and the next two, *Other inputs* lists the
+   rear inputs by name, then the unidentified slots by number.
 
    ![Copy to… window](../images/en/copy-dialog.png)
 

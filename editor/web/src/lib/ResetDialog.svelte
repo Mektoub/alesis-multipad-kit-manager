@@ -4,6 +4,7 @@
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
   import { t } from "./locale.svelte.js";
+  import InputTargets from "./InputTargets.svelte";
 
   let { kit, meta, source, onreset, onclose } = $props();
 
@@ -36,7 +37,6 @@
   let busy = $state(false);
   let error = $state("");
 
-  let others = $derived(kit.slots.slice(9).map((s) => s.slot));
 
   function toggle(set, value) {
     if (set.has(value)) set.delete(value);
@@ -100,13 +100,7 @@
       </div>
       <details>
         <summary class="muted">{t("otherInputs")}</summary>
-        <div class="others">
-          {#each others as n (n)}
-            <button class="target small" class:on={targets.has(n)} aria-pressed={targets.has(n)} onclick={() => toggle(targets, n)}>
-              {n}
-            </button>
-          {/each}
-        </div>
+        <InputTargets {kit} {meta} {targets} ontoggle={(n) => toggle(targets, n)} />
       </details>
     </section>
 
@@ -183,19 +177,9 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
-  .others {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 6px;
-  }
   .target {
     padding: 8px 0;
     font-weight: 600;
-  }
-  .target.small {
-    min-width: 38px;
-    padding: 4px 6px;
   }
   .target.on {
     background: var(--accent);

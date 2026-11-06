@@ -127,7 +127,9 @@ cd editor/web && npm ci && npm run build && cd ../..
    réglages vers un ou plusieurs autres emplacements. On choisit les sections (pad,
    éclairage, wave A, wave B) et si la note MIDI suit ; par défaut, chaque pad garde
    la sienne. Un champ absent de la cible n'est pas copié et est listé dans le
-   message de confirmation.
+   message de confirmation. Dans cette fenêtre et les deux suivantes, *Autres entrées*
+   liste les entrées de l'arrière par leur nom, puis les emplacements non identifiés
+   par leur numéro.
 
    ![Fenêtre Copier vers…](../images/fr/copy-dialog.png)
 

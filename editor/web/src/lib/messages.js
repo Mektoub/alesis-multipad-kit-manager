@@ -12,6 +12,7 @@ export const MESSAGES = {
     allPads: "all pads",
     none: "none",
     otherInputs: "Other inputs (10 to 24)",
+    unidentifiedSlots: "Unidentified:",
     valueN: "Value {n}",
     defaultIs: "Default: {value}",
 
@@ -241,6 +242,7 @@ export const MESSAGES = {
     allPads: "tous les pads",
     none: "aucun",
     otherInputs: "Autres entrées (10 à 24)",
+    unidentifiedSlots: "Non identifiés :",
     valueN: "Valeur {n}",
     defaultIs: "Par défaut : {value}",
 
