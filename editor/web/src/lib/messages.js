@@ -147,6 +147,18 @@ export const MESSAGES = {
     stepsKept: "steps kept for Undo / Redo",
     historyLimitHelp: "From {min} to {max}. Reducing it immediately forgets the oldest steps.",
     windowKept: "The window size and position are remembered from one launch to the next.",
+    updates: "Updates",
+    checkUpdatesAtLaunch: "Check for updates at launch",
+    updatesHelp:
+      "Asks GitHub for the latest published version; only the application version and your IP address are sent. " +
+      "Help › Check for Updates… also works without it.",
+    updateQuestionTitle: "Check for updates?",
+    updateQuestion: "Check for a new version of the application at each launch?",
+    updateQuestionDetail:
+      "The application then asks GitHub for the latest published version; only its version and your IP address " +
+      "are sent. You can change this choice in Preferences.",
+    updateQuestionYes: "Check at launch",
+    updateQuestionNo: "Don't check",
 
     // modifier plusieurs pads
     bulkTitle: "Edit several pads",
@@ -371,6 +383,18 @@ export const MESSAGES = {
     stepsKept: "étapes gardées pour Annuler / Rétablir",
     historyLimitHelp: "De {min} à {max}. Une réduction oublie tout de suite les étapes les plus anciennes.",
     windowKept: "La taille et la position de la fenêtre sont retenues d'un lancement à l'autre.",
+    updates: "Mises à jour",
+    checkUpdatesAtLaunch: "Rechercher les mises à jour au lancement",
+    updatesHelp:
+      "Demande à GitHub la dernière version publiée ; seules la version de l'application et votre adresse IP " +
+      "sont transmises. Aide › Rechercher des mises à jour… fonctionne aussi sans cela.",
+    updateQuestionTitle: "Rechercher les mises à jour ?",
+    updateQuestion: "Rechercher une nouvelle version de l'application à chaque lancement ?",
+    updateQuestionDetail:
+      "L'application demande alors à GitHub la dernière version publiée ; seules sa version et votre adresse IP " +
+      "sont transmises. Ce choix se modifie dans les Préférences.",
+    updateQuestionYes: "Rechercher au lancement",
+    updateQuestionNo: "Ne pas rechercher",
 
     bulkTitle: "Modifier plusieurs pads",
     setting: "Réglage",

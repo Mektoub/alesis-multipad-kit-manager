@@ -173,7 +173,8 @@ section (`scripts/verifier-version.py X.Y.Z`).
    workflow « Release » (`.github/workflows/release.yml`) : il revérifie les
    versions du commit, construit les paquets des trois systèmes (`build.yml`) et
    crée une **release en brouillon** avec les paquets et les notes du CHANGELOG ;
-4. relire la release sur GitHub (onglet *Releases*) et la publier.
+4. relire la release sur GitHub (onglet *Releases*) et la publier : dès lors, la mise
+   à jour est proposée aux applications installées ([Mises à jour](desktop-app.md#mises-à-jour)).
 
 Le script ne lance pas les vérifications : passer `./dev.sh all` avant.
 

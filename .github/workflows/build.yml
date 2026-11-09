@@ -1,7 +1,8 @@
 # Paquets de l'application de bureau, sur chaque système (PyInstaller ne fait
 # pas de compilation croisée) : .deb sous Linux, installateur NSIS et zip sous
 # Windows, dmg et zip sous macOS (Apple Silicon), nommés avec la version de
-# app-names.json (vérifiée). Lancé à la main (onglet Actions) ; les paquets sont
+# app-names.json (vérifiée), avec les fichiers des mises à jour (latest*.yml,
+# desktop/updater.js). Lancé à la main (onglet Actions) ; les paquets sont
 # des artefacts de l'exécution. Appelé par release.yml sur un tag vX.Y.Z (release
 # GitHub), et par ci.yml sous Linux sans paquet : serveur figé et test de fumée.
 name: Package
@@ -92,15 +93,18 @@ jobs:
           id="$(node -p 'require("../app-names.json").id')"
           v="$(node -p 'require("../app-names.json").version')"
           case "$RUNNER_OS" in
-            Linux) files=("${id}_${v}_amd64.deb") ;;
-            Windows) files=("$id-$v-win-x64-setup.exe" "$id-$v-win-x64.zip") ;;
-            macOS) files=("$id-$v-mac-arm64.dmg" "$id-$v-mac-arm64.zip") ;;
+            Linux) files=("${id}_${v}_amd64.deb" latest-linux.yml) ;;
+            Windows) files=("$id-$v-win-x64-setup.exe" "$id-$v-win-x64.zip" latest.yml) ;;
+            macOS) files=("$id-$v-mac-arm64.dmg" "$id-$v-mac-arm64.zip" latest-mac.yml) ;;
           esac
           mkdir -p paquets
           for f in "${files[@]}"; do
             [[ -f "dist/$f" ]] || { echo "paquet absent : dist/$f" >&2; ls dist >&2; exit 1; }
             cp "dist/$f" paquets/ && echo "✔ $f"
           done
+          # fichier des mises à jour (desktop/updater.js) : version du paquet
+          manifest="dist/${files[-1]}"
+          grep -qx "version: $v" "$manifest" || { echo "$manifest : version différente de $v" >&2; cat "$manifest" >&2; exit 1; }
           if [[ "$RUNNER_OS" == Linux ]]; then
             deb_version="$(dpkg-deb -f "dist/${files[0]}" Version)"
             [[ "$deb_version" == "$v" ]] || { echo "version du .deb : $deb_version, attendu : $v" >&2; exit 1; }

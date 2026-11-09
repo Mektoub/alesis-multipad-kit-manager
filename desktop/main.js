@@ -10,7 +10,8 @@
 // Les préférences (preferences.json) sont gérées par le serveur, dans le dossier
 // de configuration de l'application (KITMANAGER_CONFIG) ; la taille et la
 // position de la fenêtre sont gardées ici (window-state.js). Les menus et les
-// boîtes de dialogue suivent la langue de l'interface (messages.js).
+// boîtes de dialogue suivent la langue de l'interface (messages.js). Mises à
+// jour : updater.js, recherche au démarrage selon la préférence `check_updates`.
 
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -18,10 +19,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from "electron";
+import electronUpdater from "electron-updater";
 
 import { menuTemplate } from "./menu.js";
 import { LANGUAGES, languagePreference, resolveLanguage, translator } from "./messages.js";
 import { fileArgument, serverCommand, serverProblem, startServer } from "./server.js";
+import { createUpdates, githubRepo, updateMode } from "./updater.js";
 import { readWindowState, windowBounds, writeWindowState } from "./window-state.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +32,8 @@ const PROJECT = path.resolve(here, "..");
 // Noms de l'application : ajoutés au package.json une fois empaquetée
 // (electron-builder.config.mjs), lus dans ../app-names.json en développement.
 const readJson = (file) => JSON.parse(readFileSync(file, "utf8"));
-const NAMES = readJson(path.join(here, "package.json")).appNames ?? readJson(path.join(PROJECT, "app-names.json"));
+const PACKAGE = readJson(path.join(here, "package.json"));
+const NAMES = PACKAGE.appNames ?? readJson(path.join(PROJECT, "app-names.json"));
 const TITLE = NAMES.long; // fenêtres et boîtes de dialogue
 app.setName(NAMES.config); // dossier de configuration : ~/.config/<config>
 
@@ -56,6 +60,8 @@ function run() {
   let win = null;
   let dirty = false; // dernier état signalé par l'interface (setDirty)
   let quitting = false;
+  let closeConfirmed = false; // fermeture déjà confirmée (installation d'une mise à jour)
+  let serverStopped = false;
   let lastDir = launchFile ? path.dirname(launchFile) : app.getPath("documents");
   let recent = []; // fichiers récents, donnés par l'interface (préférences)
   // langue des menus et des boîtes de dialogue : celle de l'interface une fois
@@ -108,6 +114,17 @@ function run() {
     if (!trusted(event)) return;
     recent = files;
     Menu.setApplicationMenu(buildMenu());
+  });
+  ipcMain.on("kitmanager:updates", (event) => {
+    event.returnValue = trusted(event) && Boolean(mode);
+  });
+  // préférence `check_updates`, transmise par l'interface : recherche une fois
+  // par lancement, quelques secondes après l'ouverture
+  let autoChecked = false;
+  ipcMain.on("kitmanager:update-check", (event, value) => {
+    if (!trusted(event) || value !== true || autoChecked || !mode) return;
+    autoChecked = true;
+    setTimeout(() => updates.check(), 3000);
   });
   ipcMain.on("kitmanager:language", (event, value) => {
     if (!trusted(event) || !LANGUAGES.includes(value) || value === lang) return;
@@ -198,7 +215,7 @@ function run() {
     let allowClose = false;
     win.on("close", async (event) => {
       writeWindowState(windowStateFile, win.getNormalBounds(), win.isMaximized() || win.isFullScreen());
-      if (allowClose || !rendererReady) return;
+      if (allowClose || closeConfirmed || !rendererReady) return;
       event.preventDefault();
       if (closing) return;
       closing = true;
@@ -243,6 +260,60 @@ function run() {
     return result?.saved === true; // en cas d'échec, l'erreur est affichée dans la fenêtre
   }
 
+  // --- Mises à jour ------------------------------------------------------------
+  // KITMANAGER_UPDATE_URL : serveur de test (fichiers latest*.yml), aussi en
+  // développement ; sinon les releases GitHub du projet.
+  const feed = process.env.KITMANAGER_UPDATE_URL;
+  const mode = updateMode({
+    platform: process.platform,
+    packaged: app.isPackaged,
+    execPath: process.execPath,
+    resourcesPath: process.resourcesPath,
+    productName: NAMES.short,
+    feed,
+  });
+  const updater = mode ? electronUpdater.autoUpdater : null;
+  if (updater) {
+    updater.forceDevUpdateConfig = !app.isPackaged;
+    updater.setFeedURL(feed ? { provider: "generic", url: feed } : { provider: "github", ...githubRepo(PACKAGE.homepage) });
+  }
+  const updates = createUpdates({
+    updater,
+    mode,
+    dialog,
+    shell,
+    platform: process.platform,
+    win: () => win,
+    t: (...args) => t(...args),
+    releaseUrl: (version) => `${PACKAGE.homepage}/releases/tag/v${version}`,
+    beforeInstall,
+    installFailed,
+  });
+
+  // Avant d'installer : modifications non enregistrées comme à la fermeture ;
+  // sous Windows, serveur arrêté d'abord, pour que l'installateur puisse
+  // remplacer son exécutable.
+  async function beforeInstall() {
+    if (win && rendererReady && !(await confirmClose())) return false;
+    closeConfirmed = true;
+    quitting = true;
+    if (process.platform === "win32" && server && !serverStopped) {
+      await server.stop();
+      serverStopped = true;
+    }
+    return true;
+  }
+
+  // Installation impossible : l'application reprend, ou quitte si son serveur est arrêté.
+  function installFailed() {
+    if (serverStopped) {
+      app.quit();
+      return;
+    }
+    closeConfirmed = false;
+    quitting = false;
+  }
+
   // --- À propos ----------------------------------------------------------------
   function about() {
     const options = {
@@ -265,7 +336,16 @@ function run() {
     const send = (name) => () => win && command(name);
     const openRecent = (file) => () => win && command("open-file", { path: file });
     return Menu.buildFromTemplate(
-      menuTemplate({ platform: process.platform, appName: NAMES.short, about, send, recent, openRecent, lang }),
+      menuTemplate({
+        platform: process.platform,
+        appName: NAMES.short,
+        about,
+        checkUpdates: () => updates.check({ manual: true }),
+        send,
+        recent,
+        openRecent,
+        lang,
+      }),
     );
   }
 
@@ -276,7 +356,6 @@ function run() {
   app.on("window-all-closed", () => app.quit());
 
   // Le serveur est arrêté avant de quitter (fermeture de son entrée standard).
-  let serverStopped = false;
   app.on("will-quit", (event) => {
     if (!server || serverStopped) return;
     event.preventDefault();

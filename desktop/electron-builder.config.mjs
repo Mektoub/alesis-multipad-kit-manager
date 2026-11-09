@@ -4,7 +4,10 @@
 // identifiant technique pour les chemins).
 import { readFileSync } from "node:fs";
 
+import { githubRepo } from "./updater.js";
+
 const names = JSON.parse(readFileSync(new URL("../app-names.json", import.meta.url), "utf8"));
+const { homepage } = JSON.parse(readFileSync(new URL("package.json", import.meta.url), "utf8"));
 const server = `${names.id}-server`; // serveur figé (./dev.sh freeze)
 // paquets Windows et macOS : <id>-<version>-<win|mac>-<arch>.<ext>, sans espaces
 // (macros d'electron-builder) ; le .deb garde le nom Debian <id>_<version>_<arch>.deb
@@ -19,8 +22,12 @@ export default {
   // ajoutés au package.json de l'application empaquetée : main.js y lit les noms
   extraMetadata: { desktopName: `${names.id}.desktop`, appNames: names },
   directories: { output: "dist", buildResources: "build-resources" },
-  files: ["main.js", "menu.js", "messages.js", "preload.cjs", "server.js", "window-state.js", "package.json"],
+  files: ["main.js", "menu.js", "messages.js", "preload.cjs", "server.js", "updater.js", "window-state.js", "package.json"],
   extraResources: [{ from: `build/${server}`, to: server }],
+  // mises à jour (desktop/updater.js) : dist/latest.yml, latest-linux.yml et
+  // latest-mac.yml (version, fichiers, empreintes sha512), joints aux releases
+  // GitHub par release.yml ; `--publish never` : rien n'est envoyé d'ici
+  publish: { provider: "github", ...githubRepo(homepage), releaseType: "release" },
   fileAssociations: [
     { ext: "bkf", name: "Sauvegarde Strike (kits et samples)", mimeType: "application/x-kitmanager-bkf" },
     { ext: "fac", name: "Sauvegarde Strike (kits)", mimeType: "application/x-kitmanager-fac" },
@@ -46,7 +53,10 @@ export default {
     icon: "build-resources/icon.png",
   },
   // installation en un clic, pour l'utilisateur courant, sans droits administrateur
-  nsis: { shortcutName: names.short, artifactName: artifact("-setup") },
+  // differentialPackage: false : mise à jour par téléchargement complet, sans
+  // .blockmap (l'empreinte de latest.yml reste ainsi seule à recalculer si
+  // l'installateur est signé après sa construction)
+  nsis: { shortcutName: names.short, artifactName: artifact("-setup"), differentialPackage: false },
   mac: {
     target: [{ target: "dmg", arch: "arm64" }, { target: "zip", arch: "arm64" }],
     icon: "build-resources/icon.png",

@@ -266,6 +266,45 @@ Gatekeeper blocks it on first launch; right-click the app, *Open*, or
 The default allowed folders depend on the system (see
 [the web editor](web-editor.md#allowed-folders)).
 
+## Updates
+
+The installed app looks for new versions in the published
+[GitHub releases](https://github.com/Mektoub/alesis-multipad-kit-manager/releases)
+(`desktop/updater.js`, [electron-updater](https://www.npmjs.com/package/electron-updater)):
+
+- **When**: on first launch, the app asks whether to check at each launch
+  (preference *Check for updates at launch*, see
+  [Preferences](web-editor.md#preferences)); until it is answered, nothing is
+  checked. *Help › Check for Updates…* checks at any time. At launch, only a
+  new version is reported; on request, “up to date” and errors are shown too.
+- **What is sent**: a request to GitHub for the `latest*.yml` file of the latest
+  release (version, file names, sha512 checksums); GitHub sees the IP address.
+  Nothing else.
+- **Depending on the package**:
+
+  | Package | Update |
+  |---|---|
+  | Windows installer | download (progress in the taskbar), then silent installation when restarting (*Restart and install*) or when quitting the app |
+  | Linux `.deb` | download, then `dpkg -i` with the administrator password (`pkexec`) when restarting; *Later*: from *Help › Check for Updates…* again |
+  | Windows `.zip`, macOS | the new version is reported, with a link to its release page: without an Apple certificate, macOS refuses automatic updates |
+
+- **Integrity**: the downloaded file must match the sha512 checksum of the
+  `latest*.yml` file. Unsigned packages: nothing else checks the publisher.
+- **Closing**: before installing, unsaved changes are handled as when closing
+  the window; on Windows, the server is stopped first so that the installer can
+  replace it.
+- **Development**: no updates (the app is not installed), unless
+  `KITMANAGER_UPDATE_URL` points to a test server serving `latest-linux.yml`
+  (`latest.yml` on Windows, `latest-mac.yml` on macOS): the new version is then
+  only reported. With an unpacked package (`desktop/dist/linux-unpacked/`), the
+  download can be tested too. The end-to-end test uses such a server.
+
+The release files: electron-builder writes the `latest*.yml` files next to the
+packages (`publish` configuration in `electron-builder.config.mjs`,
+`--publish never`: nothing is sent from there) and `resources/app-update.yml` in
+the app; `build.yml` checks their version and `release.yml` attaches them to the
+release. A draft release is not offered: users get the update once it is published.
+
 ## How it works
 
 - **Server**: the app starts the server (`python -m editor` or the frozen
@@ -291,8 +330,8 @@ The default allowed folders depend on the system (see
   *Save As…* `Ctrl+Shift+S`, *Quit* `Ctrl+Q`), *Edit* (*Undo* `Ctrl+Z`, *Redo*
   `Ctrl+Y`, see [Undo / Redo](web-editor.md#undo--redo); cut,
   copy, paste; *Preferences…* `Ctrl+,`), *View* (zoom, developer
-  tools), *Help* (*About*: name and version). On macOS, an
-  application menu comes first, as for any Mac app: *About*, *Preferences…*
+  tools), *Help* (*Check for Updates…*, see [Updates](#updates); *About*: name and version). On macOS, an
+  application menu comes first, as for any Mac app: *About*, *Check for Updates…*, *Preferences…*
   (`Cmd+,`), *Hide*, *Hide Others*, *Show All*,
   *Quit* (`Cmd+Q`); *Quit* is then no longer in *File*, *Preferences…* no longer in *Edit*, and the *Help*
   menu disappears. Menu template: `desktop/menu.js`.
@@ -326,6 +365,7 @@ The default allowed folders depend on the system (see
 |---|---|
 | `desktop/main.js` | main process: server, window, menu, dialog boxes, closing |
 | `desktop/menu.js` | menu template (application menu first on macOS) |
+| `desktop/updater.js` | updates: package type, check, download, installation (electron-updater) |
 | `desktop/window-state.js` | window size, position and maximized state, kept from one launch to the next |
 | `desktop/messages.js` | texts of the menus and dialogs, in English and French |
 | `desktop/preload.cjs` | `window.kitManagerDesktop` bridge |

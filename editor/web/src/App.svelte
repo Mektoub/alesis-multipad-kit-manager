@@ -13,6 +13,7 @@
   import HistoryAlert from "./lib/HistoryAlert.svelte";
   import HistoryMenu from "./lib/HistoryMenu.svelte";
   import PreferencesDialog from "./lib/PreferencesDialog.svelte";
+import UpdateQuestion from "./lib/UpdateQuestion.svelte";
   import RecentMenu from "./lib/RecentMenu.svelte";
   import { applyTheme } from "./lib/theme.js";
   import { resolveLanguage } from "./lib/i18n.js";
@@ -87,6 +88,19 @@
   async function reloadTexts() {
     try {
       [meta, session] = await Promise.all([api.meta(), api.state()]);
+    } catch (err) {
+      error = err.message;
+    }
+  }
+
+  // Mode bureau : recherche des mises à jour au démarrage (préférence)
+  $effect(() => {
+    if (prefs) desktop?.setUpdateCheck?.(prefs.check_updates);
+  });
+
+  async function answerUpdateQuestion(value) {
+    try {
+      await setPrefs({ check_updates: value });
     } catch (err) {
       error = err.message;
     }
@@ -691,6 +705,10 @@
 
 {#if transferring && kit}
   <KitTransferDialog kits={session.kits} source={currentNum} ontransfer={transferKit} onclose={() => (transferring = false)} />
+{/if}
+
+{#if desktop?.updates && prefs?.check_updates === null}
+  <UpdateQuestion onchoose={answerUpdateQuestion} />
 {/if}
 
 {#if prefsOpen && prefs}

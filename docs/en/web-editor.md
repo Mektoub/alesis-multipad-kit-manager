@@ -264,6 +264,7 @@ menu) opens the preferences window. Each setting is applied and saved at once:
 | *Reopen the last backup at launch* | no | when no file is passed at launch, reopens the most recent of the recent files (nothing if it can no longer be read) |
 | Recent files | — | the last 10 files opened or saved under another name; *Clear the list* forgets them |
 | History size | 100 | steps kept for [Undo / Redo](#undo--redo), from 10 to 1000; reducing it forgets the oldest ones at once |
+| *Check for updates at launch* | asked at first launch | installed desktop app only: looks for a new version a few seconds after launch (see [Updates](desktop-app.md#updates)) |
 
 The folder of the last opened file is remembered too: the desktop app's
 *Open* dialog starts there. The desktop app also remembers the size,
@@ -312,7 +313,7 @@ language of error messages, history labels and tooltips:
 | POST | `/api/undo` / `/api/redo` | undo / redo the last action in the history; returns the state, `done` (action label), `detail` (“90 → 50”, empty if the action changes several parameters) and `changed` (modified kits); 409 if there is nothing to undo or redo |
 | GET | `/api/history` | history actions, from oldest to most recent (`entries`: `id`, `label`, `detail`, `done` done or undone); `base`: id of the state before the oldest one, `position`: last action done, `saved`: action of the last save (`null` if the saved state can no longer be reached) |
 | POST | `/api/history/goto` | return to an action (`{"id": 12}`, or `base` to undo everything); returns the state and `changed`; 404 if the action is not in the history |
-| GET / PATCH | `/api/preferences` | read / change the [preferences](#preferences) (`{"theme": "dark", "history_limit": 200}`; keys: `theme`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`); 400 if a key or value is invalid, nothing is changed then |
+| GET / PATCH | `/api/preferences` | read / change the [preferences](#preferences) (`{"theme": "dark", "history_limit": 200}`; keys: `theme`, `language`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`, `check_updates`); 400 if a key or value is invalid, nothing is changed then |
 | POST | `/api/save` | `{}`: save to the open file (`.N.bak` copy of the original on the first save of the session); `{"path": …, "overwrite": false}`: save as (403 outside the allowed folders; 409 if another file exists, unless `overwrite`) |
 
 Interactive documentation is available at http://127.0.0.1:8765/docs; its

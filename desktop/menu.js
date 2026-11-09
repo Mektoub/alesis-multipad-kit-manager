@@ -6,14 +6,15 @@
 // Fichier et d'Aide pour éviter les doublons. Linux et Windows gardent Fichier
 // en tête, avec Quitter, et Aide › À propos.
 //
-// `about` : affiche la boîte À propos ; `send(nom)` : fonction qui transmet la
+// `about` : affiche la boîte À propos ; `checkUpdates` : recherche des mises à
+// jour (updater.js) ; `send(nom)` : fonction qui transmet la
 // commande `nom` à l'interface ; `recent` : fichiers récents (préférences),
 // `openRecent(chemin)` : fonction qui ouvre l'un d'eux ; `lang` : langue des
 // libellés (messages.js).
 
 import { translator } from "./messages.js";
 
-export function menuTemplate({ platform, appName, about, send, recent = [], openRecent = () => () => {}, lang = "en" }) {
+export function menuTemplate({ platform, appName, about, checkUpdates = () => {}, send, recent = [], openRecent = () => () => {}, lang = "en" }) {
   const t = translator(lang);
   const mac = platform === "darwin";
   const recentMenu = recent.length
@@ -23,6 +24,7 @@ export function menuTemplate({ platform, appName, about, send, recent = [], open
         { label: t("clearRecent"), click: send("clear-recent") },
       ]
     : [{ label: t("noRecent"), enabled: false }];
+  const updates = { label: t("checkUpdates"), click: checkUpdates };
   const preferences = { label: t("preferences"), accelerator: "CmdOrCtrl+,", click: send("preferences") };
   const file = [
     { label: t("open"), accelerator: "CmdOrCtrl+O", click: send("open") },
@@ -36,6 +38,7 @@ export function menuTemplate({ platform, appName, about, send, recent = [], open
     label: appName,
     submenu: [
       { label: t("aboutApp", { app: appName }), click: about },
+      updates,
       { type: "separator" },
       preferences,
       { type: "separator" },
@@ -89,6 +92,6 @@ export function menuTemplate({ platform, appName, about, send, recent = [], open
       ],
     },
     // sous macOS, Aide ne contiendrait plus rien : À propos est dans le menu de l'application
-    ...(mac ? [] : [{ label: t("help"), submenu: [{ label: t("about"), click: about }] }]),
+    ...(mac ? [] : [{ label: t("help"), submenu: [updates, { type: "separator" }, { label: t("about"), click: about }] }]),
   ];
 }

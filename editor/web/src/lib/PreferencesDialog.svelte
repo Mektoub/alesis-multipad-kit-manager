@@ -111,6 +111,18 @@
       <p class="muted explain">{t("historyLimitHelp", { min: HISTORY_MIN, max: HISTORY_MAX })}</p>
     </fieldset>
 
+    {#if desktop?.updates}
+      <fieldset>
+        <legend>{t("updates")}</legend>
+        <label class="choice">
+          <input type="checkbox" checked={prefs.check_updates === true}
+            onchange={(e) => change({ check_updates: e.target.checked })} />
+          {t("checkUpdatesAtLaunch")}
+        </label>
+        <p class="muted explain">{t("updatesHelp")}</p>
+      </fieldset>
+    {/if}
+
     {#if desktop}
       <p class="muted explain">{t("windowKept")}</p>
     {/if}

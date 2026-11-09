@@ -170,7 +170,8 @@ Steps:
    “Release” workflow (`.github/workflows/release.yml`): it rechecks the commit's
    versions, builds the packages for the three systems (`build.yml`) and creates
    a **draft release** with the packages and the CHANGELOG notes;
-4. review the release on GitHub (*Releases* tab) and publish it.
+4. review the release on GitHub (*Releases* tab) and publish it: from then on, the
+   installed apps are offered the update ([Updates](desktop-app.md#updates)).
 
 The script does not run the checks: run `./dev.sh all` first.
 
