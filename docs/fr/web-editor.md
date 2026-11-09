@@ -265,6 +265,7 @@ fenêtre des préférences. Chaque réglage s'applique et s'enregistre aussitôt
 | Rouvrir la dernière sauvegarde au lancement | non | sans fichier passé au lancement, rouvre le plus récent des fichiers récents (rien s'il n'est plus lisible) |
 | Fichiers récents | — | les 10 derniers fichiers ouverts ou enregistrés sous un autre nom ; *Effacer la liste* les oublie |
 | Taille de l'historique | 100 | étapes gardées pour [Annuler / Rétablir](#annuler--rétablir), de 10 à 1000 ; une réduction oublie tout de suite les plus anciennes |
+| *Rechercher les mises à jour au lancement* | demandé au premier lancement | application de bureau installée seulement : recherche une nouvelle version quelques secondes après le lancement (voir [Mises à jour](desktop-app.md#mises-à-jour)) |
 
 Le dossier du dernier fichier ouvert est aussi retenu : la boîte « Ouvrir » de
 l'application de bureau s'y ouvre. L'application de bureau retient en plus la
@@ -314,7 +315,7 @@ langue des messages d'erreur, des libellés de l'historique et des infobulles :
 | POST | `/api/undo` / `/api/redo` | annuler / rétablir la dernière action de l'historique ; renvoie l'état, `done` (libellé de l'action), `detail` (« 90 → 50 », vide si l'action modifie plusieurs paramètres) et `changed` (kits modifiés) ; 409 s'il n'y a rien à annuler ou à rétablir |
 | GET | `/api/history` | actions de l'historique, de la plus ancienne à la plus récente (`entries` : `id`, `label`, `detail`, `done` faite ou annulée) ; `base` : id de l'état avant la plus ancienne, `position` : dernière action faite, `saved` : action du dernier enregistrement (`null` si l'état enregistré n'est plus atteignable) |
 | POST | `/api/history/goto` | revenir à une action (`{"id": 12}`, ou `base` pour tout annuler) ; renvoie l'état et `changed` ; 404 si l'action n'est pas dans l'historique |
-| GET / PATCH | `/api/preferences` | lire / modifier les [préférences](#préférences) (`{"theme": "dark", "history_limit": 200}` ; clés : `theme`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`) ; 400 si une clé ou une valeur est invalide, rien n'est alors modifié |
+| GET / PATCH | `/api/preferences` | lire / modifier les [préférences](#préférences) (`{"theme": "dark", "history_limit": 200}` ; clés : `theme`, `language`, `hide_empty`, `reopen_last`, `history_limit`, `recent_files`, `last_dir`, `check_updates`) ; 400 si une clé ou une valeur est invalide, rien n'est alors modifié |
 | POST | `/api/save` | `{}` : enregistrer dans le fichier ouvert (copie `.N.bak` de l'original au premier enregistrement de la session) ; `{"path": …, "overwrite": false}` : enregistrer sous (403 hors des dossiers autorisés ; 409 si un autre fichier existe, sauf `overwrite`) |
 
 La documentation interactive est disponible sur http://127.0.0.1:8765/docs ; ses

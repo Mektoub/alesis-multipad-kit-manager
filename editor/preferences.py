@@ -29,6 +29,9 @@ DEFAULTS = {
     "history_limit": 100,  # étapes gardées pour annuler / rétablir
     "recent_files": [],  # chemins absolus, le plus récent en tête
     "last_dir": None,  # dossier du dernier fichier ouvert ou enregistré
+    # rechercher les mises à jour au démarrage (application de bureau) ; None :
+    # pas encore demandé, la question est posée au premier lancement
+    "check_updates": None,
 }
 
 
@@ -39,6 +42,8 @@ def _valid(key, value):
         return value == "system" or value in LANGUAGES
     if key in ("hide_empty", "reopen_last"):
         return isinstance(value, bool)
+    if key == "check_updates":
+        return value is None or isinstance(value, bool)
     if key == "history_limit":
         return isinstance(value, int) and not isinstance(value, bool) and HISTORY_MIN <= value <= HISTORY_MAX
     if key == "recent_files":

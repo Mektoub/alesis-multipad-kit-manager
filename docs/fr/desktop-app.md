@@ -274,6 +274,48 @@ au premier lancement ; clic droit sur l'application, *Ouvrir*, ou bien
 Les dossiers autorisés par défaut dépendent du système (voir
 [l'éditeur web](web-editor.md#dossiers-autorisés)).
 
+## Mises à jour
+
+L'application installée recherche les nouvelles versions dans les
+[releases GitHub](https://github.com/Mektoub/alesis-multipad-kit-manager/releases)
+publiées (`desktop/updater.js`, [electron-updater](https://www.npmjs.com/package/electron-updater)) :
+
+- **Quand** : au premier lancement, l'application demande s'il faut rechercher
+  à chaque lancement (préférence *Rechercher les mises à jour au lancement*, voir
+  [Préférences](web-editor.md#préférences)) ; sans réponse, rien n'est
+  recherché. *Aide › Rechercher des mises à jour…* recherche à tout moment. Au
+  lancement, seule une nouvelle version est signalée ; à la demande, « à jour »
+  et les erreurs sont aussi affichés.
+- **Ce qui est transmis** : une demande à GitHub du fichier `latest*.yml` de la
+  dernière release (version, noms des fichiers, empreintes sha512) ; GitHub voit
+  l'adresse IP. Rien d'autre.
+- **Selon le paquet** :
+
+  | Paquet | Mise à jour |
+  |---|---|
+  | Installateur Windows | téléchargement (progression dans la barre des tâches), puis installation silencieuse au redémarrage (*Redémarrer et installer*) ou en quittant l'application |
+  | `.deb` Linux | téléchargement, puis `dpkg -i` avec le mot de passe administrateur (`pkexec`) au redémarrage ; *Plus tard* : de nouveau par *Aide › Rechercher des mises à jour…* |
+  | `.zip` Windows, macOS | la nouvelle version est signalée, avec un lien vers sa page de release : sans certificat Apple, macOS refuse les mises à jour automatiques |
+
+- **Intégrité** : le fichier téléchargé doit correspondre à l'empreinte sha512
+  du fichier `latest*.yml`. Paquets non signés : rien d'autre ne vérifie l'éditeur.
+- **Fermeture** : avant l'installation, les modifications non enregistrées sont
+  traitées comme à la fermeture de la fenêtre ; sous Windows, le serveur est
+  arrêté d'abord pour que l'installateur puisse le remplacer.
+- **Développement** : pas de mise à jour (l'application n'est pas installée),
+  sauf si `KITMANAGER_UPDATE_URL` désigne un serveur de test qui sert
+  `latest-linux.yml` (`latest.yml` sous Windows, `latest-mac.yml` sous macOS) :
+  la nouvelle version est alors seulement signalée. Avec un paquet décompressé
+  (`desktop/dist/linux-unpacked/`), le téléchargement se teste aussi. Le test de
+  bout en bout utilise un tel serveur.
+
+Les fichiers des releases : electron-builder écrit les fichiers `latest*.yml`
+à côté des paquets (configuration `publish` d'`electron-builder.config.mjs`,
+`--publish never` : rien n'est envoyé d'ici) et `resources/app-update.yml` dans
+l'application ; `build.yml` vérifie leur version et `release.yml` les joint à la
+release. Une release en brouillon n'est pas proposée : les utilisateurs reçoivent
+la mise à jour une fois qu'elle est publiée.
+
 ## Fonctionnement
 
 - **Serveur** : l'application lance le serveur (`python -m editor` ou le serveur
@@ -300,9 +342,10 @@ Les dossiers autorisés par défaut dépendent du système (voir
   *Édition* (Annuler `Ctrl+Z`, Rétablir `Ctrl+Y`, voir
   [Annuler / Rétablir](web-editor.md#annuler--rétablir) ; couper, copier,
   coller ; Préférences… `Ctrl+,`), *Affichage* (zoom, outils de
-  développement), *Aide* (À propos : nom et version). Sous macOS, un menu de
+  développement), *Aide* (Rechercher des mises à jour…, voir [Mises à jour](#mises-à-jour) ;
+  À propos : nom et version). Sous macOS, un menu de
   l'application vient en tête, comme pour toute application Mac : À propos,
-  Préférences… (`Cmd+,`), Masquer, Masquer les autres, Tout afficher, Quitter
+  Rechercher des mises à jour…, Préférences… (`Cmd+,`), Masquer, Masquer les autres, Tout afficher, Quitter
   (`Cmd+Q`) ; Quitter n'est alors plus dans *Fichier*, Préférences… plus dans *Édition*, et le menu *Aide* disparaît. Modèle du menu :
   `desktop/menu.js`.
 - **Langue** : menus et boîtes de dialogue suivent la langue de l'interface
@@ -336,6 +379,7 @@ Les dossiers autorisés par défaut dépendent du système (voir
 | `desktop/main.js` | processus principal : serveur, fenêtre, menu, boîtes de dialogue, fermeture |
 | `desktop/menu.js` | modèle du menu (menu de l'application en tête sous macOS) |
 | `desktop/preload.cjs` | pont `window.kitManagerDesktop` |
+| `desktop/updater.js` | mises à jour : type de paquet, recherche, téléchargement, installation (electron-updater) |
 | `desktop/window-state.js` | taille, position et état maximisé de la fenêtre, gardés d'un lancement à l'autre |
 | `desktop/messages.js` | textes des menus et des boîtes de dialogue, en anglais et en français |
 | `app-names.json` | noms de l'application (voir [Noms de l'application](#noms-de-lapplication)) |

@@ -5,8 +5,10 @@ import { menuTemplate } from "../menu.js";
 import { messageKeys, resolveLanguage } from "../messages.js";
 
 const about = () => {};
+const checkUpdates = () => {};
 const send = (name) => () => name;
-const template = (platform, lang = "fr") => menuTemplate({ platform, appName: "Alesis Kit Manager", about, send, lang });
+const template = (platform, lang = "fr") =>
+  menuTemplate({ platform, appName: "Alesis Kit Manager", about, checkUpdates, send, lang });
 const labels = (menu) => menu.map((m) => m.label);
 const items = (menu, label) => menu.find((m) => m.label === label).submenu;
 
@@ -16,7 +18,10 @@ describe("menu de l'application", () => {
       const menu = template(platform);
       assert.deepEqual(labels(menu), ["&Fichier", "É&dition", "&Affichage", "Ai&de"]);
       assert.ok(items(menu, "&Fichier").some((i) => i.role === "quit"));
-      assert.equal(items(menu, "Ai&de")[0].click, about);
+      assert.deepEqual(
+        items(menu, "Ai&de").map((i) => i.click),
+        [checkUpdates, undefined, about],
+      );
     });
   }
 
@@ -26,6 +31,7 @@ describe("menu de l'application", () => {
     const app = menu[0].submenu;
     assert.equal(app[0].label, "À propos de Alesis Kit Manager");
     assert.equal(app[0].click, about);
+    assert.equal(app[1].click, checkUpdates);
     assert.deepEqual(
       app.filter((i) => i.role).map((i) => i.role),
       ["hide", "hideOthers", "unhide", "quit"],

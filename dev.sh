@@ -211,11 +211,12 @@ step_package() {
     local deb
     deb="$(ls "$DESKTOP"/dist/*.deb 2>/dev/null | head -1)"
     [[ -n "$deb" ]] || { echo "aucun .deb produit" >&2; return 1; }
-    # le serveur figé et l'interface doivent être dans le paquet
+    # le serveur figé, l'interface et la configuration des mises à jour
+    # (desktop/updater.js) doivent être dans le paquet
     local content
     content="$(dpkg-deb -c "$deb")"
     for f in "resources/$SERVER/$SERVER" "resources/$SERVER/_internal/editor/web/dist/index.html" \
-             resources/app.asar; do
+             resources/app.asar resources/app-update.yml resources/package-type; do
         grep -q "$f" <<<"$content" || { echo "absent du paquet : $f" >&2; return 1; }
     done
     info "Paquet : ${deb#"$PROJECT"/} ($(du -h "$deb" | cut -f1))"

@@ -1,7 +1,8 @@
 // Test de bout en bout de l'application de bureau (Playwright, Electron du
 // dépôt) : ouvre une copie de la sauvegarde de référence passée en argument,
 // modifie le nom d'un kit, enregistre par le menu, relance l'application sur le
-// fichier enregistré ; fermeture avec des modifications non enregistrées.
+// fichier enregistré ; fermeture avec des modifications non enregistrées ;
+// question des mises à jour et recherche sur un serveur de test.
 //
 // Prérequis : .venv et interface construite (./dev.sh e2e les prépare), ou un
 // serveur figé désigné par KITMANAGER_SERVER. Sous Linux sans affichage :
@@ -10,6 +11,7 @@
 
 import assert from "node:assert/strict";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -28,22 +30,23 @@ const reference = path.resolve(desktop, "..", "tests", "ressources", "Backup001.
 // en français (préférence `language`), quelle que soit la langue du système.
 let home;
 let file;
+let config;
 before(() => {
   home = mkdtempSync(path.join(tmpdir(), "kitmanager-e2e-"));
   mkdirSync(path.join(home, "Sauvegardes"));
   file = path.join(home, "Sauvegardes", "Backup001.bkf");
-  const config = path.join(home, ".config", names.config);
+  config = path.join(home, ".config", names.config);
   mkdirSync(config, { recursive: true });
   writeFileSync(path.join(config, "preferences.json"), JSON.stringify({ language: "fr" }));
 });
 after(() => rmSync(home, { recursive: true, force: true }));
 
-function launch(target) {
+function launch(target, env = {}) {
   return electron.launch({
     executablePath: electronPath,
-    args: [desktop, target],
+    args: target ? [desktop, target] : [desktop],
     cwd: desktop,
-    env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: path.join(home, ".config") },
+    env: { ...process.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: path.join(home, ".config"), ...env },
   });
 }
 
@@ -147,5 +150,29 @@ describe("application de bureau", { timeout: 60000 }, () => {
     }
     assert.deepEqual(readFileSync(file), readFileSync(reference), "fichier modifié sans enregistrement");
     assert.equal(existsSync(`${file}.1.bak`), false);
+  });
+
+  it("mises à jour : question au premier lancement, puis recherche au démarrage", async () => {
+    // serveur de test : version 99.0.0, mêmes fichiers pour tous les systèmes
+    const manifest = "version: 99.0.0\nfiles:\n  - url: paquet\n    sha512: x\n    size: 1\npath: paquet\nsha512: x\n";
+    const feed = createServer((req, res) => {
+      if (/\/latest(-linux|-mac)?\.yml/.test(req.url)) res.end(manifest);
+      else res.writeHead(404).end();
+    }).listen(0, "127.0.0.1");
+    await new Promise((resolve) => feed.once("listening", resolve));
+    const app = await launch(null, { KITMANAGER_UPDATE_URL: `http://127.0.0.1:${feed.address().port}/` });
+    try {
+      await answerDialogs(app, 1); // Plus tard
+      const page = await app.firstWindow();
+      await page.getByRole("button", { name: "Rechercher au lancement" }).click();
+      await until(async () => (await dialogs(app)).length > 0, 10000);
+      assert.deepEqual(await dialogs(app), ["La version 99.0.0 est disponible."]);
+      const prefs = JSON.parse(readFileSync(path.join(config, "preferences.json"), "utf8"));
+      assert.equal(prefs.check_updates, true);
+    } finally {
+      await app.close();
+      feed.close();
+      writeFileSync(path.join(config, "preferences.json"), JSON.stringify({ language: "fr" }));
+    }
   });
 });

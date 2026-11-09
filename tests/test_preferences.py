@@ -52,11 +52,18 @@ class Fichier(unittest.TestCase):
             {"hide_empty": "oui"},
             {"recent_files": ["relatif.bkf"]},
             {"last_dir": 3},
+            {"check_updates": "oui"},
             {"inconnue": 1},
         ):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 prefs.update(changes)
         self.assertEqual(prefs.get(), DEFAULTS)
+
+    def test_recherche_des_mises_a_jour_pas_encore_demandee(self):
+        prefs = Preferences(self.file)
+        self.assertIsNone(prefs["check_updates"])
+        for value in (True, False, None):
+            self.assertEqual(prefs.update({"check_updates": value})["check_updates"], value)
 
     def test_fichiers_recents(self):
         prefs = Preferences(self.file)

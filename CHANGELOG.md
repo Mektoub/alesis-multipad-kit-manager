@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Automatic updates
+
+- Desktop app: updates from the published GitHub releases (`desktop/updater.js`, electron-updater 6.8.11). Windows installer: download, then silent installation on restart or when quitting; Linux `.deb`: download, then installation on restart with the administrator password; Windows `.zip` and macOS (no Apple certificate): the new version is reported with a link to its release page.
+- Check at launch only with the user's consent: question on first launch, *Check for updates at launch* preference (`check_updates`, desktop app only); *Help › Check for Updates…* (application menu on macOS) checks on request. Unsaved changes are handled before installing, as when closing.
+- Packages: `latest.yml`, `latest-linux.yml` and `latest-mac.yml` built next to the packages (`publish` configuration), checked by `build.yml` and attached to the releases; NSIS updates without `.blockmap` (full download). `KITMANAGER_UPDATE_URL` points to a test update server.
+
 ## 0.7.0 — Gestion des samples
 
 - Web editor: sample manager (*Samples* button in the header, *Edit › Samples…* menu of the desktop app): list of the user samples with WAV size and the kits and pads using them, play, rename (outside the undo history), add a WAV. API: `GET /api/samples/user`, `Backup.sample_uses`.
