@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1 — Fixes macOS build / release
+
+- Packages: the macOS build failed when checking `latest-mac.yml` (`bad array subscript`: negative array index, not supported by bash 3.2 on the macOS runners).
+
 ## 0.8.0 — Automatic updates
 
 - Desktop app: updates from the published GitHub releases (`desktop/updater.js`, electron-updater 6.8.11). Windows installer: download, then silent installation on restart or when quitting; Linux `.deb`: download, then installation on restart with the administrator password; Windows `.zip` and macOS (no Apple certificate): the new version is reported with a link to its release page.

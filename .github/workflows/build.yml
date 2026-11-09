@@ -102,8 +102,9 @@ jobs:
             [[ -f "dist/$f" ]] || { echo "paquet absent : dist/$f" >&2; ls dist >&2; exit 1; }
             cp "dist/$f" paquets/ && echo "✔ $f"
           done
-          # fichier des mises à jour (desktop/updater.js) : version du paquet
-          manifest="dist/${files[-1]}"
+          # fichier des mises à jour (desktop/updater.js) : version du paquet ;
+          # pas d'indice négatif (${files[-1]}) : bash 3.2 sur les runners macOS
+          manifest="dist/${files[${#files[@]}-1]}"
           grep -qx "version: $v" "$manifest" || { echo "$manifest : version différente de $v" >&2; cat "$manifest" >&2; exit 1; }
           if [[ "$RUNNER_OS" == Linux ]]; then
             deb_version="$(dpkg-deb -f "dist/${files[0]}" Version)"
