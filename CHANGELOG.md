@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — Code signing policy
+
+- Code signing policy (`docs/en/code-signing.md`, `docs/fr/code-signing.md`) required by SignPath Foundation, for the signing of the Windows packages: what is signed, team roles, privacy policy (update checks, with the user's consent, are the only network access), uninstallation. Linked from the READMEs (*Code signing policy* section) and from each GitHub release's notes.
+
 ## 0.8.1 — Fixes macOS build / release
 
 - Packages: the macOS build failed when checking `latest-mac.yml` (`bad array subscript`: negative array index, not supported by bash 3.2 on the macOS runners).
@@ -19,10 +23,6 @@
 - Rear inputs located using device backups: 12 = Trigger In 2, 13 = Trigger In 3, 14 = Trigger In 4, 15 = Trigger In 5 (was “Trigger In 4/5”): one slot per trigger of the dual jacks; 18 = FootSwitch 1, 19 = FootSwitch 2, 20 = FootSwitch 3, 21 = FootSwitch 4 (was “FootSwitch 1/2” and “3/4”); 10, 11 and 22–24 remain unidentified.
 - Web editor: rear inputs below the pads on two rows: Trigger In 1–5 and HH, then FootSwitch 1–4, under a bold “Inputs” label.
 - Web editor: the copy, *Edit several pads* and *Default values* dialogs name the rear inputs (Trigger In 1–5 and HH, FootSwitch 1–4) instead of their slot number; unidentified slots keep their number.
-
-## 0.7.0 — Code signing policy, sample renaming
-
-- Code signing policy (`docs/en/code-signing.md`, `docs/fr/code-signing.md`) required by SignPath Foundation, for the signing of the Windows packages: what is signed, team roles, privacy policy, uninstallation. Linked from the READMEs (*Code signing policy* section) and from each GitHub release's notes.
 
 ## 0.6.0 — License
 

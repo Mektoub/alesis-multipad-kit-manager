@@ -45,8 +45,18 @@ l'utilise.
 
 L'éditeur lance un serveur local, joignable uniquement depuis l'ordinateur
 lui-même (`127.0.0.1`) ; les sauvegardes, kits et samples restent sur
-l'ordinateur. L'application ne recherche pas de mises à jour et n'envoie aucune
-statistique d'utilisation.
+l'ordinateur. L'application n'envoie aucune statistique d'utilisation.
+
+La recherche des mises à jour est le seul accès au réseau, et seulement avec
+l'accord de l'utilisateur : au premier lancement, l'application demande s'il
+faut rechercher les mises à jour à chaque lancement (modifiable dans les
+*Préférences*), et *Aide › Rechercher des mises à jour…* recherche à la demande.
+Une recherche télécharge auprès de GitHub (`github.com`) la description de la
+dernière release ; un téléchargement y récupère le nouveau paquet. Seules les
+données habituelles d'une requête (adresse du fichier demandé, adresse IP)
+parviennent à GitHub, selon sa
+[déclaration de confidentialité](https://docs.github.com/fr/site-policy/privacy-policies/github-general-privacy-statement).
+Voir [Mises à jour](desktop-app.md#mises-à-jour).
 
 ## Désinstallation
 

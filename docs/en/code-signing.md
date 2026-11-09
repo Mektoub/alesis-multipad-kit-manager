@@ -44,7 +44,16 @@ operating it.
 
 The editor runs a local server, reachable only from the computer itself
 (`127.0.0.1`); the backups, kits and samples stay on the computer. The app
-does not check for updates and sends no usage statistics.
+sends no usage statistics.
+
+Update checks are the only network access, and only with the user's consent:
+on first launch, the app asks whether to check for updates at each launch
+(can be changed in *Preferences*), and *Help › Check for Updates…* checks on
+request. A check downloads the description of the latest release from GitHub
+(`github.com`); a download fetches the new package from there. Only the usual
+request data (the address of the requested file, IP address) reach GitHub,
+under the [GitHub privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
+See [Updates](desktop-app.md#updates).
 
 ## Uninstallation
 

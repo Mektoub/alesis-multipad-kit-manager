@@ -64,7 +64,8 @@ Signature du code gratuite fournie par [SignPath.io](https://about.signpath.io/)
 certificat délivré par [SignPath Foundation](https://signpath.org/) (candidature
 en cours). Rôles de l'équipe, fichiers signés et confidentialité :
 [Code signing policy](docs/fr/code-signing.md). Le programme ne transmet aucune
-information à d'autres systèmes en réseau, sauf à la demande de l'utilisateur.
+information à d'autres systèmes en réseau, sauf à la demande de l'utilisateur (la
+recherche des mises à jour n'a lieu qu'avec son accord).
 
 ## Licence
 

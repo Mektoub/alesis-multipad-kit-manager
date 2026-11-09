@@ -289,7 +289,7 @@ publiées (`desktop/updater.js`, [electron-updater](https://www.npmjs.com/packag
   et les erreurs sont aussi affichés.
 - **Ce qui est transmis** : une demande à GitHub du fichier `latest*.yml` de la
   dernière release (version, noms des fichiers, empreintes sha512) ; GitHub voit
-  l'adresse IP. Rien d'autre.
+  l'adresse IP. Rien d'autre (voir la [code signing policy](code-signing.md#confidentialité)).
 - **Selon le paquet** :
 
   | Paquet | Mise à jour |

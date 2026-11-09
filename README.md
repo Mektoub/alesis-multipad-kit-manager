@@ -64,7 +64,8 @@ Free code signing provided by [SignPath.io](https://about.signpath.io/),
 certificate by [SignPath Foundation](https://signpath.org/) (application in
 progress). Team roles, what is signed and privacy policy:
 [Code signing policy](docs/en/code-signing.md). The program transfers no
-information to other networked systems unless requested by the user.
+information to other networked systems unless requested by the user (the
+update check only runs with their consent).
 
 ## License
 

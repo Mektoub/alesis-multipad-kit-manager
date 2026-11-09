@@ -280,7 +280,7 @@ The installed app looks for new versions in the published
   new version is reported; on request, “up to date” and errors are shown too.
 - **What is sent**: a request to GitHub for the `latest*.yml` file of the latest
   release (version, file names, sha512 checksums); GitHub sees the IP address.
-  Nothing else.
+  Nothing else (see the [code signing policy](code-signing.md#privacy-policy)).
 - **Depending on the package**:
 
   | Package | Update |
